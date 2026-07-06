@@ -53,6 +53,15 @@ export interface PieceModele {
   elements: ElementModele[];
 }
 
+export type PeriodeConstruction =
+  | 'avant_1949'
+  | '1949_1974'
+  | '1975_1989'
+  | '1990_2005'
+  | 'apres_2005';
+
+export type ClasseDPE = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
+
 export interface Bien {
   id: string;
   nom: string; // ex. "T2 Chamalières"
@@ -62,6 +71,16 @@ export interface Bien {
   nbPieces: number;
   etage?: string;
   batiment?: string;
+  /** N° à 12 chiffres (impots.gouv.fr > Gérer mes biens immobiliers). Mention obligatoire du bail depuis le 01/01/2024 (décret 2023-796). */
+  identifiantFiscal?: string;
+  typeHabitat?: 'collectif' | 'individuel';
+  periodeConstruction?: PeriodeConstruction;
+  /** Classe du DPE — mention légale ; conditionne la décence (G interdit depuis 2025, F en 2028, E en 2034). */
+  classeDPE?: ClasseDPE;
+  /** Accès aux technologies de l'information (fibre, TV, internet) — rubrique II.E du bail type. */
+  equipementsTIC?: string;
+  /** Zone tendue : loyer soumis au décret annuel d'encadrement de l'évolution des loyers à la relocation. */
+  zoneTendue?: boolean;
   regimeJuridique: 'copropriete' | 'monopropriete';
   equipementsPrivatifs: string[];
   partiesCommunes: string[];
@@ -120,6 +139,16 @@ export interface Bail {
   revisionIRL: { trimestreReference: string; valeurIndice: number; revisable: boolean };
   complementLoyer?: { montant: number; justification: string };
   dernierLoyerAncienLocataire?: number;
+  /** Clause résolutoire (résiliation de plein droit : impayés, dépôt, assurance, troubles). Défaut : true. */
+  clauseResolutoire?: boolean;
+  /** Colocation : assurance pour le compte des colocataires souscrite par le bailleur (récupérable par douzième). */
+  assuranceColocataires?: { montantAnnuel: number };
+  /** Rubrique V du bail type — laisser vide pour « néant ». */
+  travaux?: {
+    depuisDernierBail?: string; // V.A : amélioration / mise en conformité depuis le dernier bail (nature + montant)
+    majorationBailleur?: string; // V.B : majoration de loyer suite à travaux du bailleur
+    diminutionLocataire?: string; // V.C : diminution de loyer suite à travaux du locataire
+  };
   clausesParticulieres: string[];
   annexesChecklist: AnnexeChecklistItem[];
   inventaireId?: string;
@@ -329,6 +358,14 @@ export const CATEGORIE_LABELS: Record<CategorieElement, string> = {
   equipement: 'Équipement',
   mobilier: 'Mobilier',
   autre: 'Autre',
+};
+
+export const PERIODE_CONSTRUCTION_LABELS: Record<PeriodeConstruction, string> = {
+  avant_1949: 'Avant 1949',
+  '1949_1974': 'De 1949 à 1974',
+  '1975_1989': 'De 1975 à 1989',
+  '1990_2005': 'De 1990 à 2005',
+  apres_2005: 'Depuis 2005',
 };
 
 export const TYPE_BAIL_LABELS: Record<TypeBail, string> = {

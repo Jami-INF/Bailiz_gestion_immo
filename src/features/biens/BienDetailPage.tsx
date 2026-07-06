@@ -6,7 +6,7 @@ import { Pencil, Trash2, FileText, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { db } from '@/lib/db';
 import { Badge, Button, Card, ConfirmModal, PageHeader, useToast } from '@/components/ui';
-import { TYPE_BAIL_LABELS } from '@/types';
+import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
 import { VALIDITE_LABELS, validiteDiagnostic } from './diagnostics';
 
 export function BienDetailPage() {
@@ -62,6 +62,14 @@ export function BienDetailPage() {
             <dd>{bien.nbPieces}</dd>
             <dt className="text-accent-500">Régime</dt>
             <dd>{bien.regimeJuridique === 'copropriete' ? 'Copropriété' : 'Monopropriété'}</dd>
+            <dt className="text-accent-500">Habitat</dt>
+            <dd>{bien.typeHabitat === 'individuel' ? 'Individuel' : 'Collectif'}</dd>
+            <dt className="text-accent-500">Construction</dt>
+            <dd>{bien.periodeConstruction ? PERIODE_CONSTRUCTION_LABELS[bien.periodeConstruction] : '—'}</dd>
+            <dt className="text-accent-500">Classe DPE</dt>
+            <dd>{bien.classeDPE ?? '—'}</dd>
+            <dt className="text-accent-500">Identifiant fiscal</dt>
+            <dd>{bien.identifiantFiscal ?? '—'}</dd>
             <dt className="text-accent-500">Chauffage</dt>
             <dd>
               {bien.chauffage.type} ({bien.chauffage.energie})

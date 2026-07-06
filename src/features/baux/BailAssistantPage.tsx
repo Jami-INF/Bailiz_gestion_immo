@@ -7,7 +7,7 @@ import { db, getParametres, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import type { Bail, Inventaire, LigneInventaire, TypeBail } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
-import { validerDepotGarantie, validerDuree, formatEuros } from '@/lib/calculs';
+import { validerDecenceDPE, validerDepotGarantie, validerDuree, formatEuros } from '@/lib/calculs';
 import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
 import { rendrePdf } from '@/lib/pdf/generer';
 import { enregistrerDocument } from '@/lib/pdf/generer';
@@ -58,6 +58,11 @@ interface Brouillon {
   complementMontant: number;
   complementJustification: string;
   dernierLoyerAncienLocataire?: number;
+  clauseResolutoire: boolean;
+  assuranceMontantAnnuel: number;
+  travauxDepuis: string;
+  travauxMajoration: string;
+  travauxDiminution: string;
   clauses: string;
 }
 
@@ -87,6 +92,11 @@ export function BailAssistantPage() {
     revisable: true,
     complementMontant: 0,
     complementJustification: '',
+    clauseResolutoire: true,
+    assuranceMontantAnnuel: 0,
+    travauxDepuis: '',
+    travauxMajoration: '',
+    travauxDiminution: '',
     clauses: '',
   });
   const [annexes, setAnnexes] = useState<ReturnType<typeof annexesParDefaut> | null>(null);
@@ -99,6 +109,10 @@ export function BailAssistantPage() {
 
   // Validations bloquantes de l'étape courante
   const erreurs: string[] = [];
+  const decence = bien ? validerDecenceDPE(bien.classeDPE, new Date(d.dateEffet)) : undefined;
+  if (etape === 0 && decence?.bloquant) {
+    erreurs.push(decence.message!);
+  }
   if (etape === 3) {
     const vDuree = validerDuree(d.typeBail, d.dureeMois);
     if (!vDuree.valide) erreurs.push(vDuree.message!);
@@ -124,7 +138,7 @@ export function BailAssistantPage() {
   const peutContinuer = () => {
     switch (etape) {
       case 0:
-        return d.bienId !== '';
+        return d.bienId !== '' && !decence?.bloquant;
       case 1:
         return d.locataireIds.length > 0;
       case 3:
@@ -200,6 +214,19 @@ export function BailAssistantPage() {
             ? { montant: d.complementMontant, justification: d.complementJustification }
             : undefined,
         dernierLoyerAncienLocataire: d.dernierLoyerAncienLocataire,
+        clauseResolutoire: d.clauseResolutoire,
+        assuranceColocataires:
+          d.locataireIds.length > 1 && d.assuranceMontantAnnuel > 0
+            ? { montantAnnuel: d.assuranceMontantAnnuel }
+            : undefined,
+        travaux:
+          d.travauxDepuis.trim() || d.travauxMajoration.trim() || d.travauxDiminution.trim()
+            ? {
+                depuisDernierBail: d.travauxDepuis.trim() || undefined,
+                majorationBailleur: d.travauxMajoration.trim() || undefined,
+                diminutionLocataire: d.travauxDiminution.trim() || undefined,
+              }
+            : undefined,
         clausesParticulieres: d.clauses.split('\n').map((s) => s.trim()).filter(Boolean),
         annexesChecklist: annexes ?? annexesParDefaut(bien),
         inventaireId: inventaire.id,
@@ -287,6 +314,23 @@ export function BailAssistantPage() {
                 )}
               </p>
             )}
+            {bien && decence?.message && (
+              <p
+                className={`flex items-start gap-2 rounded-lg p-3 text-sm font-medium ${
+                  decence.bloquant ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'
+                }`}
+              >
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" /> {decence.message}
+              </p>
+            )}
+            {bien && !bien.identifiantFiscal && (
+              <p className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm font-medium text-amber-800">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" /> L'identifiant fiscal du
+                logement n'est pas renseigné sur ce bien : c'est une mention obligatoire des
+                baux signés depuis le 01/01/2024 (décret 2023-796). Complétez la fiche du bien
+                (impots.gouv.fr → « Gérer mes biens immobiliers »).
+              </p>
+            )}
           </>
         )}
 
@@ -321,12 +365,25 @@ export function BailAssistantPage() {
               ))}
             </div>
             {d.locataireIds.length > 1 && (
-              <div className="rounded-lg bg-accent-50 p-4">
+              <div className="space-y-3 rounded-lg bg-accent-50 p-4">
                 <Checkbox
                   label="Insérer une clause de solidarité entre colocataires (recommandé)"
                   checked={d.clauseSolidarite}
                   onChange={(e) => maj({ clauseSolidarite: e.target.checked })}
                 />
+                <Field
+                  label="Assurance souscrite par le bailleur pour le compte des colocataires — montant annuel (€)"
+                  hint="Laissez 0 si les colocataires s'assurent eux-mêmes. Sinon, la prime annuelle est récupérable par douzième avec le loyer (art. 8-1 loi de 1989)."
+                >
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={d.assuranceMontantAnnuel || ''}
+                    onChange={(e) => maj({ assuranceMontantAnnuel: Number(e.target.value) })}
+                    placeholder="0"
+                  />
+                </Field>
               </div>
             )}
           </>
@@ -533,17 +590,55 @@ export function BailAssistantPage() {
         )}
 
         {etape === 4 && (
-          <Field
-            label="Clauses particulières"
-            hint="Une clause par ligne (touche Entrée entre deux clauses). Elles apparaîtront numérotées dans la partie VII du bail. Attention aux clauses abusives (liste sur service-public.fr). Laissez vide si aucune."
-          >
-            <Textarea
-              rows={8}
-              value={d.clauses}
-              onChange={(e) => maj({ clauses: e.target.value })}
-              placeholder={"Le locataire fait entretenir la chaudière une fois par an et fournit l'attestation.\nLes animaux sont admis dans la limite du respect de la tranquillité du voisinage."}
-            />
-          </Field>
+          <>
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <Checkbox
+                label="Insérer la clause résolutoire (fortement recommandé — protège le bailleur)"
+                checked={d.clauseResolutoire}
+                onChange={(e) => maj({ clauseResolutoire: e.target.checked })}
+              />
+              <p className="mt-1 text-xs text-green-800">
+                Résiliation de plein droit du bail en cas de : défaut de paiement du loyer ou
+                des charges, non-versement du dépôt de garantie, défaut d'assurance des risques
+                locatifs, troubles de voisinage constatés par une décision de justice. Sans
+                cette clause, il faut prouver la gravité du manquement devant le juge.
+              </p>
+            </div>
+            <div className="space-y-3 rounded-lg bg-accent-50 p-4">
+              <p className="text-sm font-medium text-accent-800">
+                Travaux (rubrique V du bail type) — laissez vide pour « néant » :
+              </p>
+              <Field
+                label="Travaux d'amélioration ou de mise en conformité depuis le dernier bail"
+                hint="Nature et montant (ex. « Remplacement de la chaudière — 3 200 € »)."
+              >
+                <Textarea rows={2} value={d.travauxDepuis} onChange={(e) => maj({ travauxDepuis: e.target.value })} />
+              </Field>
+              <Field
+                label="Majoration de loyer en cours de bail suite à des travaux du bailleur"
+                hint="Nature, modalités, délai et montant de la majoration."
+              >
+                <Textarea rows={2} value={d.travauxMajoration} onChange={(e) => maj({ travauxMajoration: e.target.value })} />
+              </Field>
+              <Field
+                label="Diminution de loyer suite à des travaux pris en charge par le locataire"
+                hint="Nature, montant, durée de la diminution et dédommagement en cas de départ anticipé."
+              >
+                <Textarea rows={2} value={d.travauxDiminution} onChange={(e) => maj({ travauxDiminution: e.target.value })} />
+              </Field>
+            </div>
+            <Field
+              label="Clauses particulières"
+              hint="Une clause par ligne (touche Entrée entre deux clauses). Elles apparaîtront numérotées dans la partie X du bail. Attention aux clauses abusives (liste sur service-public.fr). Laissez vide si aucune."
+            >
+              <Textarea
+                rows={8}
+                value={d.clauses}
+                onChange={(e) => maj({ clauses: e.target.value })}
+                placeholder={"Le locataire fait entretenir la chaudière une fois par an et fournit l'attestation.\nLes animaux sont admis dans la limite du respect de la tranquillité du voisinage."}
+              />
+            </Field>
+          </>
         )}
 
         {etape === 5 && annexes && (

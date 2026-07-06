@@ -1,4 +1,4 @@
-import type { LigneVetuste, TypeBail } from '@/types';
+import type { ClasseDPE, LigneVetuste, TypeBail } from '@/types';
 
 /** Nombre de jours dans le mois d'une date donnée. */
 function joursDansMois(date: Date): number {
@@ -84,6 +84,43 @@ export function validerDuree(typeBail: TypeBail, dureeMois: number): { valide: b
         ? { valide: true }
         : { valide: false, message: 'Le bail mobilité dure de 1 à 10 mois (loi ELAN).' };
   }
+}
+
+/**
+ * Décence énergétique (loi Climat et résilience, art. 6 loi du 6 juillet 1989) :
+ * un logement classé G ne peut plus être mis en location depuis le 1er janvier 2025,
+ * F à compter de 2028, E à compter de 2034.
+ */
+export function validerDecenceDPE(
+  classe: ClasseDPE | undefined,
+  dateEffet: Date,
+): { valide: boolean; bloquant: boolean; message?: string } {
+  if (!classe) {
+    return {
+      valide: true,
+      bloquant: false,
+      message:
+        'La classe DPE du bien n’est pas renseignée : c’est une mention du bail type et elle conditionne le droit de louer (G interdit depuis 2025).',
+    };
+  }
+  const annee = dateEffet.getFullYear();
+  const seuils: Partial<Record<ClasseDPE, number>> = { G: 2025, F: 2028, E: 2034 };
+  const anneeInterdiction = seuils[classe];
+  if (anneeInterdiction !== undefined && annee >= anneeInterdiction) {
+    return {
+      valide: false,
+      bloquant: true,
+      message: `Un logement classé ${classe} au DPE ne répond plus aux critères de décence depuis le 1er janvier ${anneeInterdiction} : sa mise en location est interdite (loi Climat et résilience). Réalisez des travaux de rénovation énergétique ou un nouveau DPE avant de louer.`,
+    };
+  }
+  if (anneeInterdiction !== undefined) {
+    return {
+      valide: true,
+      bloquant: false,
+      message: `Classe ${classe} : la location de ce logement sera interdite à compter du 1er janvier ${anneeInterdiction} (loi Climat et résilience). Anticipez les travaux de rénovation énergétique.`,
+    };
+  }
+  return { valide: true, bloquant: false };
 }
 
 /**

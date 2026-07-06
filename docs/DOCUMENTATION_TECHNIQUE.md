@@ -89,6 +89,7 @@ src/
     calculs.ts             RÈGLES LÉGALES : prorata, IRL, plafond dépôt, durées par type
                            de bail, vétusté, retenues, délais de restitution
     dates.ts               parserDateFr / versDateFr / masquerSaisieDate (DateInput)
+    lettres.ts             montantEnLettres (dépôt de garantie en toutes lettres sur le bail)
     etat.ts                Logique EDL : estDegradation, construirePiecesSortie,
                            progressionEDL, elementsDegrades
     crypto.ts              sha256Hex (Web Crypto), formatHash
@@ -195,6 +196,13 @@ bailiz-sauvegarde-YYYY-MM-DD-HHmm.zip
 - `BienFormPage` : 4 étapes, état local `Bien` complet + validation zod à la transition
   (`schemaIdentite`, `schemaSurfaces`). Sert aussi à la modification (route
   `/biens/:id/modifier`, préchargement via `db.biens.get`).
+- Champs légaux du bail type portés par le bien (tous optionnels, pas de migration Dexie) :
+  `identifiantFiscal` (12 chiffres, décret 2023-796, baux depuis le 01/01/2024),
+  `typeHabitat` (collectif/individuel), `periodeConstruction`, `classeDPE`,
+  `equipementsTIC` (rubrique II.E), `zoneTendue` (décret d'évolution des loyers à la
+  relocation — distinct de `zoneEncadrementLoyers`, le plafond au m²). La décence
+  énergétique est validée par `validerDecenceDPE` (`lib/calculs.ts`) : G bloquant depuis
+  2025, F en 2028, E en 2034 — alerte dans le formulaire ET blocage dans l'assistant de bail.
 - `PiecesEditeur` édite `bien.piecesModele` : c'est la **trame copiée dans chaque EDL
   d'entrée** (copie profonde avec nouveaux ids — modifier la trame ne touche jamais un EDL
   existant). La bibliothèque de modèles est dans `defauts.ts` (`BIBLIOTHEQUE_PIECES`) :
@@ -219,6 +227,15 @@ bailiz-sauvegarde-YYYY-MM-DD-HHmm.zip
   `lib/calculs.ts`** (`validerDepotGarantie`, `validerDuree`) + le contrôle encadrement des
   loyers (loyer HC ≤ référence majorée sauf complément justifié). Ne jamais dupliquer une
   règle légale dans un composant : l'ajouter dans `calculs.ts` avec un test.
+- Le PDF suit la trame complète I–XI du contrat type : I désignation (mandataire « sans
+  objet »), II objet (identifiant fiscal, habitat, période de construction, classe DPE +
+  rappel des seuils de décence, TIC), III durée, IV conditions financières (zone tendue à la
+  relocation, encadrement, IRL, assurance colocataires récupérable par douzième), V travaux
+  (3 sous-rubriques, « néant » par défaut — champ `bail.travaux`), VI garanties (dépôt en
+  chiffres ET en toutes lettres via `montantEnLettres`), VII solidarité, VIII **clause
+  résolutoire** (`bail.clauseResolutoire`, défaut true — coder `!== false` pour les baux
+  antérieurs au champ), IX honoraires (néant), X clauses particulières, XI annexes (dont
+  attestation d'assurance du locataire dans la checklist).
 - La génération (étape 7) fait, dans l'ordre : références (bail + inventaire) → construction
   de l'`Inventaire` pré-rempli (11 postes `MOBILIER_OBLIGATOIRE` marqués `obligatoireDecret`
   + mobilier des pièces) → rendu des 2 PDF → transaction d'insertion → `enregistrerDocument`
@@ -414,6 +431,9 @@ npx tsc -b          # type-check strict (aussi exécuté par npm run build)
 | `lib/etat.test.ts` | ordre des états, `construirePiecesSortie` (report entrée→référence, nouveaux ids), progression, extraction des dégradés |
 | `lib/crypto.test.ts` | vecteurs SHA-256 connus (chaîne vide, "abc"), formatage |
 | `lib/dates.test.ts` | parsing JJ/MM/AAAA (dates inexistantes rejetées), formatage, masque de saisie |
+| `lib/lettres.test.ts` | nombres en lettres (règles françaises : 71, 80, 200, accords), montants en euros |
+| `lib/pdf/BailPdf.test.ts` | rendu smoke du bail complet (fixtures avec toutes les mentions légales) via `renderToBuffer` |
+| `validerDecenceDPE` (dans calculs.test) | calendrier loi Climat : G bloquant 2025, F 2028, E 2034, classe absente signalée |
 | `lib/backup.test.ts` | export→import sur base vierge (100 % données+photos restaurées, octets identiques), détection de conflits, fusion sans perte (via `fake-indexeddb`) |
 
 Non couvert automatiquement (vérifié manuellement, cf. critères §8 du cdc) : rendu des PDF,

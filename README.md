@@ -49,9 +49,15 @@ npm run build      # build de production + PWA
   → clauses → annexes (checklist) → aperçu → génération PDF.
 - Validations bloquantes : dépôt ≤ 2 mois HC (interdit en mobilité), durée cohérente avec le
   type, encadrement des loyers (loyer ≤ référence majorée sauf complément justifié).
-- PDF conforme à la trame du bail type (décret n°2015-587, parties I à VIII), mentions
-  obligatoires de la loi du 6 juillet 1989 (IRL, charges forfait/provisions, dernier loyer de
-  l'ancien locataire, honoraires « néant », SIRET LMNP optionnel…).
+- PDF conforme à la trame complète du bail type (décret n°2015-587 modifié, parties I à XI) :
+  identifiant fiscal du logement (décret 2023-796), type d'habitat, période de construction,
+  classe DPE avec rappel des seuils de décence (loi Climat et résilience), accès aux
+  technologies, zone tendue (évolution des loyers à la relocation), IRL, charges
+  forfait/provisions, assurance colocataires, rubrique travaux, dépôt de garantie en toutes
+  lettres, **clause résolutoire** (impayés, dépôt, assurance, troubles de voisinage), dernier
+  loyer de l'ancien locataire, honoraires « néant », SIRET LMNP…
+- Garde-fou décence énergétique : création de bail bloquée pour un logement classé G
+  (interdit depuis 2025), avertissement pour F (2028) et E (2034).
 - Inventaire du mobilier généré conjointement, pré-rempli avec les 11 postes obligatoires du
   décret n°2015-981 (alerte si un poste est marqué absent), signable sur écran.
 - Cycle de vie : brouillon → généré → signé → actif → terminé (déclenché par l'EDL de

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
-import type { Bien, TypeBien } from '@/types';
+import { AlertTriangle } from 'lucide-react';
+import type { Bien, ClasseDPE, PeriodeConstruction, TypeBien } from '@/types';
+import { PERIODE_CONSTRUCTION_LABELS } from '@/types';
+import { validerDecenceDPE } from '@/lib/calculs';
 import { db } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import {
@@ -243,6 +246,43 @@ export function BienFormPage() {
                 </Select>
               </Field>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Type d'habitat">
+                <Select
+                  value={bien.typeHabitat ?? 'collectif'}
+                  onChange={(e) => maj({ typeHabitat: e.target.value as 'collectif' | 'individuel' })}
+                >
+                  <option value="collectif">Immeuble collectif</option>
+                  <option value="individuel">Immeuble individuel (maison)</option>
+                </Select>
+              </Field>
+              <Field label="Période de construction" hint="Mention du bail type ; conditionne aussi l'obligation de CREP (avant 1949).">
+                <Select
+                  value={bien.periodeConstruction ?? ''}
+                  onChange={(e) =>
+                    maj({ periodeConstruction: (e.target.value || undefined) as PeriodeConstruction | undefined })
+                  }
+                >
+                  <option value="">— Non renseignée —</option>
+                  {Object.entries(PERIODE_CONSTRUCTION_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <Field
+              label="Identifiant fiscal du logement"
+              hint="Numéro à 12 chiffres, obligatoire sur les baux signés depuis le 01/01/2024 (décret 2023-796). À retrouver sur impots.gouv.fr → « Gérer mes biens immobiliers »."
+            >
+              <Input
+                value={bien.identifiantFiscal ?? ''}
+                inputMode="numeric"
+                onChange={(e) => maj({ identifiantFiscal: e.target.value || undefined })}
+                placeholder="631234567890"
+              />
+            </Field>
           </>
         )}
 
@@ -317,6 +357,46 @@ export function BienFormPage() {
                 </div>
               </Field>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field
+                label="Classe DPE"
+                hint="Lettre du diagnostic de performance énergétique en cours de validité."
+              >
+                <Select
+                  value={bien.classeDPE ?? ''}
+                  onChange={(e) => maj({ classeDPE: (e.target.value || undefined) as ClasseDPE | undefined })}
+                >
+                  <option value="">— Non renseignée —</option>
+                  {(['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
+                label="Accès aux technologies (TIC)"
+                hint="Rubrique du bail type : réception TV, raccordement internet…"
+              >
+                <Input
+                  value={bien.equipementsTIC ?? ''}
+                  onChange={(e) => maj({ equipementsTIC: e.target.value || undefined })}
+                  placeholder="Fibre optique, TNT collective"
+                />
+              </Field>
+            </div>
+            {(() => {
+              const decence = validerDecenceDPE(bien.classeDPE, new Date());
+              return decence.message ? (
+                <p
+                  className={`flex items-start gap-2 rounded-lg p-3 text-sm font-medium ${
+                    decence.bloquant ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800'
+                  }`}
+                >
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" /> {decence.message}
+                </p>
+              ) : null;
+            })()}
             <Field
               label="Équipements privatifs"
               hint="Un équipement par ligne (touche Entrée pour passer à la ligne). Ils seront listés dans le bail, partie II."
@@ -347,6 +427,19 @@ export function BienFormPage() {
                 placeholder={'cave : n°12, sous-sol\nparking : place 8, extérieur'}
               />
             </Field>
+            <div className="rounded-lg bg-accent-50 p-4">
+              <Checkbox
+                label="Le bien est situé en zone tendue (encadrement de l'évolution des loyers à la relocation)"
+                checked={bien.zoneTendue ?? false}
+                onChange={(e) => maj({ zoneTendue: e.target.checked })}
+              />
+              <p className="mt-1 text-xs text-accent-500">
+                Plus de 1 100 communes concernées (vérifiez sur service-public.fr, simulateur
+                « zone tendue »). En zone tendue, le loyer d'un nouveau locataire ne peut en
+                principe pas dépasser celui de l'ancien, et le préavis du locataire est réduit
+                à 1 mois (déjà le cas en meublé).
+              </p>
+            </div>
             <div className="rounded-lg bg-accent-50 p-4">
               <Checkbox
                 label="Le bien est situé en zone d'encadrement des loyers"

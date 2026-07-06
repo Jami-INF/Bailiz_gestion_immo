@@ -7,6 +7,7 @@ import {
   retenueApresVetuste,
   revisionIRL,
   totalRetenues,
+  validerDecenceDPE,
   validerDepotGarantie,
   validerDuree,
 } from './calculs';
@@ -108,6 +109,38 @@ describe('vétusté et retenues', () => {
         { pieceNom: 'Cuisine', elementNom: 'Sol', description: '', cout: 200, coefVetuste: 1, retenue: 200 },
       ]),
     ).toBe(250);
+  });
+});
+
+describe('validerDecenceDPE', () => {
+  const en2026 = new Date(2026, 6, 1);
+
+  it('interdit la location d’un logement G depuis 2025', () => {
+    const r = validerDecenceDPE('G', en2026);
+    expect(r.valide).toBe(false);
+    expect(r.bloquant).toBe(true);
+    expect(r.message).toMatch(/2025/);
+  });
+
+  it('alerte sans bloquer pour F (2028) et E (2034)', () => {
+    const f = validerDecenceDPE('F', en2026);
+    expect(f.valide).toBe(true);
+    expect(f.message).toMatch(/2028/);
+    const e = validerDecenceDPE('E', en2026);
+    expect(e.valide).toBe(true);
+    expect(e.message).toMatch(/2034/);
+  });
+
+  it('bloque F à partir de 2028 et E à partir de 2034', () => {
+    expect(validerDecenceDPE('F', new Date(2028, 0, 2)).valide).toBe(false);
+    expect(validerDecenceDPE('E', new Date(2034, 5, 1)).valide).toBe(false);
+  });
+
+  it('laisse passer A-D et signale une classe absente', () => {
+    expect(validerDecenceDPE('C', en2026)).toEqual({ valide: true, bloquant: false });
+    const absent = validerDecenceDPE(undefined, en2026);
+    expect(absent.valide).toBe(true);
+    expect(absent.message).toBeTruthy();
   });
 });
 
