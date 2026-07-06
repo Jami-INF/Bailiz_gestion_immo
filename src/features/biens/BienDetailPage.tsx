@@ -1,0 +1,187 @@
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Pencil, Trash2, FileText, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { db } from '@/lib/db';
+import { Badge, Button, Card, ConfirmModal, PageHeader, useToast } from '@/components/ui';
+import { TYPE_BAIL_LABELS } from '@/types';
+import { VALIDITE_LABELS, validiteDiagnostic } from './diagnostics';
+
+export function BienDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [confirmSuppr, setConfirmSuppr] = useState(false);
+  const bien = useLiveQuery(() => (id ? db.biens.get(id) : undefined), [id]);
+  const baux = useLiveQuery(() => (id ? db.baux.where('bienId').equals(id).toArray() : []), [id]);
+
+  if (!bien) return null;
+
+  const bailEnCours = baux?.find((b) => ['signe', 'actif'].includes(b.statut));
+
+  const supprimer = async () => {
+    if (baux && baux.length > 0) {
+      toast('error', 'Impossible de supprimer : des baux sont liés à ce bien.');
+      return;
+    }
+    await db.biens.delete(bien.id);
+    toast('success', 'Bien supprimé.');
+    navigate('/biens');
+  };
+
+  return (
+    <div>
+      <PageHeader
+        titre={bien.nom}
+        sousTitre={`${bien.adresse.ligne1}, ${bien.adresse.codePostal} ${bien.adresse.ville}`}
+        actions={
+          <>
+            <Link to={`/biens/${bien.id}/modifier`}>
+              <Button variant="secondary">
+                <Pencil size={16} /> Modifier
+              </Button>
+            </Link>
+            <Button variant="danger" onClick={() => setConfirmSuppr(true)}>
+              <Trash2 size={16} /> Supprimer
+            </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <h2 className="mb-3 font-semibold text-accent-900">Caractéristiques</h2>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <dt className="text-accent-500">Type</dt>
+            <dd>{bien.type}</dd>
+            <dt className="text-accent-500">Surface loi Boutin</dt>
+            <dd>{bien.surfaceBoutin} m²</dd>
+            <dt className="text-accent-500">Pièces principales</dt>
+            <dd>{bien.nbPieces}</dd>
+            <dt className="text-accent-500">Régime</dt>
+            <dd>{bien.regimeJuridique === 'copropriete' ? 'Copropriété' : 'Monopropriété'}</dd>
+            <dt className="text-accent-500">Chauffage</dt>
+            <dd>
+              {bien.chauffage.type} ({bien.chauffage.energie})
+            </dd>
+            <dt className="text-accent-500">Eau chaude</dt>
+            <dd>
+              {bien.eauChaude.type === 'individuel' ? 'individuelle' : 'collective'} ({bien.eauChaude.energie})
+            </dd>
+            {bien.zoneEncadrementLoyers && (
+              <>
+                <dt className="text-accent-500">Encadrement des loyers</dt>
+                <dd>
+                  Référence majorée : {bien.loyerReferenceMajore ?? '—'} €
+                </dd>
+              </>
+            )}
+          </dl>
+          {bien.annexes.length > 0 && (
+            <p className="mt-3 text-sm text-accent-600">
+              Annexes : {bien.annexes.map((a) => `${a.type} (${a.description})`).join(', ')}
+            </p>
+          )}
+        </Card>
+
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-accent-900">Diagnostics</h2>
+            <Badge tone={bien.diagnostics.some((d) => validiteDiagnostic(d) === 'expire') ? 'red' : 'green'}>
+              {bien.diagnostics.length} diagnostic{bien.diagnostics.length > 1 ? 's' : ''}
+            </Badge>
+          </div>
+          {bien.diagnostics.length === 0 ? (
+            <p className="text-sm text-accent-500">
+              Aucun diagnostic. Ajoutez le DDT via « Modifier ».
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {bien.diagnostics.map((d) => {
+                const { label, tone } = VALIDITE_LABELS[validiteDiagnostic(d)];
+                return (
+                  <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="text-accent-700">{d.libelle}</span>
+                    <Badge tone={tone}>{label}</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-accent-900">Baux</h2>
+            <Link to="/baux/nouveau" state={{ bienId: bien.id }}>
+              <Button variant="secondary" size="sm">
+                <Plus size={14} /> Nouveau bail
+              </Button>
+            </Link>
+          </div>
+          {!baux || baux.length === 0 ? (
+            <p className="text-sm text-accent-500">Aucun bail pour ce bien.</p>
+          ) : (
+            <ul className="space-y-2">
+              {baux.map((b) => (
+                <li key={b.id}>
+                  <Link
+                    to={`/baux/${b.id}`}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-accent-200 px-3 py-2 text-sm hover:bg-accent-50"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FileText size={15} className="text-accent-400" />
+                      {b.reference} — {TYPE_BAIL_LABELS[b.typeBail]}
+                    </span>
+                    <Badge tone={b.statut === 'actif' || b.statut === 'signe' ? 'green' : 'neutral'}>
+                      {b.statut}
+                    </Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {bailEnCours && (
+            <p className="mt-3 text-xs text-accent-500">
+              Bail en cours depuis le{' '}
+              {format(new Date(bailEnCours.dateEffet), 'd MMMM yyyy', { locale: fr })}
+            </p>
+          )}
+        </Card>
+
+        <Card>
+          <h2 className="mb-3 font-semibold text-accent-900">Structure des pièces</h2>
+          {bien.piecesModele.length === 0 ? (
+            <p className="text-sm text-accent-500">
+              Aucune pièce définie. Configurez la structure via « Modifier » : elle servira de
+              trame aux états des lieux.
+            </p>
+          ) : (
+            <ul className="space-y-1 text-sm text-accent-700">
+              {[...bien.piecesModele]
+                .sort((a, b) => a.ordre - b.ordre)
+                .map((p) => (
+                  <li key={p.id}>
+                    <span className="font-medium">{p.nom}</span>{' '}
+                    <span className="text-accent-500">({p.elements.length} éléments)</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      <ConfirmModal
+        open={confirmSuppr}
+        onClose={() => setConfirmSuppr(false)}
+        onConfirm={supprimer}
+        title="Supprimer ce bien ?"
+        message={`« ${bien.nom} » sera définitivement supprimé. Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        danger
+      />
+    </div>
+  );
+}
