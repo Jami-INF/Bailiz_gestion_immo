@@ -9,6 +9,8 @@ de garantie avec grille de vétusté.
 PWA installable, fonctionne entièrement hors-ligne après le premier chargement (EDL en cave,
 parking, immeuble mal couvert…).
 
+https://jami-inf.github.io/Bailiz_gestion_immo/
+
 ## Stack
 
 - React 18 + Vite + TypeScript strict
