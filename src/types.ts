@@ -1,0 +1,353 @@
+// Modèle de données Bailiz — identifiants: uuid v4 (string), dates: ISO 8601 (string).
+
+export interface Adresse {
+  ligne1: string;
+  ligne2?: string;
+  codePostal: string;
+  ville: string;
+}
+
+export type TypeBien = 'T1' | 'T1bis' | 'T2' | 'T3' | 'T4' | 'autre';
+
+export type TypeDiagnostic =
+  | 'dpe'
+  | 'erp'
+  | 'crep'
+  | 'electricite'
+  | 'gaz'
+  | 'boutin'
+  | 'autre';
+
+export interface Diagnostic {
+  id: string;
+  type: TypeDiagnostic;
+  libelle: string;
+  dateRealisation: string;
+  dateExpiration?: string; // absente = illimité (ex. CREP négatif)
+  fichierJoint?: string; // nom du fichier conservé par le bailleur
+  commentaire?: string;
+}
+
+export type CategorieElement =
+  | 'sol'
+  | 'mur'
+  | 'plafond'
+  | 'menuiserie'
+  | 'electricite'
+  | 'plomberie'
+  | 'chauffage'
+  | 'equipement'
+  | 'mobilier'
+  | 'autre';
+
+export interface ElementModele {
+  id: string;
+  nom: string;
+  categorie: CategorieElement;
+}
+
+export interface PieceModele {
+  id: string;
+  nom: string;
+  ordre: number;
+  elements: ElementModele[];
+}
+
+export interface Bien {
+  id: string;
+  nom: string; // ex. "T2 Chamalières"
+  adresse: Adresse;
+  type: TypeBien;
+  surfaceBoutin: number; // m²
+  nbPieces: number;
+  etage?: string;
+  batiment?: string;
+  regimeJuridique: 'copropriete' | 'monopropriete';
+  equipementsPrivatifs: string[];
+  partiesCommunes: string[];
+  annexes: { type: 'cave' | 'parking' | 'grenier' | 'autre'; description: string }[];
+  chauffage: { type: 'individuel' | 'collectif'; energie: string };
+  eauChaude: { type: 'individuel' | 'collectif'; energie: string };
+  zoneEncadrementLoyers: boolean;
+  loyerReference?: number;
+  loyerReferenceMajore?: number;
+  diagnostics: Diagnostic[];
+  piecesModele: PieceModele[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Garant {
+  nom: string;
+  prenom: string;
+  adresse: string;
+  type: 'physique' | 'visale' | 'autre';
+}
+
+export interface Locataire {
+  id: string;
+  civilite: 'M' | 'Mme';
+  nom: string;
+  prenom: string;
+  dateNaissance?: string;
+  lieuNaissance?: string;
+  email: string;
+  telephone: string;
+  adresseActuelle?: string;
+  garant?: Garant;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TypeBail = 'meuble_1an' | 'meuble_etudiant_9mois' | 'mobilite';
+
+export type StatutBail = 'brouillon' | 'genere' | 'signe' | 'actif' | 'termine';
+
+export interface Bail {
+  id: string;
+  reference: string; // "BAIL-2026-0001", séquence auto
+  bienId: string;
+  locataireIds: string[]; // colocation possible
+  clauseSolidarite: boolean;
+  typeBail: TypeBail;
+  dateEffet: string;
+  dureeMois: number; // 12, 9, ou 1-10
+  loyerHC: number;
+  charges: { mode: 'forfait' | 'provisions'; montant: number };
+  depotGarantie: number; // contrôle: <= 2x loyerHC, 0 si mobilité
+  jourPaiement: number; // 1-28
+  modePaiement: string;
+  revisionIRL: { trimestreReference: string; valeurIndice: number; revisable: boolean };
+  complementLoyer?: { montant: number; justification: string };
+  dernierLoyerAncienLocataire?: number;
+  clausesParticulieres: string[];
+  annexesChecklist: AnnexeChecklistItem[];
+  inventaireId?: string;
+  edlEntreeId?: string;
+  edlSortieId?: string;
+  statut: StatutBail;
+  dateSignature?: string;
+  dateFinEffective?: string;
+  pdfHash?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnexeChecklistItem {
+  id: string;
+  libelle: string;
+  jointe: boolean;
+  genereeParApp: boolean;
+  lien?: string; // lien officiel (ex. notice d'information)
+}
+
+export type EtatNote = 'neuf' | 'tres_bon' | 'bon' | 'usage' | 'mauvais';
+
+export interface LigneInventaire {
+  pieceNom: string;
+  designation: string;
+  quantite: number;
+  etat: EtatNote;
+  commentaire?: string;
+  obligatoireDecret?: boolean; // fait partie des 11 éléments du décret 2015-981
+}
+
+export interface Inventaire {
+  id: string;
+  reference: string; // "INV-2026-0001"
+  bailId: string;
+  lignes: LigneInventaire[];
+  signatures?: SignatureBloc;
+  statut: 'brouillon' | 'signe';
+  pdfHash?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TypeCompteur = 'electricite' | 'gaz' | 'eau_froide' | 'eau_chaude';
+
+export interface Compteur {
+  type: TypeCompteur;
+  numero?: string;
+  releve: number;
+  photoId?: string;
+}
+
+export interface Cle {
+  designation: string;
+  nombre: number;
+  commentaire?: string;
+}
+
+export interface ElementEDL {
+  id: string;
+  nom: string;
+  categorie: CategorieElement;
+  etat?: EtatNote; // non renseigné tant que l'utilisateur n'a pas statué
+  commentaire?: string;
+  photoIds: string[];
+  // Rempli automatiquement sur un EDL de sortie :
+  etatEntree?: EtatNote;
+  commentaireEntree?: string;
+  photoIdsEntree?: string[];
+  degradation?: boolean; // calculé: état sortie < état entrée, modifiable manuellement
+  // Estimation de retenue (EDL sortie, éléments dégradés) :
+  coutRemiseEnEtat?: number;
+  ageEquipementAnnees?: number;
+  posteVetuste?: string;
+}
+
+export interface PieceEDL {
+  id: string;
+  nom: string;
+  ordre: number;
+  elements: ElementEDL[];
+}
+
+export interface Avenant {
+  date: string;
+  texte: string;
+  signatures?: SignatureBloc;
+}
+
+export interface EtatDesLieux {
+  id: string;
+  reference: string; // "EDL-2026-0007"
+  bailId: string;
+  type: 'entree' | 'sortie';
+  date: string;
+  edlEntreeLieId?: string; // pour un EDL de sortie: lien vers l'entrée
+  nouvelleAdresseLocataire?: string; // sortie uniquement
+  compteurs: Compteur[];
+  cles: Cle[];
+  pieces: PieceEDL[];
+  observationsGenerales?: string;
+  signatures?: SignatureBloc;
+  statut: 'brouillon' | 'signe'; // signe => immuable
+  avenants: Avenant[];
+  pdfHash?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Photo {
+  id: string;
+  blob: Blob;
+  dateCapture: string;
+  legende?: string;
+  edlId: string;
+}
+
+export interface SignatureItem {
+  nomComplet: string; // tapé par le signataire
+  luEtApprouve: boolean;
+  imageDataUrl: string; // PNG du canvas
+  horodatage: string;
+}
+
+export interface SignatureBloc {
+  dateSignature: string; // ISO, horodatage
+  lieu: string;
+  bailleur: SignatureItem;
+  locataires: SignatureItem[];
+}
+
+export interface LigneVetuste {
+  poste: string;
+  dureeVieAnnees: number;
+  franchiseAnnees: number;
+  abattementAnnuelPct: number;
+}
+
+export interface Parametres {
+  id: 'singleton';
+  bailleur: {
+    civilite: string;
+    nom: string;
+    prenom: string;
+    adresse: string;
+    email: string;
+    telephone: string;
+    siret?: string;
+    qualite: 'personne_physique';
+  };
+  grilleVetuste: LigneVetuste[]; // pré-remplie, modifiable
+  compteursSequence: { bail: number; edl: number; inventaire: number; document: number; annee: number };
+  derniereSauvegarde?: string;
+  disclaimerAccepte?: boolean;
+}
+
+export type TypeDocument =
+  | 'bail'
+  | 'inventaire'
+  | 'edl_entree'
+  | 'edl_sortie'
+  | 'avenant'
+  | 'lettre_restitution'
+  | 'courrier_irl';
+
+export interface DocumentGenere {
+  id: string;
+  reference: string;
+  type: TypeDocument;
+  titre: string;
+  bienId?: string;
+  bailId?: string;
+  edlId?: string;
+  blob: Blob;
+  hash?: string; // empreinte SHA-256 (documents signés)
+  signe: boolean;
+  createdAt: string;
+}
+
+export const ETAT_ORDRE: Record<EtatNote, number> = {
+  neuf: 4,
+  tres_bon: 3,
+  bon: 2,
+  usage: 1,
+  mauvais: 0,
+};
+
+export const ETAT_LABELS: Record<EtatNote, string> = {
+  neuf: 'Neuf',
+  tres_bon: 'Très bon',
+  bon: 'Bon',
+  usage: 'Usagé',
+  mauvais: 'Mauvais',
+};
+
+export const CATEGORIE_LABELS: Record<CategorieElement, string> = {
+  sol: 'Sol',
+  mur: 'Murs',
+  plafond: 'Plafond',
+  menuiserie: 'Menuiserie',
+  electricite: 'Électricité',
+  plomberie: 'Plomberie',
+  chauffage: 'Chauffage',
+  equipement: 'Équipement',
+  mobilier: 'Mobilier',
+  autre: 'Autre',
+};
+
+export const TYPE_BAIL_LABELS: Record<TypeBail, string> = {
+  meuble_1an: 'Meublé 1 an (renouvelable)',
+  meuble_etudiant_9mois: 'Meublé étudiant 9 mois',
+  mobilite: 'Bail mobilité (1 à 10 mois)',
+};
+
+export const COMPTEUR_LABELS: Record<TypeCompteur, string> = {
+  electricite: 'Électricité',
+  gaz: 'Gaz',
+  eau_froide: 'Eau froide',
+  eau_chaude: 'Eau chaude',
+};
+
+export const TYPE_DOCUMENT_LABELS: Record<TypeDocument, string> = {
+  bail: 'Bail meublé',
+  inventaire: 'Inventaire du mobilier',
+  edl_entree: "État des lieux d'entrée",
+  edl_sortie: 'État des lieux de sortie',
+  avenant: 'Avenant',
+  lettre_restitution: 'Lettre de restitution du dépôt',
+  courrier_irl: 'Courrier de révision IRL',
+};
