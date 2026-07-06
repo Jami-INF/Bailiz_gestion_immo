@@ -127,6 +127,8 @@ export interface Bail {
   edlSortieId?: string;
   statut: StatutBail;
   dateSignature?: string;
+  /** Renseigné si le bail a été signé sur écran dans l'app (sinon papier/eIDAS). */
+  signatures?: SignatureBloc;
   dateFinEffective?: string;
   pdfHash?: string;
   createdAt: string;

@@ -4,7 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { Diagnostic, TypeDiagnostic } from '@/types';
 import { VALIDITE_DIAGNOSTICS } from '@/lib/defauts';
 import { uid } from '@/lib/ids';
-import { Badge, Button, Field, Input, Select } from '@/components/ui';
+import { Badge, Button, DateInput, Field, Select } from '@/components/ui';
 import { VALIDITE_LABELS, validiteDiagnostic } from './diagnostics';
 
 export function DiagnosticsEditeur({
@@ -43,8 +43,11 @@ export function DiagnosticsEditeur({
             ))}
           </Select>
         </Field>
-        <Field label="Date de réalisation">
-          <Input type="date" value={dateRealisation} onChange={(e) => setDateRealisation(e.target.value)} />
+        <Field
+          label="Date de réalisation"
+          hint="La date d'expiration est calculée automatiquement selon la durée légale du diagnostic."
+        >
+          <DateInput value={dateRealisation} onChange={(d) => d && setDateRealisation(d)} />
         </Field>
         <Button variant="secondary" onClick={ajouter}>
           <Plus size={16} /> Ajouter

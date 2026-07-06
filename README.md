@@ -54,8 +54,10 @@ npm run build      # build de production + PWA
   l'ancien locataire, honoraires « néant », SIRET LMNP optionnel…).
 - Inventaire du mobilier généré conjointement, pré-rempli avec les 11 postes obligatoires du
   décret n°2015-981 (alerte si un poste est marqué absent), signable sur écran.
-- Cycle de vie : brouillon → généré → signé (écran de choix : impression manuscrite ou
-  prestataire eIDAS) → actif → terminé (déclenché par l'EDL de sortie signé).
+- Cycle de vie : brouillon → généré → signé → actif → terminé (déclenché par l'EDL de
+  sortie signé). Trois voies de signature : impression manuscrite, prestataire eIDAS
+  (recommandé), ou **signature sur écran dans l'app** (mêmes renforts probatoires que les
+  EDL : nom tapé, « lu et approuvé », horodatage, empreinte SHA-256, verrouillage).
 - Calculateurs : prorata du premier loyer, révision IRL avec courrier PDF.
 
 ### États des lieux (M4 — cœur de l'app, optimisé tablette)

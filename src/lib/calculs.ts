@@ -127,5 +127,9 @@ export function delaiRestitutionJours(retenues: boolean): number {
 }
 
 export function formatEuros(montant: number): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(montant);
+  // Les espaces insécables (étroites) d'Intl ne sont pas couvertes par la police
+  // Helvetica des PDF : on les remplace par des espaces simples.
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+    .format(montant)
+    .replace(/[  ]/g, ' ');
 }

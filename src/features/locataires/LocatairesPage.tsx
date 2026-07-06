@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Users, Plus, Pencil, Trash2, ShieldQuestion } from 'lucide-react';
@@ -13,6 +13,7 @@ import {
   Card,
   Checkbox,
   ConfirmModal,
+  DateInput,
   EmptyState,
   Field,
   Input,
@@ -65,7 +66,7 @@ export function LocatairesPage() {
   const [modale, setModale] = useState<{ ouvert: boolean; locataire?: Locataire }>({ ouvert: false });
   const [suppression, setSuppression] = useState<Locataire | null>(null);
 
-  const { register, handleSubmit, reset, watch, formState } = useForm<FormValues>({
+  const { register, handleSubmit, reset, watch, control, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: versForm(),
   });
@@ -206,35 +207,52 @@ export function LocatairesPage() {
               </Select>
             </Field>
             <Field label="Prénom" required error={formState.errors.prenom?.message}>
-              <Input {...register('prenom')} />
+              <Input {...register('prenom')} placeholder="Marie" />
             </Field>
             <Field label="Nom" required error={formState.errors.nom?.message}>
-              <Input {...register('nom')} />
+              <Input {...register('nom')} placeholder="Dupont" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Date de naissance">
-              <Input type="date" {...register('dateNaissance')} />
+            <Field label="Date de naissance" hint="Facultative — aide à identifier le locataire sur le bail.">
+              <Controller
+                control={control}
+                name="dateNaissance"
+                render={({ field }) => (
+                  <DateInput value={field.value ?? ''} onChange={field.onChange} aria-label="Date de naissance" />
+                )}
+              />
             </Field>
             <Field label="Lieu de naissance">
-              <Input {...register('lieuNaissance')} />
+              <Input {...register('lieuNaissance')} placeholder="Clermont-Ferrand" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="E-mail" required error={formState.errors.email?.message}>
-              <Input type="email" {...register('email')} />
+            <Field
+              label="E-mail"
+              required
+              error={formState.errors.email?.message}
+              hint="Servira à l'envoi des documents (EDL, bail) par e-mail."
+            >
+              <Input type="email" {...register('email')} placeholder="marie.dupont@exemple.fr" />
             </Field>
             <Field label="Téléphone" required error={formState.errors.telephone?.message}>
-              <Input type="tel" {...register('telephone')} />
+              <Input type="tel" {...register('telephone')} placeholder="06 12 34 56 78" />
             </Field>
           </div>
-          <Field label="Adresse actuelle">
-            <Input {...register('adresseActuelle')} />
+          <Field
+            label="Adresse actuelle"
+            hint="Logement occupé avant l'entrée dans les lieux (utile pour le dossier)."
+          >
+            <Input {...register('adresseActuelle')} placeholder="3 avenue de la Gare, 63000 Clermont-Ferrand" />
           </Field>
           <Checkbox label="Le locataire a un garant" {...register('avecGarant')} />
           {avecGarant && (
             <div className="space-y-3 rounded-lg bg-accent-50 p-4">
-              <Field label="Type de garantie">
+              <Field
+                label="Type de garantie"
+                hint="Visale : garantie publique gratuite d'Action Logement — pas de caution personnelle à saisir."
+              >
                 <Select {...register('garantType')}>
                   <option value="physique">Personne physique (caution)</option>
                   <option value="visale">Garantie Visale</option>

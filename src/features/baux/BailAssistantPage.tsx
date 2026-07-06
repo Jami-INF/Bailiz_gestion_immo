@@ -17,6 +17,7 @@ import {
   Button,
   Card,
   Checkbox,
+  DateInput,
   Field,
   Input,
   PageHeader,
@@ -103,6 +104,11 @@ export function BailAssistantPage() {
     if (!vDuree.valide) erreurs.push(vDuree.message!);
     const vDepot = validerDepotGarantie(d.typeBail, d.loyerHC, d.depotGarantie);
     if (!vDepot.valide) erreurs.push(vDepot.message!);
+    if (d.typeBail !== 'mobilite' && d.revisable && (!d.trimestreReference.trim() || d.valeurIndice <= 0)) {
+      erreurs.push(
+        "Révision IRL activée : le trimestre de référence et la valeur de l'indice (publiés par l'INSEE) sont des mentions obligatoires du bail. Renseignez-les ou décochez la révision.",
+      );
+    }
     if (
       bien?.zoneEncadrementLoyers &&
       bien.loyerReferenceMajore != null &&
@@ -364,8 +370,12 @@ export function BailAssistantPage() {
         {etape === 3 && (
           <>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Date de prise d'effet" required>
-                <Input type="date" value={d.dateEffet} onChange={(e) => maj({ dateEffet: e.target.value })} />
+              <Field
+                label="Date de prise d'effet"
+                required
+                hint="Date d'entrée dans les lieux : le bail et le premier loyer (au prorata) démarrent ce jour-là."
+              >
+                <DateInput value={d.dateEffet} onChange={(date) => date && maj({ dateEffet: date })} />
               </Field>
               <Field label="Loyer mensuel hors charges (€)" required>
                 <Input
@@ -374,6 +384,7 @@ export function BailAssistantPage() {
                   min="0"
                   value={d.loyerHC || ''}
                   onChange={(e) => maj({ loyerHC: Number(e.target.value) })}
+                  placeholder="620"
                 />
               </Field>
             </div>
@@ -387,13 +398,17 @@ export function BailAssistantPage() {
                   <option value="provisions">Provisions avec régularisation annuelle</option>
                 </Select>
               </Field>
-              <Field label="Montant mensuel des charges (€)">
+              <Field
+                label="Montant mensuel des charges (€)"
+                hint="Eau, ordures ménagères, charges de copropriété récupérables…"
+              >
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
                   value={d.chargesMontant || ''}
                   onChange={(e) => maj({ chargesMontant: Number(e.target.value) })}
+                  placeholder="80"
                 />
               </Field>
             </div>
@@ -415,7 +430,10 @@ export function BailAssistantPage() {
                   onChange={(e) => maj({ depotGarantie: Number(e.target.value) })}
                 />
               </Field>
-              <Field label="Jour de paiement du loyer (1-28)">
+              <Field
+                label="Jour de paiement du loyer (1-28)"
+                hint="Limité au 28 pour exister dans tous les mois, février compris."
+              >
                 <Input
                   type="number"
                   min={1}
@@ -426,7 +444,11 @@ export function BailAssistantPage() {
               </Field>
             </div>
             <Field label="Mode de paiement">
-              <Input value={d.modePaiement} onChange={(e) => maj({ modePaiement: e.target.value })} />
+              <Input
+                value={d.modePaiement}
+                onChange={(e) => maj({ modePaiement: e.target.value })}
+                placeholder="virement bancaire"
+              />
             </Field>
             {d.typeBail !== 'mobilite' && (
               <div className="rounded-lg bg-accent-50 p-4">
@@ -437,18 +459,26 @@ export function BailAssistantPage() {
                 />
                 {d.revisable && (
                   <div className="mt-3 grid grid-cols-2 gap-4">
-                    <Field label="Trimestre de référence IRL" hint="Ex. « 1er trimestre 2026 »">
+                    <Field
+                      label="Trimestre de référence IRL"
+                      hint="Dernier trimestre publié à la signature. La révision annuelle se calculera sur ce même trimestre."
+                    >
                       <Input
                         value={d.trimestreReference}
                         onChange={(e) => maj({ trimestreReference: e.target.value })}
+                        placeholder="1er trimestre 2026"
                       />
                     </Field>
-                    <Field label="Valeur de l'indice" hint="Publié par l'INSEE">
+                    <Field
+                      label="Valeur de l'indice"
+                      hint="À relever sur insee.fr (rubrique « Indice de référence des loyers »)."
+                    >
                       <Input
                         type="number"
                         step="0.01"
                         value={d.valeurIndice || ''}
                         onChange={(e) => maj({ valeurIndice: Number(e.target.value) })}
+                        placeholder="145,47"
                       />
                     </Field>
                   </div>
@@ -505,9 +535,14 @@ export function BailAssistantPage() {
         {etape === 4 && (
           <Field
             label="Clauses particulières"
-            hint="Une clause par ligne (travaux, animaux, entretien de la chaudière…). Laissez vide si aucune."
+            hint="Une clause par ligne (touche Entrée entre deux clauses). Elles apparaîtront numérotées dans la partie VII du bail. Attention aux clauses abusives (liste sur service-public.fr). Laissez vide si aucune."
           >
-            <Textarea rows={8} value={d.clauses} onChange={(e) => maj({ clauses: e.target.value })} />
+            <Textarea
+              rows={8}
+              value={d.clauses}
+              onChange={(e) => maj({ clauses: e.target.value })}
+              placeholder={"Le locataire fait entretenir la chaudière une fois par an et fournit l'attestation.\nLes animaux sont admis dans la limite du respect de la tranquillité du voisinage."}
+            />
           </Field>
         )}
 

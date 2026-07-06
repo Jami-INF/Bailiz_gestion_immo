@@ -72,6 +72,7 @@ src/
 
   components/
     ui/                    Design system : Button, Input/Textarea/Select/Checkbox/Field,
+                           DateInput (saisie JJ/MM/AAAA masquée + calendrier natif),
                            Modal/ConfirmModal, Toast (ToastProvider + useToast), Badge,
                            Stepper, Card/PageHeader/EmptyState. Export groupé via index.ts.
     AppLayout.tsx          Navigation (sidebar desktop / barre basse mobile), indicateurs
@@ -87,6 +88,7 @@ src/
     ids.ts                 uid() (uuid v4), nowISO()
     calculs.ts             RÈGLES LÉGALES : prorata, IRL, plafond dépôt, durées par type
                            de bail, vétusté, retenues, délais de restitution
+    dates.ts               parserDateFr / versDateFr / masquerSaisieDate (DateInput)
     etat.ts                Logique EDL : estDegradation, construirePiecesSortie,
                            progressionEDL, elementsDegrades
     crypto.ts              sha256Hex (Web Crypto), formatHash
@@ -221,10 +223,17 @@ bailiz-sauvegarde-YYYY-MM-DD-HHmm.zip
   de l'`Inventaire` pré-rempli (11 postes `MOBILIER_OBLIGATOIRE` marqués `obligatoireDecret`
   + mobilier des pièces) → rendu des 2 PDF → transaction d'insertion → `enregistrerDocument`
   ×2 → navigation vers la fiche.
-- **Cycle de vie** (`BailDetailPage.majBail`) : `genere` → `signe` via la modale « deux
-  voies » (papier / eIDAS, avec saisie de la date effective) → `actif` (bouton manuel) →
-  `termine` (**automatique**, déclenché par la signature de l'EDL de sortie dans
-  `EdlSignaturePage`). Un bail signé n'est plus régénérable (boutons masqués par statut).
+- **Cycle de vie** (`BailDetailPage`) : `genere` → `signe` via la modale « trois voies » :
+  (a) impression + signature manuscrite, (b) prestataire eIDAS (recommandé) — ces deux voies
+  se confirment manuellement avec saisie de la date effective — ou (c) **signature sur écran
+  dans l'app** (`signerSurEcran`) : même parcours `SignatureFlow` que les EDL (relecture,
+  nom tapé, « lu et approuvé », horodatage), PDF régénéré avec le bloc de signatures
+  (`bail.signatures`) via `rendrePdfAvecHash`, empreinte stockée dans `bail.pdfHash` et
+  document enregistré `signe: true`. Puis `actif` (bouton manuel) → `termine`
+  (**automatique**, déclenché par la signature de l'EDL de sortie dans `EdlSignaturePage`).
+  Un bail signé n'est plus régénérable ni re-signable (boutons masqués par statut). La
+  mention « signature électronique simple, art. 1366-1367 » figure sur le PDF signé sur
+  écran ; l'app continue de recommander la voie eIDAS.
 - La checklist d'annexes est figée dans le bail à la création (`annexesParDefaut(bien)` —
   l'extrait de copropriété ne s'ajoute que si `regimeJuridique === 'copropriete'`).
 - `InventairePanel` : édition des lignes (les 11 postes du décret ne sont pas supprimables,
@@ -369,7 +378,15 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
    ré-instancier le pad sur l'événement `resize`.
 4. **Champs non contrôlés `defaultValue`+`onBlur`** (EDL terrain, synthèse, grille de
    vétusté) : un test automatisé doit déclencher `focusout` (pas `blur` non bubblant) pour
-   valider la saisie. Les états/boutons sont contrôlés, eux.
+   valider la saisie. Les états/boutons sont contrôlés, eux. Dans les listes supprimables
+   (compteurs, clés, grille de vétusté), les `key` incluent la longueur de la liste
+   (`` `${i}-${liste.length}` ``) pour forcer le remontage après suppression — sinon les
+   `defaultValue` affichés seraient décalés d'une ligne. Conserver ce motif.
+4bis. **Dates** : tous les champs de date passent par `DateInput` (saisie clavier
+   JJ/MM/AAAA avec masque + calendrier natif superposé à l'icône), qui échange en ISO
+   `yyyy-MM-dd` et renvoie `''` si vide — les appelants doivent ignorer la valeur vide
+   (`onChange={(d) => d && ...}`) pour ne jamais construire de `Date` invalide. Ne pas
+   réintroduire d'`<input type="date">` nu.
 5. **Police Inter via Google Fonts** (`index.css`) : disponible en ligne, mise en cache
    runtime par Workbox (`CacheFirst`) après la première visite en ligne ; au tout premier
    chargement hors-ligne on retombe proprement sur `system-ui`. Pour une garantie totale,
@@ -396,6 +413,7 @@ npx tsc -b          # type-check strict (aussi exécuté par npm run build)
 | `lib/calculs.test.ts` | prorata (mois entier / partiel), IRL (formule + indice invalide), plafond dépôt (2 mois, refus 3 mois, interdiction mobilité), durées par type, coefficient de vétusté (franchise, abattement, plancher 10 %, 0 % fin de vie), total retenues, délais 30/60 j |
 | `lib/etat.test.ts` | ordre des états, `construirePiecesSortie` (report entrée→référence, nouveaux ids), progression, extraction des dégradés |
 | `lib/crypto.test.ts` | vecteurs SHA-256 connus (chaîne vide, "abc"), formatage |
+| `lib/dates.test.ts` | parsing JJ/MM/AAAA (dates inexistantes rejetées), formatage, masque de saisie |
 | `lib/backup.test.ts` | export→import sur base vierge (100 % données+photos restaurées, octets identiques), détection de conflits, fusion sans perte (via `fake-indexeddb`) |
 
 Non couvert automatiquement (vérifié manuellement, cf. critères §8 du cdc) : rendu des PDF,
@@ -418,7 +436,7 @@ la conformité juridique des documents.
 
 | Évolution | Point d'accroche |
 |---|---|
-| Signature eIDAS (Yousign/DocuSign) | La modale « Faire signer le bail » (`BailDetailPage`) présente déjà les deux voies ; brancher l'API à cet endroit, le PDF « prêt à signer » existe (`documents`) |
+| Signature eIDAS (Yousign/DocuSign) | La modale « Faire signer le bail » (`BailDetailPage`) présente déjà les trois voies ; brancher l'API sur la voie (b), le PDF « prêt à signer » existe (`documents`) |
 | Quittances / suivi des paiements | Nouvelle table Dexie + type de document ; les séquences et la bibliothèque absorbent un nouveau `TypeDocument` sans refonte |
 | Synchronisation multi-appareils | Le format d'export ZIP (§4.4) est le pivot : mêmes ids partout, fusion par id déjà implémentée |
 | Comptabilité LMNP | Hors périmètre — ne pas mélanger avec ce code, prévoir un module séparé |

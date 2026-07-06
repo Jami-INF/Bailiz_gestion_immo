@@ -1,5 +1,6 @@
 export { Button } from './Button';
 export { Input, Textarea, Select, Checkbox, Field } from './Input';
+export { DateInput } from './DateInput';
 export { Modal, ConfirmModal } from './Modal';
 export { ToastProvider, useToast } from './Toast';
 export { Badge } from './Badge';

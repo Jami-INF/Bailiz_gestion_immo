@@ -2,7 +2,14 @@ import { Document, Page, Text, View } from '@react-pdf/renderer';
 import type { Bail, Bien, Locataire, Parametres } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros } from '@/lib/calculs';
-import { EntetePdf, PiedDePagePdf, ZoneSignatureManuscrite, formatDateFr, pdfStyles as s } from './commun';
+import {
+  EntetePdf,
+  PiedDePagePdf,
+  SignaturesPdf,
+  ZoneSignatureManuscrite,
+  formatDateFr,
+  pdfStyles as s,
+} from './commun';
 
 interface Props {
   bail: Bail;
@@ -229,7 +236,14 @@ export function BailPdf({ bail, bien, locataires, parametres, hash }: Props) {
           </Text>
         ))}
 
-        <ZoneSignatureManuscrite locataires={locataires.map((l) => `${l.prenom} ${l.nom}`)} />
+        {bail.signatures ? (
+          <SignaturesPdf
+            signatures={bail.signatures}
+            mention="Signature électronique simple réalisée sur écran (art. 1366 et 1367 du Code civil), assortie d'un horodatage et de l'empreinte SHA-256 du document."
+          />
+        ) : (
+          <ZoneSignatureManuscrite locataires={locataires.map((l) => `${l.prenom} ${l.nom}`)} />
+        )}
         <View wrap={false}>
           <Text style={s.petit}>
             Chaque partie reconnaît avoir reçu un exemplaire du contrat et de ses annexes,

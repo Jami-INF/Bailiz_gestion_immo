@@ -92,7 +92,7 @@ export function AppLayout() {
                 }
               >
                 <Icon size={20} className="shrink-0" />
-                <span className="hidden xs:block sm:block">{label}</span>
+                <span className="max-[380px]:hidden sm:block">{label}</span>
               </NavLink>
             ))}
           </nav>

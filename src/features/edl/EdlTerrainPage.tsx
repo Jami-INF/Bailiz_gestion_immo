@@ -20,7 +20,7 @@ import { nowISO } from '@/lib/ids';
 import type { Cle, Compteur, ElementEDL, EtatDesLieux, EtatNote, TypeCompteur } from '@/types';
 import { COMPTEUR_LABELS, ETAT_LABELS } from '@/types';
 import { estDegradation, progressionEDL } from '@/lib/etat';
-import { Badge, Button, Checkbox, Field, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
+import { Badge, Button, Checkbox, DateInput, Field, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
 import { PhotoCapture } from './PhotoCapture';
 
 const COULEURS_ETAT: Record<EtatNote, string> = {
@@ -274,11 +274,13 @@ export function EdlTerrainPage() {
         {onglet?.type === 'infos' && (
           <div className="space-y-4 rounded-xl border border-accent-200 bg-white p-4">
             <Field label="Date de l'état des lieux">
-              <Input
-                type="date"
+              <DateInput
                 value={format(new Date(edl.date), 'yyyy-MM-dd')}
                 disabled={signe}
-                onChange={(e) => maj({ date: new Date(e.target.value).toISOString() })}
+                onChange={(date) => {
+                  // Midi local : évite tout décalage de jour à la conversion UTC.
+                  if (date) maj({ date: new Date(`${date}T12:00:00`).toISOString() });
+                }}
               />
             </Field>
             {sortie && (
@@ -406,23 +408,25 @@ function SectionCompteurs({
                 ))}
               </Select>
             </Field>
-            <Field label="N° de compteur">
+            <Field label="N° de compteur" hint="Inscrit sur le compteur (PDL/PCE sur la facture).">
               <Input
-                key={`${edl.id}-cpt-num-${i}`}
+                key={`${edl.id}-cpt-num-${i}-${edl.compteurs.length}`}
                 defaultValue={c.numero ?? ''}
                 disabled={lectureSeule}
+                placeholder="N° 12345678"
                 onBlur={(e) =>
                   onMaj(edl.compteurs.map((x, j) => (j === i ? { ...x, numero: e.target.value || undefined } : x)))
                 }
               />
             </Field>
-            <Field label="Relevé">
+            <Field label="Relevé" hint="Index affiché, en kWh ou m³.">
               <Input
                 type="number"
                 step="0.001"
-                key={`${edl.id}-cpt-rel-${i}`}
+                key={`${edl.id}-cpt-rel-${i}-${edl.compteurs.length}`}
                 defaultValue={c.releve || ''}
                 disabled={lectureSeule}
+                placeholder="45210"
                 onBlur={(e) =>
                   onMaj(edl.compteurs.map((x, j) => (j === i ? { ...x, releve: Number(e.target.value) } : x)))
                 }
@@ -478,9 +482,10 @@ function SectionCles({
         <div key={i} className="flex flex-wrap items-end gap-3 rounded-xl border border-accent-200 bg-white p-4">
           <Field label="Désignation">
             <Input
-              key={`cle-des-${i}`}
+              key={`cle-des-${i}-${cles.length}`}
               defaultValue={c.designation}
               disabled={lectureSeule}
+              placeholder="Clé porte d'entrée, badge parking…"
               onBlur={(e) => onMaj(cles.map((x, j) => (j === i ? { ...x, designation: e.target.value } : x)))}
             />
           </Field>
@@ -489,7 +494,7 @@ function SectionCles({
               type="number"
               min={0}
               className="w-24"
-              key={`cle-nb-${i}`}
+              key={`cle-nb-${i}-${cles.length}`}
               defaultValue={c.nombre}
               disabled={lectureSeule}
               onBlur={(e) => onMaj(cles.map((x, j) => (j === i ? { ...x, nombre: Number(e.target.value) } : x)))}
@@ -497,9 +502,10 @@ function SectionCles({
           </Field>
           <Field label="Commentaire">
             <Input
-              key={`cle-com-${i}`}
+              key={`cle-com-${i}-${cles.length}`}
               defaultValue={c.commentaire ?? ''}
               disabled={lectureSeule}
+              placeholder="Ex. : double remis au locataire"
               onBlur={(e) =>
                 onMaj(cles.map((x, j) => (j === i ? { ...x, commentaire: e.target.value || undefined } : x)))
               }

@@ -93,20 +93,46 @@ export function ParametresPage() {
               <Input value={bailleur.nom} onChange={(e) => majBailleur({ nom: e.target.value })} />
             </Field>
           </div>
+          <p className="mb-4 mt-1 text-xs text-accent-500">
+            Ces coordonnées figurent sur tous les documents générés (bail, états des lieux,
+            courriers) : renseignez-les avant de créer votre premier bail.
+          </p>
           <div className="mt-4">
             <Field label="Adresse complète">
-              <Input value={bailleur.adresse} onChange={(e) => majBailleur({ adresse: e.target.value })} />
+              <Input
+                value={bailleur.adresse}
+                onChange={(e) => majBailleur({ adresse: e.target.value })}
+                placeholder="5 place de Jaude, 63000 Clermont-Ferrand"
+              />
             </Field>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="E-mail">
-              <Input type="email" value={bailleur.email} onChange={(e) => majBailleur({ email: e.target.value })} />
+              <Input
+                type="email"
+                value={bailleur.email}
+                onChange={(e) => majBailleur({ email: e.target.value })}
+                placeholder="jean.martin@exemple.fr"
+              />
             </Field>
             <Field label="Téléphone">
-              <Input type="tel" value={bailleur.telephone} onChange={(e) => majBailleur({ telephone: e.target.value })} />
+              <Input
+                type="tel"
+                value={bailleur.telephone}
+                onChange={(e) => majBailleur({ telephone: e.target.value })}
+                placeholder="06 12 34 56 78"
+              />
             </Field>
-            <Field label="SIRET LMNP (optionnel)" hint="Affiché sur le bail si renseigné.">
-              <Input value={bailleur.siret ?? ''} onChange={(e) => majBailleur({ siret: e.target.value || undefined })} />
+            <Field
+              label="SIRET LMNP (optionnel)"
+              hint="Numéro à 14 chiffres obtenu à l'immatriculation LMNP (INPI). Affiché sur le bail si renseigné."
+            >
+              <Input
+                value={bailleur.siret ?? ''}
+                onChange={(e) => majBailleur({ siret: e.target.value || undefined })}
+                placeholder="123 456 789 00012"
+                inputMode="numeric"
+              />
             </Field>
           </div>
           <div className="mt-4">
@@ -168,7 +194,7 @@ export function ParametresPage() {
               </thead>
               <tbody>
                 {parametres.grilleVetuste.map((l, i) => (
-                  <tr key={i} className="border-b border-accent-100">
+                  <tr key={`${i}-${parametres.grilleVetuste.length}`} className="border-b border-accent-100">
                     <td className="py-1 pr-2">
                       <Input
                         defaultValue={l.poste}
