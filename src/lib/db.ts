@@ -11,6 +11,18 @@ import type {
 } from '@/types';
 import { GRILLE_VETUSTE_DEFAUT } from './defauts';
 
+/**
+ * Configuration de la sauvegarde automatique : le handle du dossier choisi
+ * (File System Access API) est structured-cloneable et se conserve dans
+ * IndexedDB. Table volontairement exclue de l'export ZIP (propre à l'appareil).
+ */
+export interface ConfigSauvegardeAuto {
+  id: 'dossier';
+  handle: FileSystemDirectoryHandle;
+  nomDossier: string;
+  dernierPush?: string;
+}
+
 export class BailizDB extends Dexie {
   biens!: EntityTable<Bien, 'id'>;
   locataires!: EntityTable<Locataire, 'id'>;
@@ -20,6 +32,7 @@ export class BailizDB extends Dexie {
   photos!: EntityTable<Photo, 'id'>;
   documents!: EntityTable<DocumentGenere, 'id'>;
   parametres!: EntityTable<Parametres, 'id'>;
+  sauvegardeAuto!: EntityTable<ConfigSauvegardeAuto, 'id'>;
 
   constructor() {
     super('bailiz');
@@ -32,6 +45,10 @@ export class BailizDB extends Dexie {
       photos: 'id, edlId',
       documents: 'id, reference, type, bienId, bailId, edlId, createdAt',
       parametres: 'id',
+    });
+    // v2 : dossier de sauvegarde automatique (File System Access).
+    this.version(2).stores({
+      sauvegardeAuto: 'id',
     });
   }
 }

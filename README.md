@@ -88,6 +88,10 @@ npm run build      # build de production + PWA
   `TYPE-ANNEE-XXXX`, re-génération possible tant que non signé.
 - Export sauvegarde ZIP (data.json + photos + PDF) / import avec détection de conflits
   (« remplacer tout » ou « fusionner par id »). Rappel si la sauvegarde date de plus de 30 jours.
+- **Sauvegarde automatique « push ZIP »** (Chrome/Edge desktop) : choisissez une fois un
+  dossier synchronisé par votre cloud (Drive, OneDrive, iCloud…) — l'app y pousse l'archive
+  complète après chaque signature et à l'ouverture (si > 7 jours), avec rotation des
+  10 dernières archives. Zéro serveur, zéro coût.
 - Persistance du stockage demandée au navigateur (`navigator.storage.persist()`).
 
 ### Tableau de bord (M6)

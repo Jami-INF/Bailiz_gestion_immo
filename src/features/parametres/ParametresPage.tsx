@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
-import { HardDriveDownload, HardDriveUpload, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  FolderSync,
+  HardDriveDownload,
+  HardDriveUpload,
+  Plus,
+  Save,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 import { db, getParametres } from '@/lib/db';
 import type { LigneVetuste, Parametres } from '@/types';
 import {
@@ -12,6 +20,13 @@ import {
   telechargerBlob,
 } from '@/lib/backup';
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
+import {
+  autosaveSupportee,
+  choisirDossierAutosave,
+  desactiverAutosave,
+  getConfigAutosave,
+  pousserSiActive,
+} from '@/lib/autosave';
 import { usePersistanceStockage } from '@/hooks/useStatuts';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
@@ -174,6 +189,9 @@ export function ParametresPage() {
           </div>
         </Card>
 
+        <SauvegardeAutoPanel />
+
+
         <Card>
           <h2 className="mb-2 font-semibold text-accent-900">Grille de vétusté</h2>
           <p className="mb-3 text-sm text-accent-600">
@@ -312,5 +330,90 @@ export function ParametresPage() {
         )}
       </Modal>
     </div>
+  );
+}
+
+/** Panneau « push ZIP » : sauvegarde automatique vers un dossier synchronisé. */
+function SauvegardeAutoPanel() {
+  const toast = useToast();
+  const config = useLiveQuery(() => getConfigAutosave());
+
+  const activer = async () => {
+    try {
+      await choisirDossierAutosave();
+      const resultat = await pousserSiActive(true);
+      if (resultat === 'ok') toast('success', 'Dossier configuré — première sauvegarde effectuée.');
+      else toast('warning', 'Dossier configuré, mais la première sauvegarde a échoué.');
+    } catch {
+      // Sélecteur annulé par l'utilisateur : rien à faire.
+    }
+  };
+
+  const pousserMaintenant = async () => {
+    const resultat = await pousserSiActive(true);
+    if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier.');
+    else if (resultat === 'permission_requise')
+      toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
+    else toast('error', 'Échec de la sauvegarde automatique.');
+  };
+
+  return (
+    <Card>
+      <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
+        <FolderSync size={18} /> Sauvegarde automatique (dossier synchronisé)
+      </h2>
+      {!autosaveSupportee() ? (
+        <p className="text-sm text-accent-600">
+          Non disponible sur ce navigateur (API File System Access requise — Chrome ou Edge sur
+          ordinateur). Sur tablette/mobile, utilisez l'export manuel ci-dessus.
+        </p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm text-accent-600">
+            Choisissez un dossier <span className="font-medium">synchronisé par votre cloud</span>{' '}
+            (Google Drive, OneDrive, iCloud Drive…) : l'application y poussera automatiquement
+            l'archive complète après chaque document signé et à l'ouverture si la dernière
+            sauvegarde date de plus de 7 jours. Les 10 archives les plus récentes sont
+            conservées, les plus anciennes supprimées.
+          </p>
+          {config ? (
+            <div className="space-y-3">
+              <p className="text-sm text-accent-800">
+                Dossier : <span className="font-semibold">{config.nomDossier}</span> — dernier
+                push :{' '}
+                {config.dernierPush
+                  ? format(new Date(config.dernierPush), 'dd/MM/yyyy à HH:mm')
+                  : 'jamais'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => void pousserMaintenant()}>
+                  <FolderSync size={14} /> Sauvegarder maintenant
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => void activer()}>
+                  Changer de dossier
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    void desactiverAutosave().then(() => toast('info', 'Sauvegarde automatique désactivée.'))
+                  }
+                >
+                  Désactiver
+                </Button>
+              </div>
+              <p className="text-xs text-accent-500">
+                Après un redémarrage du navigateur, une confirmation d'autorisation peut être
+                demandée au prochain push (fonctionnement normal de l'API).
+              </p>
+            </div>
+          ) : (
+            <Button onClick={() => void activer()}>
+              <FolderSync size={16} /> Choisir le dossier de sauvegarde
+            </Button>
+          )}
+        </>
+      )}
+    </Card>
   );
 }

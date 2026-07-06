@@ -169,6 +169,14 @@ Les champs non indexés peuvent être ajoutés aux interfaces de `types.ts` **sa
 champ `version` (actuellement `1`) — incrémenter et gérer la rétro-compatibilité dans
 `lireSauvegarde` si la forme des entités change.
 
+### 4.3 bis Schéma v2 — table `sauvegardeAuto`
+
+La v2 ajoute la table `sauvegardeAuto` (une seule ligne, id `'dossier'`) qui stocke le
+**FileSystemDirectoryHandle** du dossier de sauvegarde automatique (les handles sont
+structured-cloneables, donc persistables dans IndexedDB). Cette table est **volontairement
+exclue de l'export ZIP** : un handle est propre à l'appareil et n'aurait aucun sens restauré
+ailleurs.
+
 ### 4.4 Sauvegarde ZIP (`lib/backup.ts`)
 
 Format de l'archive :
@@ -188,6 +196,27 @@ bailiz-sauvegarde-YYYY-MM-DD-HHmm.zip
   `'remplacer'` (clear complet puis bulkPut) ou `'fusionner'` (bulkPut = upsert par id).
 - `exporterSauvegarde` met à jour `parametres.derniereSauvegarde` ; le tableau de bord alerte
   si > 30 jours (`sauvegardeAncienne`).
+
+### 4.5 Sauvegarde automatique « push ZIP » (`lib/autosave.ts`)
+
+Zéro infrastructure : l'utilisateur choisit une fois un dossier local **synchronisé par son
+cloud** (Google Drive, OneDrive, iCloud…) via `showDirectoryPicker` (File System Access API —
+Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explicite sinon).
+
+- **Déclencheurs** : après chaque signature (EDL, bail, inventaire — appel
+  `pousserSiActive(true)` dans les trois pages) et à l'ouverture de l'app si le dernier push
+  date de plus de 7 jours (`AppLayout`, `pousserSiActive(false)` : silencieux, ne re-demande
+  pas la permission).
+- **Permissions** : après un redémarrage du navigateur, la permission repasse à `prompt` ;
+  la re-demande (`requestPermission`) exige un geste utilisateur — c'est pourquoi le push
+  d'ouverture n'insiste pas et les pushs post-signature (qui suivent un clic) peuvent, eux,
+  rouvrir la demande.
+- **Rotation** : seules les 10 archives `bailiz-sauvegarde-*.zip` les plus récentes sont
+  conservées (`fichiersASupprimer`, pure et testée — le tri lexical des noms datés équivaut
+  au tri chronologique). L'échec de la rotation n'empêche jamais le push.
+- Les types de l'API sont déclarés dans `src/types/fs-access.d.ts` (absents de lib.dom).
+- Astuce de test : un handle OPFS (`navigator.storage.getDirectory()`) expose la même
+  interface qu'un dossier réel et permet de tester le push sans dialogue natif.
 
 ## 5. Fonctionnalités : implémentation et points d'attention
 
@@ -432,6 +461,7 @@ npx tsc -b          # type-check strict (aussi exécuté par npm run build)
 | `lib/crypto.test.ts` | vecteurs SHA-256 connus (chaîne vide, "abc"), formatage |
 | `lib/dates.test.ts` | parsing JJ/MM/AAAA (dates inexistantes rejetées), formatage, masque de saisie |
 | `lib/lettres.test.ts` | nombres en lettres (règles françaises : 71, 80, 200, accords), montants en euros |
+| `lib/autosave.test.ts` | rotation des archives (seuil, tri chronologique, fichiers étrangers ignorés) |
 | `lib/pdf/BailPdf.test.ts` | rendu smoke du bail complet (fixtures avec toutes les mentions légales) via `renderToBuffer` |
 | `validerDecenceDPE` (dans calculs.test) | calendrier loi Climat : G bloquant 2025, F 2028, E 2034, classe absente signalée |
 | `lib/backup.test.ts` | export→import sur base vierge (100 % données+photos restaurées, octets identiques), détection de conflits, fusion sans perte (via `fake-indexeddb`) |
@@ -449,6 +479,11 @@ la conformité juridique des documents.
 - `registerType: 'autoUpdate'` : le SW se met à jour seul au rechargement suivant un déploiement.
 - Déploiement = hébergement statique quelconque (HTTPS obligatoire pour PWA/`getUserMedia`).
   Aucune variable d'environnement, aucun secret.
+- **GitHub Pages** : déploiement automatisé par `.github/workflows/deploy.yml` (push sur
+  `main` → tests → build → artifact Pages → deploy). Le site étant servi sous
+  `/<nom-du-repo>/`, `vite.config.ts` fixe **`base: './'`** (chemins relatifs partout :
+  assets, manifest `start_url`/`scope`, precache Workbox). Ne pas retirer cette base, et ne
+  pas passer à `BrowserRouter` : le `HashRouter` évite d'avoir à configurer un fallback 404.
 - Test hors-ligne : build + `npm run preview`, charger une fois, couper le réseau (onglet
   Network → Offline), recharger : l'app démarre et toutes les données IndexedDB sont là.
 

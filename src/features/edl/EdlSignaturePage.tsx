@@ -9,6 +9,7 @@ import { ETAT_LABELS, COMPTEUR_LABELS } from '@/types';
 import { formatHash } from '@/lib/crypto';
 import { progressionEDL } from '@/lib/etat';
 import { rendrePdfAvecHash, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
+import { pousserSiActive } from '@/lib/autosave';
 import { EdlPdf } from '@/lib/pdf/EdlPdf';
 import { SignatureFlow } from '@/components/SignatureFlow';
 import { Button, Card, useToast } from '@/components/ui';
@@ -78,6 +79,12 @@ export function EdlSignaturePage() {
         await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
       }
       setResultat({ hash, blob });
+      // Push ZIP automatique vers le dossier synchronisé (si configuré).
+      void pousserSiActive(true).then((r) => {
+        if (r === 'ok') toast('success', 'Sauvegarde automatique poussée dans le dossier synchronisé.');
+        else if (r === 'permission_requise' || r === 'erreur')
+          toast('warning', 'Sauvegarde automatique impossible — pensez à exporter depuis les Paramètres.');
+      });
     } catch (e) {
       console.error(e);
       toast('error', 'Erreur lors de la génération du PDF signé.');

@@ -26,6 +26,7 @@ import {
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { CourrierIrlPdf } from '@/lib/pdf/CourrierIrlPdf';
 import { SignatureFlow } from '@/components/SignatureFlow';
+import { pousserSiActive } from '@/lib/autosave';
 import { Badge, Button, Card, DateInput, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { STATUT_BAIL_UI } from './BauxPage';
 import { InventairePanel } from './InventairePanel';
@@ -122,6 +123,9 @@ export function BailDetailPage() {
       telechargerDocument({ blob, reference: bail.reference });
       setModaleSignatureEcran(false);
       toast('success', `Bail signé et verrouillé. Empreinte SHA-256 : ${hash.slice(0, 16)}…`);
+      void pousserSiActive(true).then((r) => {
+        if (r === 'ok') toast('success', 'Sauvegarde automatique poussée dans le dossier synchronisé.');
+      });
     } catch (e) {
       console.error(e);
       toast('error', 'Erreur lors de la génération du bail signé.');

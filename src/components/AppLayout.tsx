@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
 import { db, getParametres } from '@/lib/db';
+import { getConfigAutosave, pousserSiActive, SEUIL_PUSH_OUVERTURE_MS } from '@/lib/autosave';
 import { Button, Modal } from '@/components/ui';
 
 const nav = [
@@ -59,6 +60,20 @@ export function AppLayout() {
   // Crée la ligne de paramètres au premier lancement (déclenche le disclaimer).
   useEffect(() => {
     void getParametres();
+  }, []);
+
+  // Push ZIP silencieux à l'ouverture si la sauvegarde auto est configurée,
+  // que la permission est déjà accordée et que le dernier push date de + de 7 jours.
+  useEffect(() => {
+    void (async () => {
+      const config = await getConfigAutosave();
+      if (!config) return;
+      const anciennete = config.dernierPush
+        ? Date.now() - new Date(config.dernierPush).getTime()
+        : Infinity;
+      if (anciennete < SEUIL_PUSH_OUVERTURE_MS) return;
+      await pousserSiActive(false); // sans geste utilisateur : n'insiste pas si permission à renouveler
+    })();
   }, []);
   const location = useLocation();
   // Mode terrain EDL : plein écran sans navigation latérale

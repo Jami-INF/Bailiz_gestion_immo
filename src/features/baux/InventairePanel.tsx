@@ -8,6 +8,7 @@ import { ETAT_LABELS } from '@/types';
 import { rendrePdf, rendrePdfAvecHash, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
 import { InventairePdf } from '@/lib/pdf/InventairePdf';
 import { SignatureFlow } from '@/components/SignatureFlow';
+import { pousserSiActive } from '@/lib/autosave';
 import { Badge, Button, Card, Input, Modal, Select, useToast } from '@/components/ui';
 
 export function InventairePanel({
@@ -77,6 +78,9 @@ export function InventairePanel({
     telechargerDocument({ blob, reference: inventaire.reference });
     setSignature(false);
     toast('success', `Inventaire signé et verrouillé. Empreinte SHA-256 : ${hash.slice(0, 16)}…`);
+    void pousserSiActive(true).then((r) => {
+      if (r === 'ok') toast('success', 'Sauvegarde automatique poussée dans le dossier synchronisé.');
+    });
   };
 
   return (
