@@ -18,6 +18,9 @@ export const SEUIL_PUSH_OUVERTURE_MS = 7 * 24 * 3600 * 1000;
 
 export type ResultatPush = 'ok' | 'inactif' | 'permission_requise' | 'non_supporte' | 'erreur';
 
+/** Délai de regroupement des modifications avant push (anti-rafale). */
+const DEBOUNCE_MODIFICATIONS_MS = 30_000;
+
 /** L'API File System Access n'existe que sur Chrome/Edge desktop. */
 export function autosaveSupportee(): boolean {
   return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
@@ -90,6 +93,9 @@ export async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<v
   await db.sauvegardeAuto.put({ ...config, dernierPush: nowISO() });
 }
 
+/** Évite les pushs concurrents (bouton + planifié + signature). */
+let pushEnCours = false;
+
 /**
  * Push si la sauvegarde auto est configurée.
  * `gesteUtilisateur` autorise la re-demande de permission (sinon échec silencieux
@@ -99,13 +105,58 @@ export async function pousserSiActive(gesteUtilisateur: boolean): Promise<Result
   if (!autosaveSupportee()) return 'non_supporte';
   const config = await getConfigAutosave();
   if (!config) return 'inactif';
+  if (pushEnCours) return 'ok';
   try {
     const permission = await permissionAutosave(config.handle, gesteUtilisateur);
     if (permission !== 'granted') return 'permission_requise';
+    pushEnCours = true;
     await pousserSauvegarde(config);
     return 'ok';
   } catch (e) {
     console.error('Sauvegarde automatique impossible :', e);
     return 'erreur';
+  } finally {
+    pushEnCours = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Push planifié à chaque modification d'entité (hooks Dexie + debounce)
+// ---------------------------------------------------------------------------
+
+let observateurInitialise = false;
+let timerDebounce: ReturnType<typeof setTimeout> | undefined;
+let notifier: ((type: 'success' | 'warning', message: string) => void) | undefined;
+
+function planifierPush(): void {
+  // Les écritures provoquées par le push lui-même (parametres.derniereSauvegarde)
+  // ne doivent pas replanifier un push : boucle sinon.
+  if (pushEnCours) return;
+  clearTimeout(timerDebounce);
+  timerDebounce = setTimeout(() => {
+    void pousserSiActive(false).then((resultat) => {
+      if (resultat === 'ok') notifier?.('success', 'Sauvegarde automatique effectuée.');
+      // permission_requise / inactif : silencieux — le bouton « Sauvegarder »
+      // et les pushs post-signature couvrent la re-demande d'autorisation.
+    });
+  }, DEBOUNCE_MODIFICATIONS_MS);
+}
+
+/**
+ * Observe toutes les tables métier : chaque création/modification/suppression
+ * déclenche un push regroupé (30 s après la dernière écriture). À appeler une
+ * seule fois au montage de l'app, avec la fonction toast pour le message.
+ */
+export function initAutosaveSurModifications(
+  toast: (type: 'success' | 'warning', message: string) => void,
+): void {
+  notifier = toast;
+  if (observateurInitialise || !autosaveSupportee()) return;
+  observateurInitialise = true;
+  const tables = [db.biens, db.locataires, db.baux, db.inventaires, db.edls, db.photos, db.documents];
+  for (const table of tables) {
+    table.hook('creating', () => planifierPush());
+    table.hook('updating', () => planifierPush());
+    table.hook('deleting', () => planifierPush());
   }
 }

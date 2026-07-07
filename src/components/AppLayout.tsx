@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Building2,
@@ -7,6 +7,7 @@ import {
   FileText,
   ClipboardList,
   FolderOpen,
+  FolderSync,
   Settings,
   LayoutDashboard,
   WifiOff,
@@ -14,9 +15,16 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
+import { format, isToday } from 'date-fns';
 import { db, getParametres } from '@/lib/db';
-import { getConfigAutosave, pousserSiActive, SEUIL_PUSH_OUVERTURE_MS } from '@/lib/autosave';
-import { Button, Modal } from '@/components/ui';
+import {
+  getConfigAutosave,
+  initAutosaveSurModifications,
+  pousserSiActive,
+  SEUIL_PUSH_OUVERTURE_MS,
+} from '@/lib/autosave';
+import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
+import { Button, Modal, useToast } from '@/components/ui';
 
 const nav = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -27,6 +35,52 @@ const nav = [
   { to: '/documents', label: 'Documents', icon: FolderOpen },
   { to: '/parametres', label: 'Paramètres', icon: Settings },
 ];
+
+/**
+ * « Dernière sauvegarde à XXh » + bouton « Sauvegarder » (si un dossier de
+ * sauvegarde automatique est lié). La date affichée est celle du dernier
+ * export réussi, manuel ou automatique (parametres.derniereSauvegarde).
+ */
+function SauvegardeStatut() {
+  const toast = useToast();
+  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const config = useLiveQuery(() => getConfigAutosave());
+  const [enCours, setEnCours] = useState(false);
+
+  const date = parametres?.derniereSauvegarde ? new Date(parametres.derniereSauvegarde) : null;
+  const libelle = date
+    ? isToday(date)
+      ? `Dernière sauvegarde à ${format(date, "HH'h'mm")}`
+      : `Dernière sauvegarde le ${format(date, "dd/MM 'à' HH'h'mm")}`
+    : 'Aucune sauvegarde';
+
+  const sauvegarder = async () => {
+    setEnCours(true);
+    const resultat = await pousserSiActive(true);
+    setEnCours(false);
+    if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier synchronisé.');
+    else if (resultat === 'permission_requise')
+      toast('warning', "Autorisation à renouveler : re-sélectionnez le dossier dans les Paramètres.");
+    else toast('error', 'Échec de la sauvegarde.');
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span
+        className={`flex items-center gap-1.5 ${!date ? 'text-amber-700' : ''}`}
+        title={date ? format(date, 'dd/MM/yyyy HH:mm:ss') : undefined}
+      >
+        <FolderSync size={14} className={date ? 'text-green-600' : 'text-amber-600'} />
+        {libelle}
+      </span>
+      {config && (
+        <Button variant="secondary" size="sm" onClick={() => void sauvegarder()} disabled={enCours}>
+          <FolderSync size={14} /> {enCours ? 'Sauvegarde…' : 'Sauvegarder'}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export const DISCLAIMER_JURIDIQUE =
   "Cet outil est une aide à la rédaction. Il ne constitue pas un conseil juridique. Vérifiez les évolutions légales sur service-public.fr. Pour la signature du bail, un prestataire de signature électronique qualifié eIDAS est recommandé.";
@@ -57,10 +111,17 @@ function DisclaimerPremiereUtilisation() {
 export function AppLayout() {
   const enLigne = useEnLigne();
   const persiste = usePersistanceStockage();
+  const toast = useToast();
   // Crée la ligne de paramètres au premier lancement (déclenche le disclaimer).
   useEffect(() => {
     void getParametres();
   }, []);
+
+  // Push automatique regroupé à chaque modification d'entité (30 s après la
+  // dernière écriture), avec message de confirmation.
+  useEffect(() => {
+    initAutosaveSurModifications(toast);
+  }, [toast]);
 
   // Push ZIP silencieux à l'ouverture si la sauvegarde auto est configurée,
   // que la permission est déjà accordée et que le dernier push date de + de 7 jours.
@@ -113,6 +174,7 @@ export function AppLayout() {
           </nav>
           <div className="hidden grow sm:block" />
           <div className="hidden flex-col gap-2 border-t border-accent-200 px-5 py-4 text-xs text-accent-500 sm:flex">
+            <SauvegardeStatut />
             <span className="flex items-center gap-1.5">
               {persiste ? (
                 <>
@@ -140,6 +202,31 @@ export function AppLayout() {
         )}
         <div className={pleinEcran ? '' : 'mx-auto max-w-5xl px-4 py-6 sm:px-8'}>
           <Outlet />
+          {!pleinEcran && (
+            <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-accent-200 pt-4 text-xs text-accent-500">
+              <Link to="/mentions-legales" className="hover:text-accent-800 hover:underline">
+                Mentions légales & confidentialité
+              </Link>
+              <span aria-hidden>·</span>
+              <a
+                href={LIEN_LINKEDIN}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-accent-800 hover:underline"
+              >
+                Créé par Jami Infante
+              </a>
+              <span aria-hidden>·</span>
+              <a
+                href={LIEN_REPO}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-accent-800 hover:underline"
+              >
+                Code source (GitHub)
+              </a>
+            </footer>
+          )}
         </div>
       </main>
       <DisclaimerPremiereUtilisation />

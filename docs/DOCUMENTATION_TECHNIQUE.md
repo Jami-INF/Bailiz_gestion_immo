@@ -110,6 +110,9 @@ src/
       CourrierIrlPdf.tsx   Courrier de révision annuelle
 
   features/
+    legal/MentionsLegalesPage.tsx      Mentions légales, confidentialité, infos techniques
+                                       (créateur/LinkedIn/repo via lib/liens.ts ; lien dans le
+                                       footer global rendu par AppLayout sur toutes les pages)
     dashboard/TableauDeBordPage.tsx    Alertes + échéancier (logique inline, voir §5.6)
     biens/     BiensPage, BienFormPage (4 étapes), BienDetailPage,
                PiecesEditeur, DiagnosticsEditeur, diagnostics.ts (validité/badges)
@@ -204,9 +207,19 @@ cloud** (Google Drive, OneDrive, iCloud…) via `showDirectoryPicker` (File Syst
 Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explicite sinon).
 
 - **Déclencheurs** : après chaque signature (EDL, bail, inventaire — appel
-  `pousserSiActive(true)` dans les trois pages) et à l'ouverture de l'app si le dernier push
+  `pousserSiActive(true)` dans les trois pages) ; à l'ouverture de l'app si le dernier push
   date de plus de 7 jours (`AppLayout`, `pousserSiActive(false)` : silencieux, ne re-demande
-  pas la permission).
+  pas la permission) ; et **à chaque modification d'entité** :
+  `initAutosaveSurModifications` pose des hooks Dexie (`creating`/`updating`/`deleting`) sur
+  les 7 tables métier et regroupe les écritures (debounce 30 s après la dernière) avant un
+  push silencieux avec toast de confirmation. Garde-fous : le flag `pushEnCours` empêche les
+  pushs concurrents ET la boucle infinie (le push écrit lui-même dans `parametres`) ; les
+  tables `parametres`/`sauvegardeAuto` ne sont pas observées ; l'init est idempotente
+  (StrictMode). Attention : les hooks ne voient que les écritures passant par Dexie.
+- **UI** : composant `SauvegardeStatut` (pied de la barre latérale, `AppLayout`) — affiche
+  « Dernière sauvegarde à XXhXX » (source unique : `parametres.derniereSauvegarde`, mise à
+  jour par tout export réussi, manuel ou auto) + bouton « Sauvegarder » quand un dossier est
+  lié (`pousserSiActive(true)`, donc capable de re-demander la permission).
 - **Permissions** : après un redémarrage du navigateur, la permission repasse à `prompt` ;
   la re-demande (`requestPermission`) exige un geste utilisateur — c'est pourquoi le push
   d'ouverture n'insiste pas et les pushs post-signature (qui suivent un clic) peuvent, eux,

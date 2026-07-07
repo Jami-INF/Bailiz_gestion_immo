@@ -15,6 +15,7 @@ import { EdlSignaturePage } from '@/features/edl/EdlSignaturePage';
 import { EdlSynthesePage } from '@/features/edl/EdlSynthesePage';
 import { DocumentsPage } from '@/features/documents/DocumentsPage';
 import { ParametresPage } from '@/features/parametres/ParametresPage';
+import { MentionsLegalesPage } from '@/features/legal/MentionsLegalesPage';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/edl/:id/synthese" element={<EdlSynthesePage />} />
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/parametres" element={<ParametresPage />} />
+            <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
