@@ -60,11 +60,11 @@ export function BauxPage() {
             return (
               <Link key={bail.id} to={`/baux/${bail.id}`} className="block">
                 <Card className="flex flex-wrap items-center justify-between gap-3 transition-shadow hover:shadow-md">
-                  <div>
-                    <div className="font-semibold text-accent-900">
+                  <div className="min-w-0">
+                    <div className="break-words font-semibold text-accent-900">
                       {bail.reference} — {bien?.nom ?? 'Bien supprimé'}
                     </div>
-                    <div className="text-sm text-accent-600">
+                    <div className="break-words text-sm text-accent-600">
                       {noms || 'Locataires non renseignés'} · {TYPE_BAIL_LABELS[bail.typeBail]}
                     </div>
                     <div className="text-xs text-accent-500">

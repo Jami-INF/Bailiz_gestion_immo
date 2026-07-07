@@ -76,16 +76,18 @@ export function DocumentsPage() {
         <div className="space-y-2">
           {filtres.map((d) => (
             <Card key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div>
-                <div className="flex items-center gap-2 font-medium text-accent-900">
-                  {d.reference} — {d.titre}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 break-words font-medium text-accent-900">
+                  <span className="break-words">
+                    {d.reference} — {d.titre}
+                  </span>
                   {d.signe && (
                     <Badge tone="green">
                       <ShieldCheck size={12} /> Signé
                     </Badge>
                   )}
                 </div>
-                <div className="text-xs text-accent-500">
+                <div className="break-words text-xs text-accent-500">
                   {TYPE_DOCUMENT_LABELS[d.type]} · généré le{' '}
                   {format(new Date(d.createdAt), 'dd/MM/yyyy à HH:mm')}
                   {d.hash && ` · SHA-256 : ${d.hash.slice(0, 16)}…`}

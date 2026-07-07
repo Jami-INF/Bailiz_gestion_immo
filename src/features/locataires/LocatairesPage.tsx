@@ -145,24 +145,27 @@ export function LocatairesPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           {locataires.map((l) => {
             const lies = bauxDuLocataire(l.id);
             return (
               <Card key={l.id}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-accent-900">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-accent-900 break-words">
                       {l.civilite} {l.prenom} {l.nom}
                     </h3>
-                    <p className="text-sm text-accent-600">{l.email}</p>
+                    <p className="text-sm text-accent-600 break-all">{l.email}</p>
                     <p className="text-sm text-accent-600">{l.telephone}</p>
                     {l.garant && (
-                      <p className="mt-1 flex items-center gap-1 text-xs text-accent-500">
-                        <ShieldQuestion size={13} /> Garant :{' '}
-                        {l.garant.type === 'visale'
-                          ? 'garantie Visale'
-                          : `${l.garant.prenom} ${l.garant.nom}`}
+                      <p className="mt-1 flex items-start gap-1 text-xs text-accent-500">
+                        <ShieldQuestion size={13} className="mt-0.5 shrink-0" />
+                        <span className="break-words">
+                          Garant :{' '}
+                          {l.garant.type === 'visale'
+                            ? 'garantie Visale'
+                            : `${l.garant.prenom} ${l.garant.nom}`}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -170,7 +173,7 @@ export function LocatairesPage() {
                     {lies.length} bail{lies.length > 1 ? 'x' : ''}
                   </Badge>
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => ouvrir(l)}>
                     <Pencil size={14} /> Modifier
                   </Button>

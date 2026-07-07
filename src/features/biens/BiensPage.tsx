@@ -50,14 +50,16 @@ export function BiensPage() {
               <Link key={bien.id} to={`/biens/${bien.id}`}>
                 <Card className="h-full transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-accent-900">{bien.nom}</h3>
+                    <h3 className="min-w-0 break-words font-semibold text-accent-900">{bien.nom}</h3>
                     <Badge tone={bailActif ? 'green' : 'blue'}>
                       {bailActif ? 'Loué' : 'Vacant'}
                     </Badge>
                   </div>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-accent-600">
-                    <MapPin size={14} />
-                    {bien.adresse.ligne1}, {bien.adresse.codePostal} {bien.adresse.ville}
+                  <p className="mt-1 flex items-start gap-1 text-sm text-accent-600">
+                    <MapPin size={14} className="mt-0.5 shrink-0" />
+                    <span className="break-words">
+                      {bien.adresse.ligne1}, {bien.adresse.codePostal} {bien.adresse.ville}
+                    </span>
                   </p>
                   <p className="mt-2 text-sm text-accent-500">
                     {bien.type} · {bien.surfaceBoutin} m² (loi Boutin) · {bien.nbPieces} pièce
