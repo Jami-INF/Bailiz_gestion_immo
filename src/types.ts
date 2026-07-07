@@ -306,6 +306,17 @@ export interface Parametres {
   compteursSequence: { bail: number; edl: number; inventaire: number; document: number; annee: number };
   derniereSauvegarde?: string;
   disclaimerAccepte?: boolean;
+  /**
+   * Sauvegarde vers Google Drive (API drive.file : l'app ne voit que ses
+   * propres fichiers). Le clientId OAuth est public par nature ; aucun jeton
+   * n'est persisté (mémoire uniquement).
+   */
+  sauvegardeGDrive?: {
+    clientId: string;
+    actif: boolean;
+    dossierId?: string; // dossier « Bailiz » créé à la racine du Drive
+    dernierPush?: string;
+  };
 }
 
 export type TypeDocument =

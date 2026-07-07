@@ -223,8 +223,37 @@ Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explici
   (StrictMode). Attention : les hooks ne voient que les écritures passant par Dexie.
 - **UI** : composant `SauvegardeStatut` (pied de la barre latérale, `AppLayout`) — affiche
   « Dernière sauvegarde à XXhXX » (source unique : `parametres.derniereSauvegarde`, mise à
-  jour par tout export réussi, manuel ou auto) + bouton « Sauvegarder » quand un dossier est
-  lié (`pousserSiActive(true)`, donc capable de re-demander la permission).
+  jour par tout export réussi, manuel ou auto) + bouton « Sauvegarder » quand au moins une
+  destination est configurée (`pousserSiActive(true)`, donc capable de re-demander la
+  permission).
+
+### 4.6 Sauvegarde Google Drive (`lib/gdrive.ts`) — le cas iPad
+
+Deuxième destination de push, cumulable avec le dossier local, qui fonctionne sur **tous**
+les navigateurs (Safari/iPad inclus) puisqu'elle passe par l'API Drive et non par File
+System Access :
+
+- **Auth** : Google Identity Services (script `gsi/client` chargé à la demande, jamais au
+  démarrage — l'app reste 100 % hors-ligne tant qu'on ne pousse pas), flux « token client »,
+  scope non sensible **`drive.file`** (l'app ne voit que ses propres fichiers). Le jeton
+  (~1 h) vit en mémoire uniquement, jamais persisté ; renouvellement silencieux
+  (`prompt: ''`) sinon interaction requise. Types ambiants dans `src/types/gsi.d.ts`.
+- **Config** dans `parametres.sauvegardeGDrive` (`clientId` public, `actif`, `dossierId`,
+  `dernierPush`) — voyage donc avec l'export ZIP, ce qui est voulu (restauration sur un
+  nouvel appareil : il ne reste qu'à se reconnecter). Le Client ID OAuth est saisi par
+  l'utilisateur dans les Paramètres (créé sur console.cloud.google.com, origines autorisées
+  = domaine GitHub Pages + localhost:5273).
+- **Upload** : dossier « Bailiz » retrouvé/créé à la racine (`assurerDossier`), upload
+  `multipart/related` (`construireCorpsMultipart`, pure et testée), rotation identique au
+  dossier local (`lib/rotation.ts`, partagé — `fichiersASupprimer` y a été déplacé et est
+  ré-exporté par `autosave.ts`).
+- **Agrégation** : `pousserSiActive` pousse vers les deux destinations et renvoie `ok` si au
+  moins une a réussi, sinon l'état le plus actionnable (`permission_requise` > `hors_ligne` >
+  `erreur`). Nouveau statut `hors_ligne` : l'écouteur `online` posé par
+  `initAutosaveSurModifications` replanifie automatiquement le push au retour du réseau
+  (EDL signé à la cave → poussé en remontant). Attention : l'init de l'observateur n'est
+  **plus** conditionnée à `autosaveSupportee()` (sinon iPad n'aurait aucun push).
+- Un jeton expirant en plein push (401) est re-demandé une fois puis l'opération est rejouée.
 - **Permissions** : après un redémarrage du navigateur, la permission repasse à `prompt` ;
   la re-demande (`requestPermission`) exige un geste utilisateur — c'est pourquoi le push
   d'ouverture n'insiste pas et les pushs post-signature (qui suivent un clic) peuvent, eux,

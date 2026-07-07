@@ -18,6 +18,7 @@ import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
 import { format, isToday } from 'date-fns';
 import { db, getParametres } from '@/lib/db';
 import {
+  destinationConfiguree,
   getConfigAutosave,
   initAutosaveSurModifications,
   pousserSiActive,
@@ -44,8 +45,9 @@ const nav = [
 function SauvegardeStatut() {
   const toast = useToast();
   const parametres = useLiveQuery(() => db.parametres.get('singleton'));
-  const config = useLiveQuery(() => getConfigAutosave());
+  const configDossier = useLiveQuery(() => getConfigAutosave());
   const [enCours, setEnCours] = useState(false);
+  const destination = Boolean(configDossier) || Boolean(parametres?.sauvegardeGDrive?.actif);
 
   const date = parametres?.derniereSauvegarde ? new Date(parametres.derniereSauvegarde) : null;
   const libelle = date
@@ -58,9 +60,11 @@ function SauvegardeStatut() {
     setEnCours(true);
     const resultat = await pousserSiActive(true);
     setEnCours(false);
-    if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier synchronisé.');
+    if (resultat === 'ok') toast('success', 'Sauvegarde poussée vers la destination configurée.');
     else if (resultat === 'permission_requise')
-      toast('warning', "Autorisation à renouveler : re-sélectionnez le dossier dans les Paramètres.");
+      toast('warning', 'Autorisation à renouveler dans les Paramètres (dossier ou Google Drive).');
+    else if (resultat === 'hors_ligne')
+      toast('warning', 'Hors-ligne : la sauvegarde partira automatiquement au retour du réseau.');
     else toast('error', 'Échec de la sauvegarde.');
   };
 
@@ -73,7 +77,7 @@ function SauvegardeStatut() {
         <FolderSync size={14} className={date ? 'text-green-600' : 'text-amber-600'} />
         {libelle}
       </span>
-      {config && (
+      {destination && (
         <Button variant="secondary" size="sm" onClick={() => void sauvegarder()} disabled={enCours}>
           <FolderSync size={14} /> {enCours ? 'Sauvegarde…' : 'Sauvegarder'}
         </Button>
@@ -123,14 +127,14 @@ export function AppLayout() {
     initAutosaveSurModifications(toast);
   }, [toast]);
 
-  // Push ZIP silencieux à l'ouverture si la sauvegarde auto est configurée,
-  // que la permission est déjà accordée et que le dernier push date de + de 7 jours.
+  // Push ZIP silencieux à l'ouverture si une destination (dossier ou Google
+  // Drive) est configurée et que la dernière sauvegarde date de + de 7 jours.
   useEffect(() => {
     void (async () => {
-      const config = await getConfigAutosave();
-      if (!config) return;
-      const anciennete = config.dernierPush
-        ? Date.now() - new Date(config.dernierPush).getTime()
+      if (!(await destinationConfiguree())) return;
+      const params = await getParametres();
+      const anciennete = params.derniereSauvegarde
+        ? Date.now() - new Date(params.derniereSauvegarde).getTime()
         : Infinity;
       if (anciennete < SEUIL_PUSH_OUVERTURE_MS) return;
       await pousserSiActive(false); // sans geste utilisateur : n'insiste pas si permission à renouveler

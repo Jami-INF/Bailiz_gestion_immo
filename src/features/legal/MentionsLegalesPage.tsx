@@ -67,6 +67,14 @@ export function MentionsLegalesPage() {
             </li>
             <li>Aucun compte, aucun cookie, aucun traceur, aucune mesure d'audience.</li>
             <li>
+              Sauvegarde Google Drive (optionnelle) : si vous l'activez dans les Paramètres,
+              l'archive de sauvegarde est envoyée sur <span className="font-medium">votre propre</span>{' '}
+              Google Drive, via une autorisation limitée aux seuls fichiers créés par
+              l'application. Google agit alors comme votre prestataire de stockage ; vous
+              pouvez révoquer cet accès à tout moment (bouton « Déconnecter » ou
+              myaccount.google.com → Sécurité).
+            </li>
+            <li>
               En tant que bailleur, vous êtes responsable du traitement des données
               personnelles de vos locataires que vous saisissez (RGPD) : conservation limitée à
               la durée du bail et aux délais de prescription, et suppression via la page

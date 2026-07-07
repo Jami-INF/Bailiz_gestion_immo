@@ -2,21 +2,30 @@ import { format } from 'date-fns';
 import { db, type ConfigSauvegardeAuto } from './db';
 import { exporterSauvegarde } from './backup';
 import { nowISO } from './ids';
+import { fichiersASupprimer } from './rotation';
+import { getConfigGDrive, pousserSauvegardeGDrive } from './gdrive';
+
+export { fichiersASupprimer } from './rotation';
 
 /**
- * Sauvegarde automatique « push ZIP » : l'utilisateur choisit une fois un
- * dossier local (idéalement synchronisé par Google Drive, OneDrive, iCloud…),
- * et l'app y écrit l'archive complète après chaque signature et
- * périodiquement. Zéro infrastructure : la synchronisation vers le cloud est
- * assurée par le client de l'utilisateur.
+ * Sauvegarde automatique « push ZIP » vers deux destinations possibles,
+ * cumulables :
+ * - un dossier local (File System Access, Chrome/Edge desktop), idéalement
+ *   synchronisé par le client cloud de l'utilisateur ;
+ * - Google Drive via l'API (lib/gdrive.ts), qui couvre iPad/Safari.
+ * Zéro infrastructure : tout part du navigateur.
  */
 
-const NB_SAUVEGARDES_CONSERVEES = 10;
-const MOTIF_FICHIER = /^bailiz-sauvegarde-.*\.zip$/;
 /** Ancienneté (ms) au-delà de laquelle un push est retenté à l'ouverture. */
 export const SEUIL_PUSH_OUVERTURE_MS = 7 * 24 * 3600 * 1000;
 
-export type ResultatPush = 'ok' | 'inactif' | 'permission_requise' | 'non_supporte' | 'erreur';
+export type ResultatPush =
+  | 'ok'
+  | 'inactif'
+  | 'permission_requise'
+  | 'hors_ligne'
+  | 'non_supporte'
+  | 'erreur';
 
 /** Délai de regroupement des modifications avant push (anti-rafale). */
 const DEBOUNCE_MODIFICATIONS_MS = 30_000;
@@ -60,14 +69,6 @@ export async function permissionAutosave(
   return handle.requestPermission({ mode: 'readwrite' });
 }
 
-/** Sauvegardes excédentaires à supprimer (les plus anciennes, tri lexical = tri chronologique). */
-export function fichiersASupprimer(noms: string[], garder = NB_SAUVEGARDES_CONSERVEES): string[] {
-  return noms
-    .filter((n) => MOTIF_FICHIER.test(n))
-    .sort()
-    .slice(0, Math.max(0, noms.filter((n) => MOTIF_FICHIER.test(n)).length - garder));
-}
-
 /** Exporte le ZIP dans le dossier configuré, avec rotation des anciennes archives. */
 export async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<void> {
   const blob = await exporterSauvegarde();
@@ -96,28 +97,52 @@ export async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<v
 /** Évite les pushs concurrents (bouton + planifié + signature). */
 let pushEnCours = false;
 
-/**
- * Push si la sauvegarde auto est configurée.
- * `gesteUtilisateur` autorise la re-demande de permission (sinon échec silencieux
- * avec l'état `permission_requise` pour informer l'utilisateur).
- */
-export async function pousserSiActive(gesteUtilisateur: boolean): Promise<ResultatPush> {
+/** Push vers le dossier local uniquement. */
+async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPush> {
   if (!autosaveSupportee()) return 'non_supporte';
   const config = await getConfigAutosave();
   if (!config) return 'inactif';
-  if (pushEnCours) return 'ok';
   try {
     const permission = await permissionAutosave(config.handle, gesteUtilisateur);
     if (permission !== 'granted') return 'permission_requise';
-    pushEnCours = true;
     await pousserSauvegarde(config);
     return 'ok';
   } catch (e) {
-    console.error('Sauvegarde automatique impossible :', e);
+    console.error('Sauvegarde vers le dossier impossible :', e);
     return 'erreur';
+  }
+}
+
+/**
+ * Push vers toutes les destinations configurées (dossier local et/ou Google
+ * Drive). `gesteUtilisateur` autorise les demandes de permission/connexion
+ * (sinon échec silencieux avec l'état correspondant).
+ *
+ * Agrégation : `ok` si au moins une destination a réussi ; sinon l'état le
+ * plus actionnable (permission_requise > hors_ligne > erreur > inactif).
+ */
+export async function pousserSiActive(gesteUtilisateur: boolean): Promise<ResultatPush> {
+  if (pushEnCours) return 'ok';
+  pushEnCours = true;
+  try {
+    const resultats: ResultatPush[] = [];
+    resultats.push(await pousserVersDossier(gesteUtilisateur));
+    resultats.push(await pousserSauvegardeGDrive(gesteUtilisateur));
+
+    if (resultats.includes('ok')) return 'ok';
+    for (const etat of ['permission_requise', 'hors_ligne', 'erreur'] as const) {
+      if (resultats.includes(etat)) return etat;
+    }
+    return 'inactif';
   } finally {
     pushEnCours = false;
   }
+}
+
+/** Vrai si au moins une destination de sauvegarde automatique est configurée. */
+export async function destinationConfiguree(): Promise<boolean> {
+  const [dossier, gdrive] = await Promise.all([getConfigAutosave(), getConfigGDrive()]);
+  return Boolean(dossier) || Boolean(gdrive?.actif);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,12 +171,14 @@ function planifierPush(): void {
  * Observe toutes les tables métier : chaque création/modification/suppression
  * déclenche un push regroupé (30 s après la dernière écriture). À appeler une
  * seule fois au montage de l'app, avec la fonction toast pour le message.
+ * Nécessaire quelle que soit la destination (dossier local OU Google Drive —
+ * ne pas conditionner à autosaveSupportee(), qui ne concerne que le dossier).
  */
 export function initAutosaveSurModifications(
   toast: (type: 'success' | 'warning', message: string) => void,
 ): void {
   notifier = toast;
-  if (observateurInitialise || !autosaveSupportee()) return;
+  if (observateurInitialise) return;
   observateurInitialise = true;
   const tables = [db.biens, db.locataires, db.baux, db.inventaires, db.edls, db.photos, db.documents];
   for (const table of tables) {
@@ -159,4 +186,7 @@ export function initAutosaveSurModifications(
     table.hook('updating', () => planifierPush());
     table.hook('deleting', () => planifierPush());
   }
+  // Reprise automatique : un push (Drive) resté en échec hors-ligne — EDL signé
+  // à la cave, par exemple — repart au retour du réseau.
+  window.addEventListener('online', () => planifierPush());
 }
