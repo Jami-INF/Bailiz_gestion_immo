@@ -108,6 +108,11 @@ src/
       EdlPdf.tsx           EDL entrée/sortie + tableau comparatif + annexe photos
       LettreRestitutionPdf.tsx  Décompte dépôt de garantie
       CourrierIrlPdf.tsx   Courrier de révision annuelle
+      GrilleVetustePdf.tsx Grille de vétusté + mode d'emploi et exemple chiffré (annexe
+                           générée avec chaque bail, et à la demande depuis Paramètres)
+      FicheAidePdf.tsx     Fiche d'aide juridique : préavis/congés, formes de notification,
+                           impayés (6 semaines post-2023 / 2 mois avant), dépôt, prescription,
+                           ADIL/conciliation (générée depuis Paramètres)
 
   features/
     legal/MentionsLegalesPage.tsx      Mentions légales, confidentialité, infos techniques

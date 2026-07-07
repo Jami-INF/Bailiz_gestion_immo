@@ -25,7 +25,7 @@ export function annexesParDefaut(bien: Bien): AnnexeChecklistItem[] {
       jointe: false,
       genereeParApp: false,
     },
-    { id: uid(), libelle: 'Grille de vétusté', jointe: true, genereeParApp: false },
+    { id: uid(), libelle: 'Grille de vétusté avec mode d’emploi', jointe: true, genereeParApp: true },
     {
       id: uid(),
       libelle: "Attestation d'assurance habitation (risques locatifs) du locataire",

@@ -13,6 +13,7 @@ import { rendrePdf } from '@/lib/pdf/generer';
 import { enregistrerDocument } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { InventairePdf } from '@/lib/pdf/InventairePdf';
+import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import {
   Button,
   Card,
@@ -242,6 +243,11 @@ export function BailAssistantPage() {
       const blobInv = await rendrePdf(
         <InventairePdf inventaire={inventaire} bail={bail} bien={bien} locataires={locs} />,
       );
+      // La grille de vétusté est générée comme annexe du bail (décret 2016-382, art. 4).
+      const refGrille = await prochaineReference('document');
+      const blobGrille = await rendrePdf(
+        <GrilleVetustePdf reference={refGrille} grille={parametres.grilleVetuste} bailReference={reference} />,
+      );
 
       await db.transaction('rw', [db.baux, db.inventaires], async () => {
         await db.inventaires.add(inventaire);
@@ -263,8 +269,16 @@ export function BailAssistantPage() {
         bienId: bien.id,
         bailId,
       });
+      await enregistrerDocument({
+        reference: refGrille,
+        type: 'grille_vetuste',
+        titre: `Grille de vétusté — annexe du bail ${reference}`,
+        blob: blobGrille,
+        bienId: bien.id,
+        bailId,
+      });
 
-      toast('success', `Bail ${reference} généré avec son inventaire.`);
+      toast('success', `Bail ${reference} généré avec son inventaire et sa grille de vétusté.`);
       navigate(`/baux/${bailId}`);
     } catch (e) {
       console.error(e);

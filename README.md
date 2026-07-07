@@ -67,6 +67,10 @@ npm run build      # build de production + PWA
   (recommandé), ou **signature sur écran dans l'app** (mêmes renforts probatoires que les
   EDL : nom tapé, « lu et approuvé », horodatage, empreinte SHA-256, verrouillage).
 - Calculateurs : prorata du premier loyer, révision IRL avec courrier PDF.
+- **Grille de vétusté générée en annexe** de chaque bail (décret 2016-382) avec mode d'emploi
+  et exemple chiffré ; **fiche d'aide juridique** PDF (préavis, congés, notification, impayés
+  et commandement de payer, dépôt de garantie, prescription, ADIL/conciliation) depuis les
+  Paramètres.
 
 ### États des lieux (M4 — cœur de l'app, optimisé tablette)
 - Mode terrain plein écran : une pièce à la fois, onglets, sélecteur d'état en 5 gros boutons

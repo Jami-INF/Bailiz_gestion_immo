@@ -2,15 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import {
+  FileText,
   FolderSync,
   HardDriveDownload,
   HardDriveUpload,
   Plus,
   Save,
+  Scale,
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { db, getParametres } from '@/lib/db';
+import { db, getParametres, prochaineReference } from '@/lib/db';
+import { rendrePdf, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
+import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
+import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import type { LigneVetuste, Parametres } from '@/types';
 import {
   detecterConflits,
@@ -76,6 +81,34 @@ export function ParametresPage() {
     } finally {
       if (fichierRef.current) fichierRef.current.value = '';
     }
+  };
+
+  const genererGrillePdf = async () => {
+    const reference = await prochaineReference('document');
+    const blob = await rendrePdf(
+      <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} />,
+    );
+    await enregistrerDocument({
+      reference,
+      type: 'grille_vetuste',
+      titre: 'Grille de vétusté (avec mode d’emploi)',
+      blob,
+    });
+    telechargerDocument({ blob, reference });
+    toast('success', 'Grille de vétusté générée (PDF).');
+  };
+
+  const genererFicheAide = async () => {
+    const reference = await prochaineReference('document');
+    const blob = await rendrePdf(<FicheAidePdf reference={reference} />);
+    await enregistrerDocument({
+      reference,
+      type: 'fiche_aide',
+      titre: 'Fiche d’aide juridique du bailleur meublé',
+      blob,
+    });
+    telechargerDocument({ blob, reference });
+    toast('success', "Fiche d'aide juridique générée (PDF).");
   };
 
   const importer = async (mode: 'remplacer' | 'fusionner') => {
@@ -253,7 +286,7 @@ export function ParametresPage() {
               </tbody>
             </table>
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -269,7 +302,30 @@ export function ParametresPage() {
             <Button variant="ghost" size="sm" onClick={() => majGrille(GRILLE_VETUSTE_DEFAUT)}>
               Réinitialiser la grille par défaut
             </Button>
+            <Button size="sm" onClick={() => void genererGrillePdf()}>
+              <Scale size={14} /> Télécharger la grille (PDF, avec mode d'emploi)
+            </Button>
           </div>
+          <p className="mt-2 text-xs text-accent-500">
+            La grille est aussi générée automatiquement comme annexe à chaque création de bail
+            (art. 4 du décret n°2016-382 : elle doit être convenue dès la signature).
+          </p>
+        </Card>
+
+        <Card>
+          <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
+            <FileText size={18} /> Fiche d'aide juridique
+          </h2>
+          <p className="mb-3 text-sm text-accent-600">
+            Mémo PDF à conserver avec vos dossiers : préavis et congés (1 mois locataire, 3
+            mois bailleur motivé), formes de notification valables (LRAR, commissaire de
+            justice, remise en main propre), marche à suivre en cas d'impayés (commandement de
+            payer, 6 semaines, trêve hivernale), délais du dépôt de garantie, prescription des
+            loyers, interlocuteurs en cas de litige (ADIL, commission de conciliation).
+          </p>
+          <Button onClick={() => void genererFicheAide()}>
+            <FileText size={16} /> Télécharger la fiche d'aide (PDF)
+          </Button>
         </Card>
 
         <Card>

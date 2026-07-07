@@ -315,7 +315,9 @@ export type TypeDocument =
   | 'edl_sortie'
   | 'avenant'
   | 'lettre_restitution'
-  | 'courrier_irl';
+  | 'courrier_irl'
+  | 'grille_vetuste'
+  | 'fiche_aide';
 
 export interface DocumentGenere {
   id: string;
@@ -389,4 +391,6 @@ export const TYPE_DOCUMENT_LABELS: Record<TypeDocument, string> = {
   avenant: 'Avenant',
   lettre_restitution: 'Lettre de restitution du dépôt',
   courrier_irl: 'Courrier de révision IRL',
+  grille_vetuste: 'Grille de vétusté (annexe)',
+  fiche_aide: 'Fiche d’aide juridique',
 };
