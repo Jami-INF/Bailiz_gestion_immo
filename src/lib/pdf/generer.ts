@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
 import type { DocumentProps } from '@react-pdf/renderer';
+import { format } from 'date-fns';
 import { sha256Hex } from '@/lib/crypto';
 import { db } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
@@ -62,6 +63,37 @@ export async function enregistrerDocument(params: {
   return doc;
 }
 
-export function telechargerDocument(doc: { blob: Blob; reference: string }): void {
-  telechargerBlob(doc.blob, `${doc.reference}.pdf`);
+/** « Marie Dupont » / « Marie Dupont et Jean Martin » / « Marie Dupont et 2 autres ». */
+export function nomsPersonnes(personnes: { prenom: string; nom: string }[]): string {
+  const noms = personnes.map((p) => `${p.prenom} ${p.nom}`.trim()).filter(Boolean);
+  if (noms.length === 0) return '';
+  if (noms.length === 1) return noms[0];
+  if (noms.length === 2) return `${noms[0]} et ${noms[1]}`;
+  return `${noms[0]} et ${noms.length - 1} autres`;
+}
+
+/**
+ * Nom de fichier explicite : « BAIL-2026-0001 - Bail meublé — T2 Chamalières —
+ * Marie Dupont - 2026-07-07.pdf ». Caractères interdits remplacés.
+ */
+export function nomFichierDocument(doc: {
+  reference: string;
+  titre?: string;
+  createdAt?: string;
+}): string {
+  const date = format(doc.createdAt ? new Date(doc.createdAt) : new Date(), 'yyyy-MM-dd');
+  const titre = doc.titre
+    ?.replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return titre ? `${doc.reference} - ${titre} - ${date}.pdf` : `${doc.reference} - ${date}.pdf`;
+}
+
+export function telechargerDocument(doc: {
+  blob: Blob;
+  reference: string;
+  titre?: string;
+  createdAt?: string;
+}): void {
+  telechargerBlob(doc.blob, nomFichierDocument(doc));
 }

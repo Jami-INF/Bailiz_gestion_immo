@@ -8,7 +8,12 @@ import type { EtatDesLieux, SignatureBloc } from '@/types';
 import { ETAT_LABELS, COMPTEUR_LABELS } from '@/types';
 import { formatHash } from '@/lib/crypto';
 import { progressionEDL } from '@/lib/etat';
-import { rendrePdfAvecHash, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
+import {
+  rendrePdfAvecHash,
+  enregistrerDocument,
+  nomsPersonnes,
+  telechargerDocument,
+} from '@/lib/pdf/generer';
 import { pousserSiActive } from '@/lib/autosave';
 import { EdlPdf } from '@/lib/pdf/EdlPdf';
 import { SignatureFlow } from '@/components/SignatureFlow';
@@ -66,7 +71,7 @@ export function EdlSignaturePage() {
       await enregistrerDocument({
         reference: edl.reference,
         type: edl.type === 'entree' ? 'edl_entree' : 'edl_sortie',
-        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} (signé)`,
+        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} — ${nomsPersonnes(locataires)} (signé)`,
         blob,
         hash,
         signe: true,
@@ -128,7 +133,15 @@ export function EdlSignaturePage() {
             sauvegarde depuis les Paramètres.
           </p>
           <div className="flex flex-col gap-2">
-            <Button onClick={() => telechargerDocument({ blob: resultat.blob, reference: edl.reference })}>
+            <Button
+              onClick={() =>
+                telechargerDocument({
+                  blob: resultat.blob,
+                  reference: edl.reference,
+                  titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} — ${nomsPersonnes(locataires)} (signé)`,
+                })
+              }
+            >
               <Download size={16} /> Télécharger le PDF signé
             </Button>
             <a href={`mailto:${locataires.map((l) => l.email).join(',')}?subject=${sujet}&body=${corps}`}>

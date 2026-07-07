@@ -9,8 +9,7 @@ import type { Bail, Inventaire, LigneInventaire, TypeBail } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
 import { validerDecenceDPE, validerDepotGarantie, validerDuree, formatEuros } from '@/lib/calculs';
 import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
-import { rendrePdf } from '@/lib/pdf/generer';
-import { enregistrerDocument } from '@/lib/pdf/generer';
+import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { InventairePdf } from '@/lib/pdf/InventairePdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
@@ -253,10 +252,11 @@ export function BailAssistantPage() {
         await db.inventaires.add(inventaire);
         await db.baux.add(bail);
       });
+      const noms = nomsPersonnes(locs);
       await enregistrerDocument({
         reference,
         type: 'bail',
-        titre: `Bail meublé — ${bien.nom}`,
+        titre: `Bail meublé — ${bien.nom} — ${noms}`,
         blob: blobBail,
         bienId: bien.id,
         bailId,
@@ -264,7 +264,7 @@ export function BailAssistantPage() {
       await enregistrerDocument({
         reference: refInventaire,
         type: 'inventaire',
-        titre: `Inventaire du mobilier — ${bien.nom}`,
+        titre: `Inventaire du mobilier — ${bien.nom} — ${noms}`,
         blob: blobInv,
         bienId: bien.id,
         bailId,
@@ -272,7 +272,7 @@ export function BailAssistantPage() {
       await enregistrerDocument({
         reference: refGrille,
         type: 'grille_vetuste',
-        titre: `Grille de vétusté — annexe du bail ${reference}`,
+        titre: `Grille de vétusté — ${bien.nom} — annexe du bail ${reference}`,
         blob: blobGrille,
         bienId: bien.id,
         bailId,

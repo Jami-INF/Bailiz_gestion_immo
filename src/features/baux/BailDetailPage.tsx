@@ -21,6 +21,7 @@ import {
   rendrePdf,
   rendrePdfAvecHash,
   enregistrerDocument,
+  nomsPersonnes,
   telechargerDocument,
 } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
@@ -54,6 +55,7 @@ export function BailDetailPage() {
   if (!bail || !bien || !locataires || !parametres) return null;
 
   const bailleurNomComplet = `${parametres.bailleur.prenom} ${parametres.bailleur.nom}`.trim();
+  const nomsLocs = nomsPersonnes(locataires);
   const ui = STATUT_BAIL_UI[bail.statut];
   const edlEntree = edls?.find((e) => e.type === 'entree');
   const edlSortie = edls?.find((e) => e.type === 'sortie');
@@ -66,15 +68,16 @@ export function BailDetailPage() {
     const blob = await rendrePdf(
       <BailPdf bail={bail} bien={bien} locataires={locataires} parametres={parametres} />,
     );
+    const titre = `Bail meublé — ${bien.nom} — ${nomsLocs}`;
     await enregistrerDocument({
       reference: bail.reference,
       type: 'bail',
-      titre: `Bail meublé — ${bien.nom}`,
+      titre,
       blob,
       bienId: bien.id,
       bailId: bail.id,
     });
-    telechargerDocument({ blob, reference: bail.reference });
+    telechargerDocument({ blob, reference: bail.reference, titre });
   };
 
   const telechargerPdf = async () => {
@@ -110,17 +113,18 @@ export function BailDetailPage() {
       ));
       bailSigne.pdfHash = hash;
       await db.baux.put(bailSigne);
+      const titre = `Bail meublé — ${bien.nom} — ${nomsLocs} (signé)`;
       await enregistrerDocument({
         reference: bail.reference,
         type: 'bail',
-        titre: `Bail meublé — ${bien.nom} (signé)`,
+        titre,
         blob,
         hash,
         signe: true,
         bienId: bien.id,
         bailId: bail.id,
       });
-      telechargerDocument({ blob, reference: bail.reference });
+      telechargerDocument({ blob, reference: bail.reference, titre });
       setModaleSignatureEcran(false);
       toast('success', `Bail signé et verrouillé. Empreinte SHA-256 : ${hash.slice(0, 16)}…`);
       void pousserSiActive(true).then((r) => {
@@ -198,15 +202,16 @@ export function BailDetailPage() {
         dateApplication={anniversaire.toISOString()}
       />,
     );
+    const titre = `Révision IRL ${new Date().getFullYear()} — ${bien.nom} — ${nomsLocs}`;
     await enregistrerDocument({
       reference,
       type: 'courrier_irl',
-      titre: `Révision IRL — ${bien.nom}`,
+      titre,
       blob,
       bienId: bien.id,
       bailId: bail.id,
     });
-    telechargerDocument({ blob, reference });
+    telechargerDocument({ blob, reference, titre });
     setModaleIrl(false);
     toast('success', `Courrier de révision généré : nouveau loyer ${formatEuros(calc.nouveauLoyer)}.`);
   };

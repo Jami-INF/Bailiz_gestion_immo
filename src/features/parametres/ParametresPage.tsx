@@ -88,26 +88,18 @@ export function ParametresPage() {
     const blob = await rendrePdf(
       <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} />,
     );
-    await enregistrerDocument({
-      reference,
-      type: 'grille_vetuste',
-      titre: 'Grille de vétusté (avec mode d’emploi)',
-      blob,
-    });
-    telechargerDocument({ blob, reference });
+    const titre = 'Grille de vétusté (avec mode d’emploi)';
+    await enregistrerDocument({ reference, type: 'grille_vetuste', titre, blob });
+    telechargerDocument({ blob, reference, titre });
     toast('success', 'Grille de vétusté générée (PDF).');
   };
 
   const genererFicheAide = async () => {
     const reference = await prochaineReference('document');
     const blob = await rendrePdf(<FicheAidePdf reference={reference} />);
-    await enregistrerDocument({
-      reference,
-      type: 'fiche_aide',
-      titre: 'Fiche d’aide juridique du bailleur meublé',
-      blob,
-    });
-    telechargerDocument({ blob, reference });
+    const titre = 'Fiche d’aide juridique du bailleur meublé';
+    await enregistrerDocument({ reference, type: 'fiche_aide', titre, blob });
+    telechargerDocument({ blob, reference, titre });
     toast('success', "Fiche d'aide juridique générée (PDF).");
   };
 

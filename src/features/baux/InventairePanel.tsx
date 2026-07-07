@@ -5,7 +5,13 @@ import { db, getParametres } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import type { Bail, Bien, EtatNote, Inventaire, Locataire, SignatureBloc } from '@/types';
 import { ETAT_LABELS } from '@/types';
-import { rendrePdf, rendrePdfAvecHash, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
+import {
+  rendrePdf,
+  rendrePdfAvecHash,
+  enregistrerDocument,
+  nomsPersonnes,
+  telechargerDocument,
+} from '@/lib/pdf/generer';
 import { InventairePdf } from '@/lib/pdf/InventairePdf';
 import { SignatureFlow } from '@/components/SignatureFlow';
 import { pousserSiActive } from '@/lib/autosave';
@@ -40,15 +46,16 @@ export function InventairePanel({
     const blob = await rendrePdf(
       <InventairePdf inventaire={inventaire} bail={bail} bien={bien} locataires={locataires} />,
     );
+    const titre = `Inventaire du mobilier — ${bien.nom} — ${nomsPersonnes(locataires)}`;
     await enregistrerDocument({
       reference: inventaire.reference,
       type: 'inventaire',
-      titre: `Inventaire du mobilier — ${bien.nom}`,
+      titre,
       blob,
       bienId: bien.id,
       bailId: bail.id,
     });
-    telechargerDocument({ blob, reference: inventaire.reference });
+    telechargerDocument({ blob, reference: inventaire.reference, titre });
     toast('success', 'PDF de l’inventaire régénéré.');
   };
 
@@ -65,17 +72,18 @@ export function InventairePanel({
     ));
     signeInv.pdfHash = hash;
     await db.inventaires.put(signeInv);
+    const titre = `Inventaire du mobilier — ${bien.nom} — ${nomsPersonnes(locataires)} (signé)`;
     await enregistrerDocument({
       reference: inventaire.reference,
       type: 'inventaire',
-      titre: `Inventaire du mobilier — ${bien.nom} (signé)`,
+      titre,
       blob,
       hash,
       signe: true,
       bienId: bien.id,
       bailId: bail.id,
     });
-    telechargerDocument({ blob, reference: inventaire.reference });
+    telechargerDocument({ blob, reference: inventaire.reference, titre });
     setSignature(false);
     toast('success', `Inventaire signé et verrouillé. Empreinte SHA-256 : ${hash.slice(0, 16)}…`);
     void pousserSiActive(true).then((r) => {

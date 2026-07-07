@@ -18,7 +18,7 @@ import {
   type LigneRetenue,
 } from '@/lib/calculs';
 import { elementsDegrades } from '@/lib/etat';
-import { rendrePdf, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
+import { rendrePdf, enregistrerDocument, nomsPersonnes, telechargerDocument } from '@/lib/pdf/generer';
 import { LettreRestitutionPdf } from '@/lib/pdf/LettreRestitutionPdf';
 import { Button, Card, Field, Input, PageHeader, Select, useToast } from '@/components/ui';
 import { chargerContexteEdl } from './edlPdfUtils';
@@ -114,16 +114,17 @@ export function EdlSynthesePage() {
         nouvelleAdresse={edl.nouvelleAdresseLocataire}
       />,
     );
+    const titre = `Restitution du dépôt — ${bien.nom} — ${nomsPersonnes(locataires)}`;
     await enregistrerDocument({
       reference,
       type: 'lettre_restitution',
-      titre: `Restitution du dépôt — ${bien.nom}`,
+      titre,
       blob,
       bienId: bien.id,
       bailId: bail.id,
       edlId: edl.id,
     });
-    telechargerDocument({ blob, reference });
+    telechargerDocument({ blob, reference, titre });
     toast('success', 'Lettre de restitution générée avec le décompte détaillé.');
   };
 

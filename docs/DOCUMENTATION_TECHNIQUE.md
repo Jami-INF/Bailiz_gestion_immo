@@ -366,6 +366,12 @@ Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explici
 
 ### 5.5 Documents
 
+- **Nommage** : les fichiers téléchargés passent tous par `telechargerDocument` →
+  `nomFichierDocument` (`generer.ts`, testé) : `RÉF - titre - AAAA-MM-JJ.pdf`, caractères
+  interdits nettoyés. Les titres incluent systématiquement le bien et le(s) locataire(s)
+  (`nomsPersonnes` : « Marie Dupont et Jean Martin », « … et 2 autres »). Toute nouvelle
+  génération de document doit suivre ce motif (titre construit une fois, passé à
+  `enregistrerDocument` ET à `telechargerDocument`).
 - Chaque PDF généré est persisté en Blob dans `documents` par `enregistrerDocument`.
   Règle de remplacement : une nouvelle génération **supprime les versions non signées** de la
   même référence ; les versions signées sont immuables et conservées.
