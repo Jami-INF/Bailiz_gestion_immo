@@ -9,6 +9,7 @@ export async function chargerPhotosPourPdf(edl: EtatDesLieux): Promise<PhotoPour
   const ids: string[] = [
     ...edl.compteurs.flatMap((c) => (c.photoId ? [c.photoId] : [])),
     ...edl.pieces.flatMap((p) => p.elements.flatMap((el) => el.photoIds)),
+    ...(edl.photoIds ?? []),
   ];
   const resultat: PhotoPourPdf[] = [];
   for (const id of ids) {

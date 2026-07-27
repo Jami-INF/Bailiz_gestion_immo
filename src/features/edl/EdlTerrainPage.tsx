@@ -417,7 +417,7 @@ export function EdlTerrainPage() {
                       />
                     </div>
                   )}
-                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
                     <Input
                       key={`${el.id}-comm`}
                       defaultValue={el.commentaire ?? ''}
@@ -428,13 +428,16 @@ export function EdlTerrainPage() {
                       }
                       className="flex-1"
                     />
-                    <PhotoCapture
-                      edlId={edl.id}
-                      legende={`${onglet.nom} — ${el.nom}`}
-                      photoIds={el.photoIds}
-                      lectureSeule={signe}
-                      onChange={(photoIds) => majElement(onglet.pieceId!, el.id, { photoIds })}
-                    />
+                    <div>
+                      <span className="mb-1 block text-xs font-medium text-accent-600">Photos</span>
+                      <PhotoCapture
+                        edlId={edl.id}
+                        legende={`${onglet.nom} — ${el.nom}`}
+                        photoIds={el.photoIds}
+                        lectureSeule={signe}
+                        onChange={(photoIds) => majElement(onglet.pieceId!, el.id, { photoIds })}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -512,6 +515,18 @@ export function EdlTerrainPage() {
                 onBlur={(e) => maj({ observationsGenerales: e.target.value || undefined })}
               />
             </Field>
+            <div>
+              <span className="mb-1 block text-sm font-medium text-accent-800">
+                Photos (vue d'ensemble du logement)
+              </span>
+              <PhotoCapture
+                edlId={edl.id}
+                legende="Observations générales"
+                photoIds={edl.photoIds ?? []}
+                lectureSeule={signe}
+                onChange={(photoIds) => maj({ photoIds })}
+              />
+            </div>
             {edl.avenants.length > 0 && (
               <div>
                 <h3 className="mb-1 text-sm font-semibold text-accent-900">Avenants</h3>

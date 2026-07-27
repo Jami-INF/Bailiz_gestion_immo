@@ -243,6 +243,8 @@ export interface EtatDesLieux {
   cles: Cle[];
   pieces: PieceEDL[];
   observationsGenerales?: string;
+  /** Photos rattachées aux observations générales (vue d'ensemble du logement). */
+  photoIds?: string[];
   signatures?: SignatureBloc;
   statut: 'brouillon' | 'signe'; // signe => verrouillé (rectification = re-signature des 2 parties)
   avenants: Avenant[];
