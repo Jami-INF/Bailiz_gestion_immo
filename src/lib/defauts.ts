@@ -127,16 +127,5 @@ export const GRILLE_VETUSTE_DEFAUT: LigneVetuste[] = [
   { poste: 'Chaudière / chauffe-eau', dureeVieAnnees: 15, franchiseAnnees: 2, abattementAnnuelPct: 7 },
 ];
 
-/** Durées de validité par défaut des diagnostics (en mois). Absent = illimité. */
-export const VALIDITE_DIAGNOSTICS: Record<string, { libelle: string; dureeMois?: number }> = {
-  dpe: { libelle: 'DPE (diagnostic de performance énergétique)', dureeMois: 120 },
-  erp: { libelle: 'ERP (état des risques et pollutions)', dureeMois: 6 },
-  crep: { libelle: 'CREP (constat de risque d’exposition au plomb)' },
-  electricite: { libelle: 'Diagnostic électricité (location)', dureeMois: 72 },
-  gaz: { libelle: 'Diagnostic gaz (location)', dureeMois: 72 },
-  boutin: { libelle: 'Attestation de surface loi Boutin' },
-  autre: { libelle: 'Autre diagnostic' },
-};
-
 export const LIEN_NOTICE_INFORMATION =
   'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000030649868';

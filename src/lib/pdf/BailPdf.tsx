@@ -4,8 +4,11 @@ import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros } from '@/lib/calculs';
 import { montantEnLettres } from '@/lib/lettres';
 import {
+  CaseACocher,
   EntetePdf,
   PiedDePagePdf,
+  QrCode,
+  Rempl,
   SignaturesPdf,
   ZoneSignatureManuscrite,
   formatDateFr,
@@ -18,6 +21,8 @@ interface Props {
   locataires: Locataire[];
   parametres: Parametres;
   hash?: string;
+  /** Bail rapide : les champs vides s'affichent en zones à compléter à la main. */
+  brouillon?: boolean;
 }
 
 /**
@@ -28,7 +33,7 @@ interface Props {
  * performance énergétique avec rappel des critères de décence
  * (loi Climat et résilience).
  */
-export function BailPdf({ bail, bien, locataires, parametres, hash }: Props) {
+export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }: Props) {
   const b = parametres.bailleur;
   const chargesLabel =
     bail.charges.mode === 'forfait'
@@ -48,68 +53,110 @@ export function BailPdf({ bail, bien, locataires, parametres, hash }: Props) {
     bail.charges.montant +
     (bail.assuranceColocataires ? Math.round((bail.assuranceColocataires.montantAnnuel / 12) * 100) / 100 : 0);
 
+  // Aide-mémoire des pièces que le locataire doit remettre (adapté au dossier).
+  const garants = locataires.filter((l) => l.garant);
+  const piecesLocataire: string[] = [
+    `Pièce d'identité en cours de validité (chaque locataire${garants.length ? ' et chaque garant' : ''})`,
+    "Attestation d'assurance habitation couvrant les risques locatifs, en cours de validité",
+    ...(bail.typeBail !== 'mobilite' ? ['Justificatif du versement du dépôt de garantie'] : []),
+    ...(garants.some((l) => l.garant!.type !== 'visale') ? ['Acte de cautionnement signé par le garant'] : []),
+    ...(garants.some((l) => l.garant!.type === 'visale') ? ['Attestation de garantie Visale en cours de validité'] : []),
+    ...(bail.typeBail === 'meuble_etudiant_9mois' ? ["Certificat de scolarité de l'année en cours"] : []),
+    ...(bail.typeBail === 'mobilite'
+      ? ['Justificatif du motif de mobilité (formation, études, stage, mutation, mission…)']
+      : []),
+    'Coordonnées bancaires (RIB) pour le paiement du loyer',
+    "État des lieux d'entrée signé",
+    'Inventaire et état détaillé du mobilier signé',
+  ];
+
   return (
     <Document title={`${bail.reference} — Bail meublé`} language="fr">
       <Page size="A4" style={s.page}>
         <EntetePdf reference={bail.reference} docTitre="Contrat de location meublée" />
-        <Text style={s.titre}>Contrat de location de logement meublé</Text>
-        <Text style={s.sousTitre}>
-          Résidence principale — {TYPE_BAIL_LABELS[bail.typeBail]}. Soumis au titre Ier bis de la
-          loi n°89-462 du 6 juillet 1989 et conforme au contrat type annexé au décret n°2015-587
-          du 29 mai 2015 modifié.
-        </Text>
+        <View style={s.titreBloc}>
+          <Text style={s.titre}>Contrat de location de logement meublé</Text>
+          <Text style={s.sousTitre}>
+            Résidence principale — {TYPE_BAIL_LABELS[bail.typeBail]}. Soumis au titre Ier bis de la
+            loi n°89-462 du 6 juillet 1989 et conforme au contrat type annexé au décret n°2015-587
+            du 29 mai 2015 modifié.
+          </Text>
+        </View>
 
         {/* ============================ I ============================ */}
         <Text style={s.h2}>I. Désignation des parties</Text>
         <Text style={s.h3}>Le bailleur</Text>
-        <Text style={s.p}>
-          {b.civilite === 'Mme' ? 'Mme' : 'M.'} {b.prenom} {b.nom}, demeurant {b.adresse}
-          {b.email ? `, courriel : ${b.email}` : ''}
-          {b.telephone ? `, téléphone : ${b.telephone}` : ''}. Qualité du bailleur : personne
-          physique, loueur en meublé non professionnel (LMNP)
-          {b.siret ? `, SIRET : ${b.siret}` : ''}.
-        </Text>
+        <View style={s.tiers}>
+          <Text style={s.p}>
+            {b.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${b.prenom} ${b.nom}`.trim()} brouillon={brouillon} /> —
+            personne physique, loueur en meublé non professionnel (LMNP)
+            {b.siret ? `, SIRET : ${b.siret}` : ''}.
+          </Text>
+          <Text style={s.tiersLigne}>
+            Demeurant : <Rempl v={b.adresse} brouillon={brouillon} taille={30} />
+          </Text>
+          <Text style={s.tiersLigne}>
+            Courriel : <Rempl v={b.email} brouillon={brouillon} taille={20} />
+            {'     '}Téléphone : <Rempl v={b.telephone} brouillon={brouillon} taille={16} />
+          </Text>
+        </View>
         <Text style={s.p}>
           Le bailleur n'est pas représenté par un mandataire : la location est conclue en
           direct, sans intermédiaire.
         </Text>
         <Text style={s.h3}>Le(s) locataire(s)</Text>
         {locataires.map((l) => (
-          <Text style={s.p} key={l.id}>
-            {l.civilite === 'Mme' ? 'Mme' : 'M.'} {l.prenom} {l.nom}
-            {l.dateNaissance ? `, né(e) le ${formatDateFr(l.dateNaissance)}` : ''}
-            {l.lieuNaissance ? ` à ${l.lieuNaissance}` : ''}, courriel : {l.email}, téléphone :{' '}
-            {l.telephone}.
-          </Text>
+          <View style={s.tiers} key={l.id}>
+            <Text style={s.p}>
+              {l.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${l.prenom} ${l.nom}`.trim()} brouillon={brouillon} />
+              {(l.dateNaissance || l.lieuNaissance || brouillon) && (
+                <>
+                  , né(e) le <Rempl v={l.dateNaissance ? formatDateFr(l.dateNaissance) : undefined} brouillon={brouillon} taille={14} /> à{' '}
+                  <Rempl v={l.lieuNaissance} brouillon={brouillon} taille={16} />
+                </>
+              )}
+            </Text>
+            <Text style={s.tiersLigne}>
+              Courriel : <Rempl v={l.email} brouillon={brouillon} taille={20} />
+              {'     '}Téléphone : <Rempl v={l.telephone} brouillon={brouillon} taille={16} />
+            </Text>
+            {(l.adresseActuelle || brouillon) && (
+              <Text style={s.tiersLigne}>
+                Adresse actuelle : <Rempl v={l.adresseActuelle} brouillon={brouillon} taille={30} />
+              </Text>
+            )}
+          </View>
         ))}
         {locataires.some((l) => l.garant) && (
-          <Text style={s.p}>
-            Garant(s) :{' '}
+          <>
+            <Text style={s.h3}>Garant(s)</Text>
             {locataires
               .filter((l) => l.garant)
-              .map((l) =>
-                l.garant!.type === 'visale'
-                  ? `garantie Visale pour ${l.prenom} ${l.nom}`
-                  : `${l.garant!.prenom} ${l.garant!.nom}, demeurant ${l.garant!.adresse} (pour ${l.prenom} ${l.nom})`,
-              )
-              .join(' ; ')}
-            .
-          </Text>
+              .map((l) => (
+                <Text style={s.tiersLigne} key={l.id}>
+                  {l.garant!.type === 'visale'
+                    ? `Garantie Visale au bénéfice de ${l.prenom} ${l.nom}.`
+                    : `${l.garant!.prenom} ${l.garant!.nom}, demeurant ${l.garant!.adresse} — caution de ${l.prenom} ${l.nom} (acte de cautionnement joint).`}
+                </Text>
+              ))}
+          </>
         )}
 
         {/* ============================ II ============================ */}
         <Text style={s.h2}>II. Objet du contrat</Text>
         <Text style={s.h3}>A. Consistance du logement</Text>
         <Text style={s.p}>
-          Adresse : {adresseComplete}.{' '}
+          Adresse : <Rempl v={adresseComplete} brouillon={brouillon} taille={30} />.{' '}
           {bail.typeBail !== 'mobilite' && (
             <>
               Identifiant fiscal du logement :{' '}
               {bien.identifiantFiscal ?? 'non communiqué à la date de rédaction'}.{' '}
             </>
           )}
-          Type : {bien.type}, {bien.nbPieces} pièce{bien.nbPieces > 1 ? 's' : ''} principale
-          {bien.nbPieces > 1 ? 's' : ''}. Surface habitable : {bien.surfaceBoutin} m² (loi
+          Type : <Rempl v={bien.type} brouillon={brouillon} taille={6} />,{' '}
+          <Rempl v={bien.nbPieces || undefined} brouillon={brouillon} taille={3} /> pièce
+          {bien.nbPieces > 1 ? 's' : ''} principale{bien.nbPieces > 1 ? 's' : ''}. Surface habitable :{' '}
+          <Rempl v={bien.surfaceBoutin || undefined} brouillon={brouillon} taille={5} /> m² (loi
           Boutin).
         </Text>
         <Text style={s.p}>
@@ -206,7 +253,8 @@ export function BailPdf({ bail, bien, locataires, parametres, hash }: Props) {
         <Text style={s.h2}>IV. Conditions financières</Text>
         <Text style={s.h3}>A. Loyer</Text>
         <Text style={s.p}>
-          Loyer mensuel hors charges : {formatEuros(bail.loyerHC)}.
+          Loyer mensuel hors charges :{' '}
+          <Rempl v={bail.loyerHC ? formatEuros(bail.loyerHC) : undefined} brouillon={brouillon} taille={12} />.
         </Text>
         <Text style={s.p}>
           {bien.zoneTendue
@@ -362,11 +410,26 @@ export function BailPdf({ bail, bien, locataires, parametres, hash }: Props) {
         <Text style={s.h2}>XI. Annexes</Text>
         <Text style={s.p}>Sont annexées et jointes au contrat les pièces suivantes :</Text>
         {bail.annexesChecklist.map((a) => (
-          <Text style={s.p} key={a.id}>
-            {a.jointe ? '☒' : '☐'} {a.libelle}
+          <CaseACocher key={a.id} cochee={a.jointe}>
+            {a.libelle}
             {a.genereeParApp ? ' (générée par l’application)' : ''}
-          </Text>
+          </CaseACocher>
         ))}
+        {bien.dossierTechniqueUrl && (
+          <View style={[s.carte, { flexDirection: 'row', alignItems: 'center' }]} wrap={false}>
+            <QrCode value={bien.dossierTechniqueUrl} taille={92} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[s.gras, { marginBottom: 3 }]}>
+                Dossier de diagnostic technique — accès en ligne
+              </Text>
+              <Text style={s.petit}>
+                Scannez ce QR code pour consulter les diagnostics du logement (DPE, ERP,
+                électricité/gaz, surface…) mis à disposition par le bailleur.
+              </Text>
+              <Text style={[s.petit, { marginTop: 4 }]}>{bien.dossierTechniqueUrl}</Text>
+            </View>
+          </View>
+        )}
 
         {bail.signatures ? (
           <SignaturesPdf
@@ -382,6 +445,18 @@ export function BailPdf({ bail, bien, locataires, parametres, hash }: Props) {
             notamment la notice d'information relative aux droits et obligations des locataires
             et des bailleurs (arrêté du 29 mai 2015 modifié).
           </Text>
+        </View>
+        <View wrap={false} style={{ marginTop: 18 }}>
+          <Text style={s.h2}>Pièces à remettre par le locataire</Text>
+          <Text style={s.petit}>
+            Aide-mémoire non contractuel — à cocher lors de la remise des clés pour vérifier que le
+            dossier est complet.
+          </Text>
+          <View style={{ marginTop: 6 }}>
+            {piecesLocataire.map((p, i) => (
+              <CaseACocher key={i}>{p}</CaseACocher>
+            ))}
+          </View>
         </View>
         <PiedDePagePdf hash={hash} />
       </Page>

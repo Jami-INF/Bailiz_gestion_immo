@@ -7,7 +7,7 @@ import { BienFormPage } from '@/features/biens/BienFormPage';
 import { BienDetailPage } from '@/features/biens/BienDetailPage';
 import { LocatairesPage } from '@/features/locataires/LocatairesPage';
 import { BauxPage } from '@/features/baux/BauxPage';
-import { BailAssistantPage } from '@/features/baux/BailAssistantPage';
+import { BailRapidePage } from '@/features/baux/BailRapidePage';
 import { BailDetailPage } from '@/features/baux/BailDetailPage';
 import { EdlListePage } from '@/features/edl/EdlListePage';
 import { EdlTerrainPage } from '@/features/edl/EdlTerrainPage';
@@ -30,8 +30,10 @@ export default function App() {
             <Route path="/biens/:id/modifier" element={<BienFormPage />} />
             <Route path="/locataires" element={<LocatairesPage />} />
             <Route path="/baux" element={<BauxPage />} />
-            <Route path="/baux/nouveau" element={<BailAssistantPage />} />
+            <Route path="/baux/nouveau" element={<BailRapidePage />} />
+            <Route path="/baux/rapide" element={<BailRapidePage />} />
             <Route path="/baux/:id" element={<BailDetailPage />} />
+            <Route path="/baux/:id/modifier" element={<BailRapidePage />} />
             <Route path="/edl" element={<EdlListePage />} />
             <Route path="/edl/:id" element={<EdlTerrainPage />} />
             <Route path="/edl/:id/signature" element={<EdlSignaturePage />} />

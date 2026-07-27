@@ -19,7 +19,6 @@ function bienFixture(id: string): Bien {
     chauffage: { type: 'individuel', energie: 'électricité' },
     eauChaude: { type: 'individuel', energie: 'électricité' },
     zoneEncadrementLoyers: false,
-    diagnostics: [],
     piecesModele: [],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',

@@ -49,6 +49,16 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, hash }
           la loi n°89-462 du 6 juillet 1989 et décret n°2016-382 du 30 mars 2016. Bail{' '}
           {bail.reference}.
         </Text>
+        {edl.rectifications && edl.rectifications.length > 0 && (
+          <Text style={[s.petit, { textAlign: 'center', marginBottom: 6 }]}>
+            Version rectificative n°{edl.rectifications.length} — annule et remplace la version signée
+            du {formatDateFr(edl.rectifications[edl.rectifications.length - 1].dateSignature, true)}
+            {edl.rectifications[edl.rectifications.length - 1].pdfHash
+              ? `, empreinte ${edl.rectifications[edl.rectifications.length - 1].pdfHash!.slice(0, 16)}…`
+              : ''}
+            . Rectification établie contradictoirement et re-signée par les deux parties.
+          </Text>
+        )}
 
         <Text style={s.h2}>Localisation du logement</Text>
         <Text style={s.p}>
@@ -113,6 +123,11 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, hash }
         </View>
 
         <Text style={s.h2}>Description pièce par pièce</Text>
+        <Text style={s.petit}>
+          Logement meublé : le présent état des lieux vaut inventaire et état détaillé du mobilier
+          (décret n°2015-981). Le mobilier figure avec sa quantité (×N) ; les 11 postes obligatoires
+          sont regroupés dans la rubrique « Mobilier obligatoire ».
+        </Text>
         {[...edl.pieces]
           .sort((a, bb) => a.ordre - bb.ordre)
           .map((piece) => (
@@ -131,7 +146,10 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, hash }
                 </View>
                 {piece.elements.map((el) => (
                   <View style={s.ligneTableau} key={el.id}>
-                    <Text style={[s.cellule, { width: largeurs[0] }]}>{el.nom}</Text>
+                    <Text style={[s.cellule, { width: largeurs[0] }]}>
+                      {el.nom}
+                      {el.quantite != null ? ` (×${el.quantite})` : ''}
+                    </Text>
                     {sortie ? (
                       <>
                         <Text style={[s.cellule, { width: largeurs[1] }]}>

@@ -38,11 +38,11 @@ export function BauxPage() {
         <EmptyState
           icon={FileText}
           titre="Aucun bail"
-          message="Créez un bail meublé conforme au bail type réglementaire en quelques étapes : bien, locataires, conditions financières, clauses et annexes."
+          message="Un seul écran, avec aperçu du document : choisissez un bien et des locataires enregistrés ou saisissez-les, générez un PDF prêt à imprimer, ou enregistrez le bail complet dans l'app."
           action={
             <Link to="/baux/nouveau">
               <Button>
-                <Plus size={16} /> Créer un bail
+                <Plus size={16} /> Nouveau bail
               </Button>
             </Link>
           }

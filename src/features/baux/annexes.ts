@@ -7,11 +7,10 @@ export function annexesParDefaut(bien: Bien): AnnexeChecklistItem[] {
   const items: AnnexeChecklistItem[] = [
     {
       id: uid(),
-      libelle: 'Inventaire et état détaillé du mobilier',
+      libelle: "État des lieux d'entrée valant inventaire et état détaillé du mobilier",
       jointe: true,
       genereeParApp: true,
     },
-    { id: uid(), libelle: "État des lieux d'entrée", jointe: true, genereeParApp: true },
     {
       id: uid(),
       libelle: "Notice d'information (arrêté du 29 mai 2015 modifié)",

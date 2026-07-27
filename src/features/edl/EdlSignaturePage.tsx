@@ -68,10 +68,13 @@ export function EdlSignaturePage() {
       edlSigne.pdfHash = hash;
       // Verrouillage : l'EDL signé devient immuable (lecture seule dans l'app).
       await db.edls.put(edlSigne);
+      const suffixe = edl.rectifications?.length
+        ? ` (rectificatif n°${edl.rectifications.length}, signé)`
+        : ' (signé)';
       await enregistrerDocument({
         reference: edl.reference,
         type: edl.type === 'entree' ? 'edl_entree' : 'edl_sortie',
-        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} — ${nomsPersonnes(locataires)} (signé)`,
+        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} — ${nomsPersonnes(locataires)}${suffixe}`,
         blob,
         hash,
         signe: true,

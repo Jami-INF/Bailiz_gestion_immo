@@ -2,35 +2,19 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
-import {
-  Calculator,
-  ClipboardList,
-  Download,
-  FileSignature,
-  PenLine,
-  Printer,
-  RefreshCcw,
-} from 'lucide-react';
+import { Calculator, ClipboardList, Download, Pencil } from 'lucide-react';
 import { db, getParametres, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
-import type { Bail, EtatDesLieux, Locataire, SignatureBloc } from '@/types';
+import type { Bail, ElementEDL, EtatDesLieux } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros, prorataPremierLoyer, revisionIRL } from '@/lib/calculs';
 import { construirePiecesSortie } from '@/lib/etat';
-import {
-  rendrePdf,
-  rendrePdfAvecHash,
-  enregistrerDocument,
-  nomsPersonnes,
-  telechargerDocument,
-} from '@/lib/pdf/generer';
+import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
+import { rendrePdf, enregistrerDocument, nomsPersonnes, telechargerDocument } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { CourrierIrlPdf } from '@/lib/pdf/CourrierIrlPdf';
-import { SignatureFlow } from '@/components/SignatureFlow';
-import { pousserSiActive } from '@/lib/autosave';
-import { Badge, Button, Card, DateInput, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
+import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { STATUT_BAIL_UI } from './BauxPage';
-import { InventairePanel } from './InventairePanel';
 
 export function BailDetailPage() {
   const { id } = useParams();
@@ -44,17 +28,12 @@ export function BailDetailPage() {
   );
   const edls = useLiveQuery(() => (id ? db.edls.where('bailId').equals(id).toArray() : []), [id]);
   const parametres = useLiveQuery(() => getParametres());
-  const [modaleSignature, setModaleSignature] = useState(false);
-  const [modaleSignatureEcran, setModaleSignatureEcran] = useState(false);
-  const [signatureEnCours, setSignatureEnCours] = useState(false);
-  const [dateSignature, setDateSignature] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [modaleIrl, setModaleIrl] = useState(false);
   const [nouvelIndice, setNouvelIndice] = useState(0);
   const [nouveauTrimestre, setNouveauTrimestre] = useState('');
 
   if (!bail || !bien || !locataires || !parametres) return null;
 
-  const bailleurNomComplet = `${parametres.bailleur.prenom} ${parametres.bailleur.nom}`.trim();
   const nomsLocs = nomsPersonnes(locataires);
   const ui = STATUT_BAIL_UI[bail.statut];
   const edlEntree = edls?.find((e) => e.type === 'entree');
@@ -63,10 +42,12 @@ export function BailDetailPage() {
 
   const majBail = (m: Partial<Bail>) => db.baux.put({ ...bail, ...m, updatedAt: nowISO() });
 
-  const regenererPdf = async () => {
+  // Le PDF est toujours reconstruit à partir des données courantes : aucun
+  // écart possible entre le bail affiché et le document téléchargé/imprimé.
+  const telechargerPdf = async () => {
     const parametres = await getParametres();
     const blob = await rendrePdf(
-      <BailPdf bail={bail} bien={bien} locataires={locataires} parametres={parametres} />,
+      <BailPdf bail={bail} bien={bien} locataires={locataires} parametres={parametres} brouillon />,
     );
     const titre = `Bail meublé — ${bien.nom} — ${nomsLocs}`;
     await enregistrerDocument({
@@ -78,64 +59,6 @@ export function BailDetailPage() {
       bailId: bail.id,
     });
     telechargerDocument({ blob, reference: bail.reference, titre });
-  };
-
-  const telechargerPdf = async () => {
-    const doc = await db.documents.where('reference').equals(bail.reference).last();
-    if (doc) telechargerDocument(doc);
-    else await regenererPdf();
-  };
-
-  const confirmerSignature = async () => {
-    await majBail({ statut: 'signe', dateSignature });
-    setModaleSignature(false);
-    toast('success', 'Bail marqué comme signé.');
-  };
-
-  /**
-   * Signature du bail sur écran (voie c) : mêmes renforts probatoires que
-   * l'EDL — horodatage, mention « lu et approuvé », empreinte SHA-256,
-   * verrouillage (le bail signé n'est plus régénérable).
-   */
-  const signerSurEcran = async (bloc: SignatureBloc) => {
-    setSignatureEnCours(true);
-    try {
-      const parametres = await getParametres();
-      const bailSigne: Bail = {
-        ...bail,
-        signatures: bloc,
-        statut: 'signe',
-        dateSignature: bloc.dateSignature,
-        updatedAt: nowISO(),
-      };
-      const { blob, hash } = await rendrePdfAvecHash((h) => (
-        <BailPdf bail={bailSigne} bien={bien} locataires={locataires} parametres={parametres} hash={h} />
-      ));
-      bailSigne.pdfHash = hash;
-      await db.baux.put(bailSigne);
-      const titre = `Bail meublé — ${bien.nom} — ${nomsLocs} (signé)`;
-      await enregistrerDocument({
-        reference: bail.reference,
-        type: 'bail',
-        titre,
-        blob,
-        hash,
-        signe: true,
-        bienId: bien.id,
-        bailId: bail.id,
-      });
-      telechargerDocument({ blob, reference: bail.reference, titre });
-      setModaleSignatureEcran(false);
-      toast('success', `Bail signé et verrouillé. Empreinte SHA-256 : ${hash.slice(0, 16)}…`);
-      void pousserSiActive(true).then((r) => {
-        if (r === 'ok') toast('success', 'Sauvegarde automatique poussée dans le dossier synchronisé.');
-      });
-    } catch (e) {
-      console.error(e);
-      toast('error', 'Erreur lors de la génération du bail signé.');
-    } finally {
-      setSignatureEnCours(false);
-    }
   };
 
   const creerEdl = async (type: 'entree' | 'sortie') => {
@@ -159,17 +82,39 @@ export function BailDetailPage() {
       pieces:
         type === 'sortie'
           ? construirePiecesSortie(edlEntree!)
-          : bien.piecesModele.map((p, i) => ({
-              id: uid(),
-              nom: p.nom,
-              ordre: i,
-              elements: p.elements.map((e) => ({
+          : [
+              ...bien.piecesModele.map((p, i) => ({
                 id: uid(),
-                nom: e.nom,
-                categorie: e.categorie,
-                photoIds: [],
+                nom: p.nom,
+                ordre: i,
+                elements: p.elements.map(
+                  (e): ElementEDL => ({
+                    id: uid(),
+                    nom: e.nom,
+                    categorie: e.categorie,
+                    quantite: e.categorie === 'mobilier' ? e.quantite ?? 1 : undefined,
+                    obligatoireDecret: e.obligatoireDecret,
+                    photoIds: [],
+                  }),
+                ),
               })),
-            })),
+              // Inventaire du mobilier obligatoire (décret n°2015-981) intégré à l'EDL.
+              {
+                id: uid(),
+                nom: 'Mobilier obligatoire (décret n°2015-981)',
+                ordre: bien.piecesModele.length,
+                elements: MOBILIER_OBLIGATOIRE.map(
+                  (nom): ElementEDL => ({
+                    id: uid(),
+                    nom,
+                    categorie: 'mobilier',
+                    quantite: 1,
+                    obligatoireDecret: true,
+                    photoIds: [],
+                  }),
+                ),
+              },
+            ],
       statut: 'brouillon',
       avenants: [],
       createdAt: nowISO(),
@@ -265,24 +210,32 @@ export function BailDetailPage() {
           <h2 className="mb-3 font-semibold text-accent-900">Documents et cycle de vie</h2>
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" size="sm" onClick={telechargerPdf}>
-              <Download size={14} /> PDF du bail
+              <Download size={14} /> Télécharger le PDF
             </Button>
-            {['brouillon', 'genere'].includes(bail.statut) && (
-              <>
-                <Button variant="ghost" size="sm" onClick={regenererPdf}>
-                  <RefreshCcw size={14} /> Régénérer
-                </Button>
-                <Button size="sm" onClick={() => setModaleSignature(true)}>
-                  <FileSignature size={14} /> Faire signer le bail
-                </Button>
-              </>
+            <Link to={`/baux/${bail.id}/modifier`}>
+              <Button size="sm">
+                <Pencil size={14} /> Modifier
+              </Button>
+            </Link>
+            {bail.statut !== 'actif' && bail.statut !== 'termine' && (
+              <Button variant="secondary" size="sm" onClick={() => majBail({ statut: 'actif' })}>
+                Marquer le logement loué
+              </Button>
             )}
-            {bail.statut === 'signe' && (
-              <Button size="sm" onClick={() => majBail({ statut: 'actif' })}>
-                Marquer comme actif
+            {bail.statut === 'actif' && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => majBail({ statut: 'termine', dateFinEffective: nowISO() })}
+              >
+                Marquer terminé
               </Button>
             )}
           </div>
+          <p className="mt-2 text-xs text-accent-500">
+            Le bail reste modifiable et régénérable à volonté : c'est le document imprimé et signé sur place
+            qui fait foi. Il n'y a pas de signature numérique du bail.
+          </p>
           {bail.statut === 'termine' && bail.dateFinEffective && (
             <p className="mt-3 text-sm text-accent-600">
               Bail terminé le {format(new Date(bail.dateFinEffective), 'dd/MM/yyyy')}.
@@ -296,8 +249,6 @@ export function BailDetailPage() {
             <p className="mt-2 text-xs text-accent-500">Le loyer de ce bail n'est pas révisable.</p>
           )}
         </Card>
-
-        <InventairePanel bail={bail} bien={bien} locataires={locataires} />
 
         <Card>
           <h2 className="mb-3 font-semibold text-accent-900">États des lieux</h2>
@@ -342,93 +293,6 @@ export function BailDetailPage() {
         </Card>
       </div>
 
-      <Modal
-        open={modaleSignature}
-        onClose={() => setModaleSignature(false)}
-        title="Signature du bail — trois voies possibles"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModaleSignature(false)}>
-              Annuler
-            </Button>
-            <Button onClick={confirmerSignature}>Confirmer (voie a ou b)</Button>
-          </>
-        }
-      >
-        <div className="space-y-4 text-sm text-accent-700">
-          <div className="rounded-lg border border-accent-200 p-4">
-            <h3 className="mb-1 flex items-center gap-2 font-semibold text-accent-900">
-              <Printer size={16} /> a) Impression + signature manuscrite
-            </h3>
-            <p>
-              Imprimez le PDF en autant d'exemplaires que de parties, faites précéder chaque
-              signature de la mention « lu et approuvé », et paraphez chaque page.
-            </p>
-          </div>
-          <div className="rounded-lg border border-accent-200 p-4">
-            <h3 className="mb-1 flex items-center gap-2 font-semibold text-accent-900">
-              <FileSignature size={16} /> b) Signature électronique via un prestataire eIDAS
-              (recommandée)
-            </h3>
-            <p>
-              Exportez le PDF puis faites-le signer via un prestataire de confiance (Yousign,
-              DocuSign…). C'est la voie à la valeur probante la plus forte en cas de litige.
-            </p>
-          </div>
-          <div className="rounded-lg border border-accent-200 p-4">
-            <h3 className="mb-1 flex items-center gap-2 font-semibold text-accent-900">
-              <PenLine size={16} /> c) Signature sur écran, dans l'app (comme un état des lieux)
-            </h3>
-            <p>
-              Toutes les parties signent au doigt ou au stylet, avec nom tapé, mention « lu et
-              approuvé », horodatage et empreinte SHA-256 du PDF. Il s'agit d'une signature
-              électronique <em>simple</em> (art. 1366-1367 du Code civil) : valable, mais de
-              valeur probante plus faible qu'un prestataire eIDAS.
-            </p>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mt-2"
-              onClick={() => {
-                setModaleSignature(false);
-                setModaleSignatureEcran(true);
-              }}
-            >
-              <PenLine size={14} /> Signer sur écran maintenant
-            </Button>
-          </div>
-          <Field
-            label="Date de signature effective (voies a et b)"
-            hint="Date à laquelle le bail a été signé sur papier ou chez le prestataire."
-          >
-            <DateInput value={dateSignature} onChange={(d) => d && setDateSignature(d)} />
-          </Field>
-          <p className="text-xs text-accent-500">
-            En confirmant, le bail passe au statut « signé ». Il ne sera plus régénérable.
-          </p>
-        </div>
-      </Modal>
-
-      <Modal
-        open={modaleSignatureEcran}
-        onClose={() => !signatureEnCours && setModaleSignatureEcran(false)}
-        title={`Signature du bail ${bail.reference} sur écran`}
-        wide
-      >
-        {signatureEnCours ? (
-          <p className="py-10 text-center text-accent-600">
-            Génération du PDF signé et calcul de l'empreinte SHA-256…
-          </p>
-        ) : (
-          <SignatureFlow
-            libelleDocument={`Bail meublé ${bail.reference}`}
-            bailleurNom={bailleurNomComplet}
-            locatairesNoms={locataires.map((l) => `${l.prenom} ${l.nom}`)}
-            onTermine={(bloc) => void signerSurEcran(bloc)}
-            recapitulatif={<RecapBail bail={bail} bienNom={bien.nom} locataires={locataires} />}
-          />
-        )}
-      </Modal>
 
       <Modal
         open={modaleIrl}
@@ -472,67 +336,6 @@ export function BailDetailPage() {
           )}
         </div>
       </Modal>
-    </div>
-  );
-}
-
-/** Récapitulatif du bail relu avant la signature sur écran. */
-function RecapBail({
-  bail,
-  bienNom,
-  locataires,
-}: {
-  bail: Bail;
-  bienNom: string;
-  locataires: Locataire[];
-}) {
-  return (
-    <div className="space-y-2 text-sm text-accent-800">
-      <p>
-        <span className="font-semibold">Logement :</span> {bienNom}
-      </p>
-      <p>
-        <span className="font-semibold">Locataire(s) :</span>{' '}
-        {locataires.map((l) => `${l.civilite} ${l.prenom} ${l.nom}`).join(', ')}
-        {bail.locataireIds.length > 1 &&
-          (bail.clauseSolidarite ? ' — avec clause de solidarité' : ' — sans solidarité')}
-      </p>
-      <p>
-        <span className="font-semibold">Type :</span> {TYPE_BAIL_LABELS[bail.typeBail]} — prise
-        d'effet le {format(new Date(bail.dateEffet), 'dd/MM/yyyy')}, durée {bail.dureeMois} mois
-      </p>
-      <p>
-        <span className="font-semibold">Loyer :</span> {formatEuros(bail.loyerHC)} hors charges
-        + {formatEuros(bail.charges.montant)} de charges ({bail.charges.mode}), payable le{' '}
-        {bail.jourPaiement} de chaque mois par {bail.modePaiement}
-      </p>
-      <p>
-        <span className="font-semibold">Dépôt de garantie :</span> {formatEuros(bail.depotGarantie)}
-      </p>
-      <p>
-        <span className="font-semibold">Révision IRL :</span>{' '}
-        {bail.revisionIRL.revisable
-          ? `oui — ${bail.revisionIRL.trimestreReference}, indice ${bail.revisionIRL.valeurIndice}`
-          : 'non révisable'}
-      </p>
-      {bail.clausesParticulieres.length > 0 && (
-        <div>
-          <p className="font-semibold">Clauses particulières :</p>
-          <ul className="list-inside list-disc">
-            {bail.clausesParticulieres.map((c, i) => (
-              <li key={i}>{c}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <p>
-        <span className="font-semibold">Annexes jointes :</span>{' '}
-        {bail.annexesChecklist.filter((a) => a.jointe).map((a) => a.libelle).join(' ; ') || 'aucune'}
-      </p>
-      <p className="text-xs text-accent-500">
-        Relisez le PDF complet du bail avant de signer : ce récapitulatif ne remplace pas la
-        lecture du contrat (parties I à VIII).
-      </p>
     </div>
   );
 }

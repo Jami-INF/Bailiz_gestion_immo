@@ -21,6 +21,8 @@ export function construirePiecesSortie(edlEntree: EtatDesLieux): PieceEDL[] {
       id: uid(),
       nom: el.nom,
       categorie: el.categorie,
+      quantite: el.quantite,
+      obligatoireDecret: el.obligatoireDecret,
       etat: undefined,
       commentaire: undefined,
       photoIds: [],

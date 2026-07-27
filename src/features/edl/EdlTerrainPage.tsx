@@ -10,15 +10,25 @@ import {
   Info,
   KeyRound,
   Lock,
+  Pencil,
   PenLine,
   Plus,
   Scale,
   Trash2,
 } from 'lucide-react';
 import { db } from '@/lib/db';
-import { nowISO } from '@/lib/ids';
-import type { Cle, Compteur, ElementEDL, EtatDesLieux, EtatNote, TypeCompteur } from '@/types';
-import { COMPTEUR_LABELS, ETAT_LABELS } from '@/types';
+import { nowISO, uid } from '@/lib/ids';
+import type {
+  CategorieElement,
+  Cle,
+  Compteur,
+  ElementEDL,
+  EtatDesLieux,
+  EtatNote,
+  PieceEDL,
+  TypeCompteur,
+} from '@/types';
+import { CATEGORIE_LABELS, COMPTEUR_LABELS, ETAT_LABELS } from '@/types';
 import { estDegradation, progressionEDL } from '@/lib/etat';
 import { Badge, Button, Checkbox, DateInput, Field, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
 import { PhotoCapture } from './PhotoCapture';
@@ -38,9 +48,15 @@ export function EdlTerrainPage() {
   const toast = useToast();
   const edl = useLiveQuery(() => (id ? db.edls.get(id) : undefined), [id]);
   const bail = useLiveQuery(() => (edl ? db.baux.get(edl.bailId) : undefined), [edl?.bailId]);
+  const bien = useLiveQuery(() => (bail ? db.biens.get(bail.bienId) : undefined), [bail?.bienId]);
   const [ongletIdx, setOngletIdx] = useState(0);
   const [modaleAvenant, setModaleAvenant] = useState(false);
   const [texteAvenant, setTexteAvenant] = useState('');
+  const [nouvelElement, setNouvelElement] = useState('');
+  const [nouvelleCategorie, setNouvelleCategorie] = useState<CategorieElement>('equipement');
+  const [modalePiece, setModalePiece] = useState(false);
+  const [nomNouvellePiece, setNomNouvellePiece] = useState('');
+  const [modaleRectifier, setModaleRectifier] = useState(false);
 
   const onglets = useMemo(() => {
     if (!edl) return [];
@@ -58,6 +74,9 @@ export function EdlTerrainPage() {
   const sortie = edl.type === 'sortie';
   const prog = progressionEDL(edl.pieces);
   const onglet = onglets[Math.min(ongletIdx, onglets.length - 1)];
+  const obligatoiresAbsents = edl.pieces
+    .flatMap((p) => p.elements)
+    .filter((e) => e.obligatoireDecret && (e.quantite ?? 1) === 0);
 
   /** Autosauvegarde : chaque changement écrit immédiatement en IndexedDB. */
   const maj = (m: Partial<EtatDesLieux>) => {
@@ -83,6 +102,88 @@ export function EdlTerrainPage() {
     // EDL de sortie : marquage automatique de la dégradation (décochable)
     if (sortie) m.degradation = estDegradation(el.etatEntree, etat);
     majElement(pieceId, el.id, m);
+  };
+
+  /**
+   * Ajoute un élément à une pièce de l'EDL et le mémorise dans la fiche du
+   * bien (piecesModele, par nom de pièce) pour les prochains états des lieux.
+   */
+  const ajouterElement = async (piece: PieceEDL) => {
+    const nom = nouvelElement.trim();
+    if (!nom) return;
+    const categorie = nouvelleCategorie;
+    const quantite = categorie === 'mobilier' ? 1 : undefined;
+    const nouvel: ElementEDL = { id: uid(), nom, categorie, quantite, photoIds: [] };
+    await db.edls.put({
+      ...edl,
+      pieces: edl.pieces.map((p) => (p.id === piece.id ? { ...p, elements: [...p.elements, nouvel] } : p)),
+      updatedAt: nowISO(),
+    });
+    if (bien) {
+      await db.biens.put({
+        ...bien,
+        piecesModele: bien.piecesModele.map((pm) =>
+          pm.nom === piece.nom ? { ...pm, elements: [...pm.elements, { id: uid(), nom, categorie, quantite }] } : pm,
+        ),
+        updatedAt: nowISO(),
+      });
+    }
+    setNouvelElement('');
+    toast('success', `« ${nom} » ajouté à ${piece.nom} et à la fiche du logement.`);
+  };
+
+  const supprimerElement = (pieceId: string, elementId: string) => {
+    maj({
+      pieces: edl.pieces.map((p) =>
+        p.id !== pieceId ? p : { ...p, elements: p.elements.filter((el) => el.id !== elementId) },
+      ),
+    });
+  };
+
+  /** Ajoute une pièce à l'EDL et à la fiche du bien. */
+  const ajouterPiece = async () => {
+    const nom = nomNouvellePiece.trim();
+    if (!nom) return;
+    const ordre = edl.pieces.length ? Math.max(...edl.pieces.map((p) => p.ordre)) + 1 : 0;
+    await db.edls.put({
+      ...edl,
+      pieces: [...edl.pieces, { id: uid(), nom, ordre, elements: [] }],
+      updatedAt: nowISO(),
+    });
+    if (bien && !bien.piecesModele.some((pm) => pm.nom === nom)) {
+      await db.biens.put({
+        ...bien,
+        piecesModele: [...bien.piecesModele, { id: uid(), nom, ordre, elements: [] }],
+        updatedAt: nowISO(),
+      });
+    }
+    setNomNouvellePiece('');
+    setModalePiece(false);
+    // Positionne l'onglet sur la nouvelle pièce (avant l'onglet « Infos »).
+    setOngletIdx(2 + edl.pieces.length);
+    toast('success', `Pièce « ${nom} » ajoutée.`);
+  };
+
+  /**
+   * Rouvre un EDL signé pour rectification : la version signée est conservée
+   * dans l'historique (et son PDF reste dans les Documents), le document
+   * redevient modifiable et devra être re-signé par les deux parties.
+   */
+  const rectifier = async () => {
+    if (!edl.signatures) return;
+    await db.edls.put({
+      ...edl,
+      statut: 'brouillon',
+      signatures: undefined,
+      pdfHash: undefined,
+      rectifications: [
+        ...(edl.rectifications ?? []),
+        { dateSignature: edl.signatures.dateSignature, pdfHash: edl.pdfHash },
+      ],
+      updatedAt: nowISO(),
+    });
+    setModaleRectifier(false);
+    toast('warning', 'État des lieux rouvert pour rectification — à re-signer par les deux parties.');
   };
 
   const ajouterAvenant = async () => {
@@ -126,7 +227,7 @@ export function EdlTerrainPage() {
             </Badge>
           ) : (
             <Link to={`/edl/${edl.id}/signature`}>
-              <Button size="sm" disabled={prog.total === 0}>
+              <Button size="sm">
                 <PenLine size={14} /> Signer
               </Button>
             </Link>
@@ -159,6 +260,14 @@ export function EdlTerrainPage() {
               </button>
             );
           })}
+          {!signe && (
+            <button
+              onClick={() => setModalePiece(true)}
+              className="flex min-h-touch shrink-0 items-center gap-1 rounded-lg border border-dashed border-accent-300 px-3 py-1.5 text-sm font-medium text-accent-600"
+            >
+              <Plus size={14} /> Pièce
+            </button>
+          )}
         </nav>
       </header>
 
@@ -166,8 +275,9 @@ export function EdlTerrainPage() {
         <div className="mx-4 mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
           <p className="flex items-center gap-2 font-medium">
             <Lock size={14} /> Document signé le{' '}
-            {edl.signatures && format(new Date(edl.signatures.dateSignature), 'dd/MM/yyyy à HH:mm')} —
-            lecture seule. Toute correction passe par un avenant daté.
+            {edl.signatures && format(new Date(edl.signatures.dateSignature), "dd/MM/yyyy 'à' HH:mm:ss")} —
+            verrouillé. Complément mineur : avenant daté. Modification substantielle : rectifier et
+            faire re-signer les deux parties.
           </p>
           {edl.type === 'entree' && joursDepuisSignature !== null && (
             <p className="mt-1 text-xs">
@@ -180,6 +290,9 @@ export function EdlTerrainPage() {
             <Button variant="secondary" size="sm" onClick={() => setModaleAvenant(true)}>
               <Plus size={14} /> Créer un avenant
             </Button>
+            <Button variant="secondary" size="sm" onClick={() => setModaleRectifier(true)}>
+              <Pencil size={14} /> Rectifier (re-signature)
+            </Button>
             {sortie && (
               <Link to={`/edl/${edl.id}/synthese`}>
                 <Button variant="secondary" size="sm">
@@ -188,6 +301,25 @@ export function EdlTerrainPage() {
               </Link>
             )}
           </div>
+        </div>
+      )}
+
+      {!signe && edl.rectifications && edl.rectifications.length > 0 && (
+        <div className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <span className="font-medium">Rectification en cours</span> — cet état des lieux doit être{' '}
+          <strong>re-signé par les deux parties</strong>. La version signée le{' '}
+          {format(new Date(edl.rectifications[edl.rectifications.length - 1].dateSignature), "dd/MM/yyyy 'à' HH:mm")}{' '}
+          reste conservée dans les Documents ; la nouvelle version l'annulera et la remplacera.
+        </div>
+      )}
+
+      {obligatoiresAbsents.length > 0 && (
+        <div className="mx-4 mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <span className="font-medium">
+            {obligatoiresAbsents.length} poste(s) obligatoire(s) du meublé (décret n°2015-981) à quantité 0 :
+          </span>{' '}
+          {obligatoiresAbsents.map((e) => e.nom).join(', ')}. Le logement ne répond alors plus à la
+          définition du meublé.
         </div>
       )}
 
@@ -206,12 +338,24 @@ export function EdlTerrainPage() {
                 <div key={el.id} className="rounded-xl border border-accent-200 bg-white p-4">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="font-medium text-accent-900">{el.nom}</span>
-                    {sortie && el.etatEntree && (
-                      <span className="text-xs text-accent-500">
-                        Entrée : <span className="font-semibold">{ETAT_LABELS[el.etatEntree]}</span>
-                        {el.commentaireEntree && ` — ${el.commentaireEntree}`}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {sortie && el.etatEntree && (
+                        <span className="text-xs text-accent-500">
+                          Entrée : <span className="font-semibold">{ETAT_LABELS[el.etatEntree]}</span>
+                          {el.commentaireEntree && ` — ${el.commentaireEntree}`}
+                        </span>
+                      )}
+                      {!signe && !el.etatEntree && !el.obligatoireDecret && (
+                        <button
+                          type="button"
+                          aria-label={`Retirer ${el.nom}`}
+                          onClick={() => supprimerElement(onglet.pieceId!, el.id)}
+                          className="text-accent-400 hover:text-red-600"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {/* Sélecteur d'état : 5 gros boutons colorés */}
                   <div className="grid grid-cols-5 gap-1.5">
@@ -234,6 +378,31 @@ export function EdlTerrainPage() {
                       );
                     })}
                   </div>
+                  {(el.categorie === 'mobilier' || el.obligatoireDecret) && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-sm text-accent-600">Quantité :</span>
+                      <button
+                        type="button"
+                        disabled={signe}
+                        aria-label="Diminuer la quantité"
+                        onClick={() => majElement(onglet.pieceId!, el.id, { quantite: Math.max(0, (el.quantite ?? 1) - 1) })}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent-300 text-lg font-semibold text-accent-700 disabled:opacity-50"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center font-semibold text-accent-900">{el.quantite ?? 1}</span>
+                      <button
+                        type="button"
+                        disabled={signe}
+                        aria-label="Augmenter la quantité"
+                        onClick={() => majElement(onglet.pieceId!, el.id, { quantite: (el.quantite ?? 1) + 1 })}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent-300 text-lg font-semibold text-accent-700 disabled:opacity-50"
+                      >
+                        +
+                      </button>
+                      {(el.quantite ?? 1) === 0 && <Badge tone="red">Absent</Badge>}
+                    </div>
+                  )}
                   {sortie && el.etat && (
                     <div className="mt-2">
                       <Checkbox
@@ -269,6 +438,45 @@ export function EdlTerrainPage() {
                   </div>
                 </div>
               ))}
+            {!signe && (
+              <div className="rounded-xl border-2 border-dashed border-accent-300 bg-white p-4">
+                <p className="mb-2 text-sm font-medium text-accent-800">
+                  Ajouter un élément à « {onglet.nom} »
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={nouvelElement}
+                    onChange={(e) => setNouvelElement(e.target.value)}
+                    placeholder="Ex. Table basse, Radiateur, Rideaux…"
+                    className="flex-1"
+                  />
+                  <Select
+                    value={nouvelleCategorie}
+                    onChange={(e) => setNouvelleCategorie(e.target.value as CategorieElement)}
+                    className="sm:w-44"
+                    aria-label="Catégorie de l'élément"
+                  >
+                    {Object.entries(CATEGORIE_LABELS).map(([v, l]) => (
+                      <option key={v} value={v}>
+                        {l}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button
+                    onClick={() => {
+                      const p = edl.pieces.find((x) => x.id === onglet.pieceId);
+                      if (p) void ajouterElement(p);
+                    }}
+                    disabled={!nouvelElement.trim()}
+                  >
+                    <Plus size={16} /> Ajouter
+                  </Button>
+                </div>
+                <p className="mt-1 text-xs text-accent-500">
+                  L'élément est aussi ajouté à la fiche du logement (réutilisé aux prochains états des lieux).
+                </p>
+              </div>
+            )}
           </div>
         )}
         {onglet?.type === 'infos' && (
@@ -338,6 +546,70 @@ export function EdlTerrainPage() {
           </Button>
         </div>
       </footer>
+
+      <Modal
+        open={modaleRectifier}
+        onClose={() => setModaleRectifier(false)}
+        title="Rectifier l'état des lieux"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModaleRectifier(false)}>
+              Annuler
+            </Button>
+            <Button onClick={() => void rectifier()}>Rouvrir pour rectification</Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm text-accent-700">
+          <p>
+            La rectification d'un état des lieux signé n'est possible qu'avec{' '}
+            <strong>l'accord et la re-signature des deux parties</strong> (document contradictoire).
+          </p>
+          {edl.signatures && (
+            <div className="rounded-lg bg-accent-50 p-3">
+              <p className="font-medium text-accent-800">Version signée actuelle (conservée) :</p>
+              <p className="text-xs">
+                Signée le {format(new Date(edl.signatures.dateSignature), "dd/MM/yyyy 'à' HH:mm:ss")}
+                {edl.pdfHash ? ` — empreinte ${edl.pdfHash.slice(0, 16)}…` : ''}.
+              </p>
+            </div>
+          )}
+          <p>
+            Le document va redevenir <strong>modifiable</strong>. Une fois re-signée, la nouvelle
+            version <strong>annulera et remplacera</strong> la précédente ; l'original signé reste
+            conservé dans les Documents.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        open={modalePiece}
+        onClose={() => setModalePiece(false)}
+        title="Ajouter une pièce"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModalePiece(false)}>
+              Annuler
+            </Button>
+            <Button onClick={() => void ajouterPiece()} disabled={!nomNouvellePiece.trim()}>
+              Ajouter la pièce
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Field label="Nom de la pièce" required>
+            <Input
+              value={nomNouvellePiece}
+              onChange={(e) => setNomNouvellePiece(e.target.value)}
+              placeholder="Ex. Chambre 2, Buanderie, Balcon…"
+            />
+          </Field>
+          <p className="text-xs text-accent-500">
+            La pièce est aussi ajoutée à la fiche du logement. Vous pourrez y ajouter ses éléments juste après.
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         open={modaleAvenant}

@@ -20,9 +20,8 @@ import {
   useToast,
 } from '@/components/ui';
 import { PiecesEditeur } from './PiecesEditeur';
-import { DiagnosticsEditeur } from './DiagnosticsEditeur';
 
-const ETAPES = ['Identité', 'Surfaces & équipements', 'Diagnostics', 'Pièces'];
+const ETAPES = ['Identité', 'Surfaces & équipements', 'Dossier technique', 'Pièces'];
 
 const schemaIdentite = z.object({
   nom: z.string().min(1, 'Le nom du bien est requis'),
@@ -51,7 +50,6 @@ function bienVide(): Bien {
     chauffage: { type: 'individuel', energie: 'électricité' },
     eauChaude: { type: 'individuel', energie: 'électricité' },
     zoneEncadrementLoyers: false,
-    diagnostics: [],
     piecesModele: [],
     createdAt: nowISO(),
     updatedAt: nowISO(),
@@ -476,7 +474,34 @@ export function BienFormPage() {
         )}
 
         {etape === 2 && (
-          <DiagnosticsEditeur diagnostics={bien.diagnostics} onChange={(d) => maj({ diagnostics: d })} />
+          <div className="space-y-4">
+            <Field
+              label="Lien du dossier technique (Drive, cloud…)"
+              hint="URL du dossier en ligne regroupant le DDT. Un QR code vers ce lien est ajouté sur le bail."
+            >
+              <Input
+                value={bien.dossierTechniqueUrl ?? ''}
+                onChange={(e) => maj({ dossierTechniqueUrl: e.target.value || undefined })}
+                placeholder="https://drive.google.com/drive/folders/…"
+              />
+            </Field>
+            <div className="rounded-lg bg-accent-50 p-4 text-sm text-accent-700">
+              <p className="font-medium text-accent-800">Que mettre dans le dossier technique ?</p>
+              <p className="mt-1">
+                Le dossier de diagnostic technique (DDT) est une annexe obligatoire du bail.
+                Regroupez-y et tenez à jour : le <span className="font-medium">DPE</span>, l'
+                <span className="font-medium">ERP</span> (état des risques, à renouveler tous les 6
+                mois), le <span className="font-medium">CREP</span> si le logement est bâti avant
+                1949, les diagnostics <span className="font-medium">électricité / gaz</span> si
+                l'installation a plus de 15 ans, et l'attestation de{' '}
+                <span className="font-medium">surface loi Boutin</span>.
+              </p>
+              <p className="mt-2 text-accent-600">
+                La classe DPE se renseigne à l'étape « Surfaces &amp; équipements ». L'app ne suit
+                pas les dates de validité : c'est le dossier joint qui fait foi.
+              </p>
+            </div>
+          </div>
         )}
 
         {etape === 3 && (

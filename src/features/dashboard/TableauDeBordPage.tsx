@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { sauvegardeAncienne } from '@/lib/backup';
-import { validiteDiagnostic } from '@/features/biens/diagnostics';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 
 interface Alerte {
@@ -32,28 +31,6 @@ export function TableauDeBordPage() {
   if (!biens || !baux || !edls) return null;
 
   const alertes: Alerte[] = [];
-
-  // Diagnostics expirés ou proches de l'expiration
-  for (const bien of biens) {
-    for (const d of bien.diagnostics) {
-      const v = validiteDiagnostic(d);
-      if (v === 'expire') {
-        alertes.push({
-          cle: `diag-${d.id}`,
-          niveau: 'red',
-          texte: `${bien.nom} : ${d.libelle} expiré`,
-          lien: `/biens/${bien.id}`,
-        });
-      } else if (v === 'expire_bientot') {
-        alertes.push({
-          cle: `diag-${d.id}`,
-          niveau: 'orange',
-          texte: `${bien.nom} : ${d.libelle} expire le ${format(new Date(d.dateExpiration!), 'dd/MM/yyyy')}`,
-          lien: `/biens/${bien.id}`,
-        });
-      }
-    }
-  }
 
   // EDL d'entrée signé sans bail signé
   for (const edl of edls.filter((e) => e.type === 'entree' && e.statut === 'signe')) {

@@ -47,14 +47,36 @@ export function SignatureFlow({
   useEffect(() => {
     if (typeof phase !== 'number' || !canvasRef.current) return;
     const canvas = canvasRef.current;
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    canvas.width = canvas.offsetWidth * ratio;
-    canvas.height = canvas.offsetHeight * ratio;
-    canvas.getContext('2d')?.scale(ratio, ratio);
     const pad = new SignaturePad(canvas, { penColor: '#1e293b' });
-    pad.addEventListener('endStroke', () => setADessine(true));
     padRef.current = pad;
-    return () => pad.off();
+    const marquer = () => setADessine(true);
+    // beginStroke : le bouton s'active dès que l'utilisateur commence à signer.
+    pad.addEventListener('beginStroke', marquer);
+    pad.addEventListener('endStroke', marquer);
+
+    // Dimensionne le canvas à sa taille réelle (en préservant un tracé en cours).
+    // Si le layout n'est pas encore prêt (largeur 0), on retente à la frame suivante
+    // — c'est la cause du bouton « signer » qui restait grisé.
+    const dimensionner = () => {
+      const largeur = canvas.offsetWidth;
+      if (largeur === 0) {
+        requestAnimationFrame(dimensionner);
+        return;
+      }
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const data = pad.toData();
+      canvas.width = largeur * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      canvas.getContext('2d')?.scale(ratio, ratio);
+      pad.clear();
+      if (data.length) pad.fromData(data);
+    };
+    dimensionner();
+    window.addEventListener('resize', dimensionner);
+    return () => {
+      window.removeEventListener('resize', dimensionner);
+      pad.off();
+    };
   }, [phase]);
 
   const commencer = () => {

@@ -143,6 +143,10 @@ export function AppLayout() {
   const location = useLocation();
   // Mode terrain EDL : plein écran sans navigation latérale
   const pleinEcran = /^\/edl\/[^/]+/.test(location.pathname);
+  // Formulaire de bail (avec aperçu du document) : conteneur élargi
+  const large =
+    /^\/baux\/(nouveau|rapide)$/.test(location.pathname) ||
+    /^\/baux\/[^/]+\/modifier$/.test(location.pathname);
 
   return (
     <div className="flex min-h-screen">
@@ -204,7 +208,7 @@ export function AppLayout() {
             <WifiOff size={14} /> Hors-ligne — vos données restent enregistrées sur cet appareil
           </div>
         )}
-        <div className={pleinEcran ? '' : 'mx-auto max-w-5xl px-4 py-6 sm:px-8'}>
+        <div className={pleinEcran ? '' : `mx-auto ${large ? 'max-w-7xl' : 'max-w-5xl'} px-4 py-6 sm:px-8`}>
           <Outlet />
           {!pleinEcran && (
             <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-accent-200 pt-4 text-xs text-accent-500">

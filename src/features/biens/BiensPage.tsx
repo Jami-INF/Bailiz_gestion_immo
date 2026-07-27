@@ -3,7 +3,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Building2, Plus, MapPin } from 'lucide-react';
 import { db } from '@/lib/db';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
-import { validiteDiagnostic } from './diagnostics';
 
 export function BiensPage() {
   const biens = useLiveQuery(() => db.biens.orderBy('nom').toArray());
@@ -43,9 +42,6 @@ export function BiensPage() {
             const bailActif = baux?.find(
               (b) => b.bienId === bien.id && (b.statut === 'actif' || b.statut === 'signe'),
             );
-            const diagsExpires = bien.diagnostics.filter(
-              (d) => validiteDiagnostic(d) === 'expire',
-            ).length;
             return (
               <Link key={bien.id} to={`/biens/${bien.id}`}>
                 <Card className="h-full transition-shadow hover:shadow-md">
@@ -65,14 +61,6 @@ export function BiensPage() {
                     {bien.type} · {bien.surfaceBoutin} m² (loi Boutin) · {bien.nbPieces} pièce
                     {bien.nbPieces > 1 ? 's' : ''}
                   </p>
-                  {diagsExpires > 0 && (
-                    <div className="mt-3">
-                      <Badge tone="red">
-                        {diagsExpires} diagnostic{diagsExpires > 1 ? 's' : ''} expiré
-                        {diagsExpires > 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                  )}
                 </Card>
               </Link>
             );

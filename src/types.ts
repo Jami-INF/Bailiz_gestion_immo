@@ -9,25 +9,6 @@ export interface Adresse {
 
 export type TypeBien = 'T1' | 'T1bis' | 'T2' | 'T3' | 'T4' | 'autre';
 
-export type TypeDiagnostic =
-  | 'dpe'
-  | 'erp'
-  | 'crep'
-  | 'electricite'
-  | 'gaz'
-  | 'boutin'
-  | 'autre';
-
-export interface Diagnostic {
-  id: string;
-  type: TypeDiagnostic;
-  libelle: string;
-  dateRealisation: string;
-  dateExpiration?: string; // absente = illimité (ex. CREP négatif)
-  fichierJoint?: string; // nom du fichier conservé par le bailleur
-  commentaire?: string;
-}
-
 export type CategorieElement =
   | 'sol'
   | 'mur'
@@ -44,6 +25,10 @@ export interface ElementModele {
   id: string;
   nom: string;
   categorie: CategorieElement;
+  /** Quantité de référence (mobilier). */
+  quantite?: number;
+  /** Fait partie des 11 postes obligatoires du meublé (décret n°2015-981). */
+  obligatoireDecret?: boolean;
 }
 
 export interface PieceModele {
@@ -90,7 +75,8 @@ export interface Bien {
   zoneEncadrementLoyers: boolean;
   loyerReference?: number;
   loyerReferenceMajore?: number;
-  diagnostics: Diagnostic[];
+  /** Lien vers le dossier technique en ligne (Drive, cloud…) regroupant le DDT : un QR code vers cette URL est ajouté au bail. */
+  dossierTechniqueUrl?: string;
   piecesModele: PieceModele[];
   createdAt: string;
   updatedAt: string;
@@ -214,6 +200,10 @@ export interface ElementEDL {
   id: string;
   nom: string;
   categorie: CategorieElement;
+  /** Quantité relevée (mobilier). 0 = absent. */
+  quantite?: number;
+  /** Fait partie des 11 postes obligatoires du meublé (décret n°2015-981). */
+  obligatoireDecret?: boolean;
   etat?: EtatNote; // non renseigné tant que l'utilisateur n'a pas statué
   commentaire?: string;
   photoIds: string[];
@@ -254,9 +244,15 @@ export interface EtatDesLieux {
   pieces: PieceEDL[];
   observationsGenerales?: string;
   signatures?: SignatureBloc;
-  statut: 'brouillon' | 'signe'; // signe => immuable
+  statut: 'brouillon' | 'signe'; // signe => verrouillé (rectification = re-signature des 2 parties)
   avenants: Avenant[];
   pdfHash?: string;
+  /**
+   * Versions signées antérieures, conservées lors d'une rectification (chaque
+   * rectification exige une nouvelle signature des deux parties). La nouvelle
+   * version « annule et remplace » la dernière de cette liste.
+   */
+  rectifications?: { dateSignature: string; pdfHash?: string }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -317,6 +313,66 @@ export interface Parametres {
     dossierId?: string; // dossier « Bailiz » créé à la racine du Drive
     dernierPush?: string;
   };
+}
+
+/**
+ * Saisie du formulaire de bail unifié : modèle **transitoire** (state React
+ * uniquement, aucune table Dexie). Chaque partie (bien, locataire) peut être
+ * **choisie parmi les entités enregistrées** (`bienId` / `id`) ou **saisie
+ * inline**. Les champs métier sont optionnels — un champ vide devient une zone
+ * à compléter à la main dans le PDF. Rien n'est persisté tant que l'utilisateur
+ * ne clique pas « Enregistrer dans l'app ».
+ */
+export interface SaisieBail {
+  bailleur: Parametres['bailleur'];
+  /** Bien enregistré sélectionné ; si absent, la saisie inline `bien` est utilisée. */
+  bienId?: string;
+  bien: {
+    nom?: string;
+    adresse: Adresse;
+    type?: TypeBien;
+    surfaceBoutin?: number;
+    nbPieces?: number;
+    etage?: string;
+    batiment?: string;
+    identifiantFiscal?: string;
+    classeDPE?: ClasseDPE;
+    chauffage?: string; // texte libre simplifié (ex. « individuel électrique »)
+    eauChaude?: string;
+  };
+  locataires: {
+    /** Locataire enregistré sélectionné ; si absent, les champs inline sont utilisés. */
+    id?: string;
+    civilite?: 'M' | 'Mme';
+    nom?: string;
+    prenom?: string;
+    email?: string;
+    telephone?: string;
+    dateNaissance?: string;
+    lieuNaissance?: string;
+    adresseActuelle?: string;
+    garant?: Garant;
+  }[];
+  typeBail: TypeBail;
+  dateEffet?: string;
+  dureeMois?: number;
+  loyerHC?: number;
+  charges: { mode: 'forfait' | 'provisions'; montant?: number };
+  depotGarantie?: number;
+  jourPaiement?: number;
+  modePaiement?: string;
+  revisionIRL?: { trimestreReference?: string; valeurIndice?: number; revisable: boolean };
+  clausesParticulieres?: string;
+  // Options avancées (héritées de l'assistant complet)
+  clauseSolidarite: boolean;
+  clauseResolutoire: boolean;
+  assuranceMontantAnnuel?: number;
+  complementMontant?: number;
+  complementJustification?: string;
+  dernierLoyerAncienLocataire?: number;
+  travauxDepuis?: string;
+  travauxMajoration?: string;
+  travauxDiminution?: string;
 }
 
 export type TypeDocument =

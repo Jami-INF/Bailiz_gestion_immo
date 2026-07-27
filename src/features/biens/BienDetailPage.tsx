@@ -2,12 +2,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Pencil, Trash2, FileText, Plus } from 'lucide-react';
+import { Pencil, Trash2, FileText, Plus, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { db } from '@/lib/db';
 import { Badge, Button, Card, ConfirmModal, PageHeader, useToast } from '@/components/ui';
 import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
-import { VALIDITE_LABELS, validiteDiagnostic } from './diagnostics';
 
 export function BienDetailPage() {
   const { id } = useParams();
@@ -96,27 +95,24 @@ export function BienDetailPage() {
 
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold text-accent-900">Diagnostics</h2>
-            <Badge tone={bien.diagnostics.some((d) => validiteDiagnostic(d) === 'expire') ? 'red' : 'green'}>
-              {bien.diagnostics.length} diagnostic{bien.diagnostics.length > 1 ? 's' : ''}
+            <h2 className="font-semibold text-accent-900">Dossier technique</h2>
+            <Badge tone={bien.classeDPE ? 'green' : 'neutral'}>
+              {bien.classeDPE ? `DPE ${bien.classeDPE}` : 'DPE non renseigné'}
             </Badge>
           </div>
-          {bien.diagnostics.length === 0 ? (
-            <p className="text-sm text-accent-500">
-              Aucun diagnostic. Ajoutez le DDT via « Modifier ».
-            </p>
+          {bien.dossierTechniqueUrl ? (
+            <a
+              href={bien.dossierTechniqueUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-800 underline"
+            >
+              Ouvrir le dossier technique <ExternalLink size={14} />
+            </a>
           ) : (
-            <ul className="space-y-2">
-              {bien.diagnostics.map((d) => {
-                const { label, tone } = VALIDITE_LABELS[validiteDiagnostic(d)];
-                return (
-                  <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="text-accent-700">{d.libelle}</span>
-                    <Badge tone={tone}>{label}</Badge>
-                  </li>
-                );
-              })}
-            </ul>
+            <p className="text-sm text-accent-500">
+              Aucun lien de dossier technique (DPE, ERP, CREP, élec/gaz…). Ajoutez-le via « Modifier ».
+            </p>
           )}
         </Card>
 
