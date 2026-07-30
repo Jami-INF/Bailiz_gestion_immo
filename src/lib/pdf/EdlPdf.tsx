@@ -156,7 +156,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, hash }
                           {el.etatEntree ? ETAT_LABELS[el.etatEntree] : '—'}
                         </Text>
                         <Text style={[s.cellule, { width: largeurs[2] }]}>
-                          {el.etat ? ETAT_LABELS[el.etat] : '—'}
+                          {el.manquant ? 'Manquant' : el.etat ? ETAT_LABELS[el.etat] : '—'}
                         </Text>
                         <Text style={[s.cellule, { width: largeurs[3] }]}>
                           {el.degradation ? 'OUI' : ''}

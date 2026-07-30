@@ -43,7 +43,7 @@ export interface ProgressionEDL {
 export function progressionEDL(pieces: PieceEDL[]): ProgressionEDL {
   const elements = pieces.flatMap((p) => p.elements);
   const total = elements.length;
-  const renseignes = elements.filter((e) => e.etat !== undefined).length;
+  const renseignes = elements.filter((e) => e.etat !== undefined || e.manquant).length;
   return { total, renseignes, pct: total === 0 ? 0 : Math.round((renseignes / total) * 100) };
 }
 

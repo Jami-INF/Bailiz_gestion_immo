@@ -212,6 +212,8 @@ export interface ElementEDL {
   commentaireEntree?: string;
   photoIdsEntree?: string[];
   degradation?: boolean; // calculé: état sortie < état entrée, modifiable manuellement
+  /** EDL de sortie : élément présent à l'entrée mais manquant/retiré à la sortie (compté comme dégradation). */
+  manquant?: boolean;
   // Estimation de retenue (EDL sortie, éléments dégradés) :
   coutRemiseEnEtat?: number;
   ageEquipementAnnees?: number;

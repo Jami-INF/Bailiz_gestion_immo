@@ -14,7 +14,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import type { Bail, ClasseDPE, Parametres, SaisieBail, TypeBien } from '@/types';
+import type { Bail, ClasseDPE, Garant, Parametres, SaisieBail, TypeBien } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
 import { db, getParametres, prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
@@ -23,6 +23,7 @@ import { telechargerBlob } from '@/lib/backup';
 import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
+import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
 import { bailVersSaisie, construireDocs, dureeParDefaut, saisieVide } from '@/lib/pdf/bailRapide';
 import {
   Button,
@@ -177,6 +178,32 @@ export function BailRapidePage() {
     telechargerBlob(apercu.blob, nom);
   };
 
+  /** Génère et télécharge l'acte de cautionnement pré-rempli du garant du locataire i. */
+  const telechargerActe = async (i: number) => {
+    const l = saisie.locataires[i];
+    const enr = l.id ? locatairesEnr.find((x) => x.id === l.id) : undefined;
+    const g = enr?.garant ?? l.garant;
+    if (!g || g.type === 'visale') return;
+    const locataireNom = enr
+      ? `${enr.prenom} ${enr.nom}`
+      : `${l.prenom ?? ''} ${l.nom ?? ''}`.trim() || 'le locataire';
+    const a = bienChoisi?.adresse ?? saisie.bien.adresse;
+    const bienAdresse = `${a.ligne1}, ${a.codePostal} ${a.ville}`.trim();
+    const blob = await rendrePdf(
+      <ActeCautionnementPdf
+        bailleur={saisie.bailleur}
+        garant={g}
+        locataireNom={locataireNom}
+        bienAdresse={bienAdresse}
+        loyerHC={saisie.loyerHC ?? 0}
+        charges={saisie.charges.montant ?? 0}
+        typeBailLabel={TYPE_BAIL_LABELS[saisie.typeBail]}
+        dureeMois={saisie.dureeMois ?? 12}
+      />,
+    );
+    telechargerBlob(blob, `Acte de cautionnement - ${g.prenom} ${g.nom}.pdf`);
+  };
+
   const enregistrer = async () => {
     setEnregistrement(true);
     try {
@@ -306,14 +333,14 @@ export function BailRapidePage() {
                 </Select>
               </Field>
               <div />
-              <Field label="Prénom">
+              <Field label="Prénom" required>
                 <Input value={saisie.bailleur.prenom} onChange={(e) => majBailleur({ prenom: e.target.value })} />
               </Field>
-              <Field label="Nom">
+              <Field label="Nom" required>
                 <Input value={saisie.bailleur.nom} onChange={(e) => majBailleur({ nom: e.target.value })} />
               </Field>
             </div>
-            <Field label="Adresse">
+            <Field label="Adresse" required>
               <Input value={saisie.bailleur.adresse} onChange={(e) => majBailleur({ adresse: e.target.value })} />
             </Field>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -367,7 +394,7 @@ export function BailRapidePage() {
                   <Field label="Désignation (usage interne)">
                     <Input value={saisie.bien.nom ?? ''} onChange={(e) => majBien({ nom: e.target.value })} placeholder="T2 Chamalières" />
                   </Field>
-                  <Field label="Type">
+                  <Field label="Type" required>
                     <Select value={saisie.bien.type ?? ''} onChange={(e) => majBien({ type: (e.target.value || undefined) as TypeBien })}>
                       <option value="">—</option>
                       {TYPES_BIEN.map((t) => (
@@ -378,14 +405,14 @@ export function BailRapidePage() {
                     </Select>
                   </Field>
                 </div>
-                <Field label="Adresse du logement">
+                <Field label="Adresse du logement" required>
                   <Input value={saisie.bien.adresse.ligne1} onChange={(e) => majAdresse({ ligne1: e.target.value })} placeholder="12 rue des Lilas" />
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="Code postal">
+                  <Field label="Code postal" required>
                     <Input value={saisie.bien.adresse.codePostal} onChange={(e) => majAdresse({ codePostal: e.target.value })} />
                   </Field>
-                  <Field label="Ville">
+                  <Field label="Ville" required>
                     <Input value={saisie.bien.adresse.ville} onChange={(e) => majAdresse({ ville: e.target.value })} />
                   </Field>
                   <Field label="Étage / bâtiment (optionnel)">
@@ -393,10 +420,10 @@ export function BailRapidePage() {
                   </Field>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-4">
-                  <Field label="Surface Boutin (m²)">
+                  <Field label="Surface Boutin (m²)" required>
                     <Input type="number" step="0.01" min="0" value={saisie.bien.surfaceBoutin ?? ''} onChange={(e) => majBien({ surfaceBoutin: e.target.value === '' ? undefined : Number(e.target.value) })} />
                   </Field>
-                  <Field label="Nb de pièces">
+                  <Field label="Nb de pièces" required>
                     <Input type="number" min="0" value={saisie.bien.nbPieces ?? ''} onChange={(e) => majBien({ nbPieces: e.target.value === '' ? undefined : Number(e.target.value) })} />
                   </Field>
                   <Field label="Classe DPE">
@@ -449,42 +476,104 @@ export function BailRapidePage() {
                     </Select>
                   </Field>
                   {enr ? (
-                    <div className="flex items-start gap-3 rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
-                      <Users size={18} className="mt-0.5 shrink-0 text-accent-500" />
-                      <div>
-                        <div className="font-medium text-accent-900">
-                          {enr.civilite} {enr.prenom} {enr.nom}
+                    <div className="rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
+                      <div className="flex items-start gap-3">
+                        <Users size={18} className="mt-0.5 shrink-0 text-accent-500" />
+                        <div>
+                          <div className="font-medium text-accent-900">
+                            {enr.civilite} {enr.prenom} {enr.nom}
+                          </div>
+                          {enr.email}
+                          {enr.telephone ? ` · ${enr.telephone}` : ''}
+                          {enr.garant ? ' · avec garant' : ''}
                         </div>
-                        {enr.email}
-                        {enr.telephone ? ` · ${enr.telephone}` : ''}
-                        {enr.garant ? ' · avec garant' : ''}
                       </div>
+                      {enr.garant && enr.garant.type !== 'visale' && (
+                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void telechargerActe(i)}>
+                          <FileDown size={14} /> Télécharger l'attestation de garant (acte de cautionnement)
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <>
                       <div className="grid gap-4 sm:grid-cols-4">
-                        <Field label="Civilité">
+                        <Field label="Civilité" required>
                           <Select value={l.civilite ?? 'M'} onChange={(e) => majLoc(i, { civilite: e.target.value as 'M' | 'Mme' })}>
                             <option value="M">M.</option>
                             <option value="Mme">Mme</option>
                           </Select>
                         </Field>
-                        <Field label="Prénom">
+                        <Field label="Prénom" required>
                           <Input value={l.prenom ?? ''} onChange={(e) => majLoc(i, { prenom: e.target.value })} />
                         </Field>
-                        <Field label="Nom">
+                        <Field label="Nom" required>
                           <Input value={l.nom ?? ''} onChange={(e) => majLoc(i, { nom: e.target.value })} />
                         </Field>
                         <Field label="Téléphone">
                           <Input value={l.telephone ?? ''} onChange={(e) => majLoc(i, { telephone: e.target.value })} />
                         </Field>
                       </div>
-                      <Field label="Email">
-                        <Input type="email" value={l.email ?? ''} onChange={(e) => majLoc(i, { email: e.target.value })} />
-                      </Field>
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <Field label="Email">
+                          <Input type="email" value={l.email ?? ''} onChange={(e) => majLoc(i, { email: e.target.value })} />
+                        </Field>
+                        <Field label="Date de naissance">
+                          <DateInput value={l.dateNaissance ?? ''} onChange={(iso) => majLoc(i, { dateNaissance: iso || undefined })} />
+                        </Field>
+                        <Field label="Lieu de naissance">
+                          <Input value={l.lieuNaissance ?? ''} onChange={(e) => majLoc(i, { lieuNaissance: e.target.value })} />
+                        </Field>
+                      </div>
                       <Field label="Adresse actuelle (optionnel)" hint="Domicile du locataire avant l'entrée dans les lieux.">
                         <Input value={l.adresseActuelle ?? ''} onChange={(e) => majLoc(i, { adresseActuelle: e.target.value })} />
                       </Field>
+
+                      <div className="space-y-3 rounded-lg border border-accent-200 bg-accent-50 p-3">
+                        <Checkbox
+                          label="Ce locataire a un garant (caution)"
+                          checked={!!l.garant}
+                          onChange={(e) =>
+                            majLoc(i, {
+                              garant: e.target.checked ? { type: 'physique', nom: '', prenom: '', adresse: '' } : undefined,
+                            })
+                          }
+                        />
+                        {l.garant && (
+                          <>
+                            <Field label="Type de garantie">
+                              <Select
+                                value={l.garant.type}
+                                onChange={(e) => majLoc(i, { garant: { ...l.garant!, type: e.target.value as Garant['type'] } })}
+                              >
+                                <option value="physique">Personne physique (caution)</option>
+                                <option value="visale">Garantie Visale</option>
+                                <option value="autre">Autre</option>
+                              </Select>
+                            </Field>
+                            {l.garant.type !== 'visale' && (
+                              <>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                  <Field label="Prénom du garant" required>
+                                    <Input value={l.garant.prenom} onChange={(e) => majLoc(i, { garant: { ...l.garant!, prenom: e.target.value } })} />
+                                  </Field>
+                                  <Field label="Nom du garant" required>
+                                    <Input value={l.garant.nom} onChange={(e) => majLoc(i, { garant: { ...l.garant!, nom: e.target.value } })} />
+                                  </Field>
+                                </div>
+                                <Field label="Adresse du garant" required>
+                                  <Input value={l.garant.adresse} onChange={(e) => majLoc(i, { garant: { ...l.garant!, adresse: e.target.value } })} />
+                                </Field>
+                                <Button variant="secondary" size="sm" onClick={() => void telechargerActe(i)}>
+                                  <FileDown size={14} /> Télécharger l'attestation de garant (acte de cautionnement)
+                                </Button>
+                                <p className="text-xs text-accent-500">
+                                  Les pièces du garant (avis d'impôt, 3 dernières fiches de paie, pièce d'identité, justificatif de domicile) sont ajoutées à la liste des documents à remettre, dans le bail.
+                                </p>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -523,10 +612,10 @@ export function BailRapidePage() {
               ))}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Date de prise d'effet">
+              <Field label="Date de prise d'effet" required>
                 <DateInput value={saisie.dateEffet ?? ''} onChange={(iso) => maj({ dateEffet: iso || undefined })} />
               </Field>
-              <Field label="Durée (mois)">
+              <Field label="Durée (mois)" required>
                 <Input type="number" min="1" max={mobilite ? 10 : undefined} value={saisie.dureeMois ?? ''} onChange={(e) => maj({ dureeMois: e.target.value === '' ? undefined : Number(e.target.value) })} />
               </Field>
             </div>
@@ -534,10 +623,10 @@ export function BailRapidePage() {
 
           <Section titre="Loyer & charges">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Loyer mensuel hors charges (€)">
+              <Field label="Loyer mensuel hors charges (€)" required>
                 <Input type="number" step="0.01" min="0" value={saisie.loyerHC ?? ''} onChange={(e) => maj({ loyerHC: e.target.value === '' ? undefined : Number(e.target.value) })} />
               </Field>
-              <Field label="Dépôt de garantie (€)" hint={mobilite ? 'Interdit pour le bail mobilité.' : 'Au plus 2 mois de loyer HC.'}>
+              <Field label="Dépôt de garantie (€)" required={!mobilite} hint={mobilite ? 'Interdit pour le bail mobilité.' : 'Au plus 2 mois de loyer HC.'}>
                 <Input type="number" step="0.01" min="0" disabled={mobilite} value={mobilite ? '' : saisie.depotGarantie ?? ''} onChange={(e) => maj({ depotGarantie: e.target.value === '' ? undefined : Number(e.target.value) })} />
               </Field>
             </div>
@@ -551,22 +640,22 @@ export function BailRapidePage() {
               <Field label="Montant charges (€)">
                 <Input type="number" step="0.01" min="0" value={saisie.charges.montant ?? ''} onChange={(e) => maj({ charges: { ...saisie.charges, montant: e.target.value === '' ? undefined : Number(e.target.value) } })} />
               </Field>
-              <Field label="Jour de paiement (1-28)">
+              <Field label="Jour de paiement (1-28)" required>
                 <Input type="number" min="1" max="28" value={saisie.jourPaiement ?? ''} onChange={(e) => maj({ jourPaiement: e.target.value === '' ? undefined : Number(e.target.value) })} />
               </Field>
             </div>
-            <Field label="Mode de paiement">
-              <Input value={saisie.modePaiement ?? ''} onChange={(e) => maj({ modePaiement: e.target.value })} placeholder="virement bancaire" />
+            <Field label="Mode de paiement" required>
+              <Input value={saisie.modePaiement ?? ''} onChange={(e) => maj({ modePaiement: e.target.value })} placeholder="Virement bancaire" />
             </Field>
             {!mobilite && (
               <div className="rounded-lg bg-accent-50 p-4">
                 <Checkbox label="Loyer révisable annuellement selon l'IRL" checked={saisie.revisionIRL?.revisable ?? false} onChange={(e) => maj({ revisionIRL: { ...saisie.revisionIRL, revisable: e.target.checked } })} />
                 {saisie.revisionIRL?.revisable && (
                   <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                    <Field label="Trimestre de référence IRL">
+                    <Field label="Trimestre de référence IRL" required>
                       <Input value={saisie.revisionIRL?.trimestreReference ?? ''} onChange={(e) => maj({ revisionIRL: { ...saisie.revisionIRL!, trimestreReference: e.target.value } })} placeholder="1er trimestre 2026" />
                     </Field>
-                    <Field label="Valeur de l'indice">
+                    <Field label="Valeur de l'indice" required>
                       <Input type="number" step="0.01" value={saisie.revisionIRL?.valeurIndice ?? ''} onChange={(e) => maj({ revisionIRL: { ...saisie.revisionIRL!, valeurIndice: e.target.value === '' ? undefined : Number(e.target.value) } })} />
                     </Field>
                   </div>

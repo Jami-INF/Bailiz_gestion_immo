@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { differenceInDays, format } from 'date-fns';
@@ -67,6 +67,11 @@ export function EdlTerrainPage() {
       { type: 'infos' as const, nom: 'Infos' },
     ];
   }, [edl?.pieces, edl?.id]);
+
+  // Revient en haut de page à chaque changement d'onglet (sinon on reste en bas).
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [ongletIdx]);
 
   if (!edl) return null;
 
@@ -137,6 +142,15 @@ export function EdlTerrainPage() {
       pieces: edl.pieces.map((p) =>
         p.id !== pieceId ? p : { ...p, elements: p.elements.filter((el) => el.id !== elementId) },
       ),
+    });
+  };
+
+  /** EDL de sortie : marque un élément comme manquant/retiré (= dégradation), sans le supprimer. */
+  const marquerManquant = (pieceId: string, el: ElementEDL) => {
+    const manquant = !el.manquant;
+    majElement(pieceId, el.id, {
+      manquant,
+      degradation: manquant ? true : estDegradation(el.etatEntree, el.etat),
     });
   };
 
@@ -260,7 +274,7 @@ export function EdlTerrainPage() {
               </button>
             );
           })}
-          {!signe && (
+          {!signe && !sortie && (
             <button
               onClick={() => setModalePiece(true)}
               className="flex min-h-touch shrink-0 items-center gap-1 rounded-lg border border-dashed border-accent-300 px-3 py-1.5 text-sm font-medium text-accent-600"
@@ -337,15 +351,25 @@ export function EdlTerrainPage() {
               .elements.map((el) => (
                 <div key={el.id} className="rounded-xl border border-accent-200 bg-white p-4">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="font-medium text-accent-900">{el.nom}</span>
+                    <span className="flex items-center gap-2 font-medium text-accent-900">
+                      {el.nom}
+                      {el.manquant && <Badge tone="red">Manquant</Badge>}
+                    </span>
                     <div className="flex items-center gap-2">
-                      {sortie && el.etatEntree && (
-                        <span className="text-xs text-accent-500">
-                          Entrée : <span className="font-semibold">{ETAT_LABELS[el.etatEntree]}</span>
-                          {el.commentaireEntree && ` — ${el.commentaireEntree}`}
-                        </span>
+                      {!signe && sortie && (
+                        <button
+                          type="button"
+                          onClick={() => marquerManquant(onglet.pieceId!, el)}
+                          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium ${
+                            el.manquant
+                              ? 'border-accent-300 text-accent-600 hover:bg-accent-50'
+                              : 'border-red-200 text-red-600 hover:bg-red-50'
+                          }`}
+                        >
+                          <Trash2 size={13} /> {el.manquant ? 'Rétablir' : 'Manquant'}
+                        </button>
                       )}
-                      {!signe && !el.etatEntree && !el.obligatoireDecret && (
+                      {!signe && !sortie && !el.obligatoireDecret && (
                         <button
                           type="button"
                           aria-label={`Retirer ${el.nom}`}
@@ -357,6 +381,22 @@ export function EdlTerrainPage() {
                       )}
                     </div>
                   </div>
+                  {/* État à l'entrée — mis en avant sur l'EDL de sortie */}
+                  {sortie && el.etatEntree && (
+                    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-accent-50 px-3 py-2">
+                      <span className="text-sm font-medium text-accent-600">État à l'entrée :</span>
+                      <span className={`rounded px-2.5 py-1 text-sm font-bold uppercase tracking-wide text-white ${COULEURS_ETAT[el.etatEntree]}`}>
+                        {ETAT_LABELS[el.etatEntree]}
+                      </span>
+                      {el.commentaireEntree && <span className="text-sm text-accent-500">— {el.commentaireEntree}</span>}
+                    </div>
+                  )}
+                  {el.manquant ? (
+                    <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                      Élément présent à l'entrée et manquant/retiré à la sortie — noté comme dégradation.
+                    </p>
+                  ) : (
+                  <>
                   {/* Sélecteur d'état : 5 gros boutons colorés */}
                   <div className="grid grid-cols-5 gap-1.5">
                     {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
@@ -417,6 +457,8 @@ export function EdlTerrainPage() {
                       />
                     </div>
                   )}
+                  </>
+                  )}
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
                     <Input
                       key={`${el.id}-comm`}
@@ -441,7 +483,7 @@ export function EdlTerrainPage() {
                   </div>
                 </div>
               ))}
-            {!signe && (
+            {!signe && !sortie && (
               <div className="rounded-xl border-2 border-dashed border-accent-300 bg-white p-4">
                 <p className="mb-2 text-sm font-medium text-accent-800">
                   Ajouter un élément à « {onglet.nom} »

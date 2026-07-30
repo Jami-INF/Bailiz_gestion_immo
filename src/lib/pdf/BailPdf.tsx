@@ -59,7 +59,15 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
     `Pièce d'identité en cours de validité (chaque locataire${garants.length ? ' et chaque garant' : ''})`,
     "Attestation d'assurance habitation couvrant les risques locatifs, en cours de validité",
     ...(bail.typeBail !== 'mobilite' ? ['Justificatif du versement du dépôt de garantie'] : []),
-    ...(garants.some((l) => l.garant!.type !== 'visale') ? ['Acte de cautionnement signé par le garant'] : []),
+    ...(garants.some((l) => l.garant!.type !== 'visale')
+      ? [
+          'Acte de cautionnement signé par le garant',
+          "Pièce d'identité du garant en cours de validité",
+          "Dernier avis d'imposition du garant",
+          'Trois derniers bulletins de salaire du garant',
+          'Justificatif de domicile du garant',
+        ]
+      : []),
     ...(garants.some((l) => l.garant!.type === 'visale') ? ['Attestation de garantie Visale en cours de validité'] : []),
     ...(bail.typeBail === 'meuble_etudiant_9mois' ? ["Certificat de scolarité de l'année en cours"] : []),
     ...(bail.typeBail === 'mobilite'

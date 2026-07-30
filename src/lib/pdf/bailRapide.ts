@@ -19,6 +19,8 @@ export function saisieVide(bailleur: Parametres['bailleur'], bienId?: string): S
     dateEffet: format(new Date(), 'yyyy-MM-dd'),
     dureeMois: 12,
     charges: { mode: 'forfait' },
+    jourPaiement: 5,
+    modePaiement: 'Virement bancaire',
     revisionIRL: { revisable: false },
     clauseSolidarite: true,
     clauseResolutoire: true,
