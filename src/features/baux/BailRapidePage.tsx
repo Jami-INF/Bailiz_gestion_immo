@@ -19,12 +19,15 @@ import { TYPE_BAIL_LABELS } from '@/types';
 import { db, getParametres, prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import { formatEuros } from '@/lib/calculs';
+import { decrireErreur } from '@/lib/erreurs';
 import { telechargerBlob } from '@/lib/backup';
 import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
 import { bailVersSaisie, construireDocs, dureeParDefaut, saisieVide } from '@/lib/pdf/bailRapide';
+import { LocataireFormModal } from '@/features/locataires/LocataireFormModal';
+import { BienRapideModal } from '@/features/biens/BienRapideModal';
 import {
   Button,
   Card,
@@ -69,6 +72,9 @@ export function BailRapidePage() {
   const [autoApercu, setAutoApercu] = useState(true);
   const [generation, setGeneration] = useState(false);
   const [enregistrement, setEnregistrement] = useState(false);
+  const [modaleBien, setModaleBien] = useState(false);
+  /** Index du locataire dont on ouvre la modale de création (null = fermée). */
+  const [modaleLocataire, setModaleLocataire] = useState<number | null>(null);
   const enCoursRef = useRef(false);
 
   // Amorce la saisie une seule fois : depuis un bail existant (édition) ou vierge (création).
@@ -179,14 +185,52 @@ export function BailRapidePage() {
   };
 
   /** Télécharge le modèle vierge d'acte de cautionnement (à compléter et signer à la main). */
-  const telechargerActe = async () => {
-    const blob = await rendrePdf(<ActeCautionnementPdf />);
-    telechargerBlob(blob, 'Acte de cautionnement - modèle vierge.pdf');
+  /**
+   * Acte de cautionnement du garant du locataire `i`, pré-rempli avec ce que le
+   * bail connaît déjà ; les champs manquants restent à compléter à la main.
+   */
+  const telechargerActe = async (i: number) => {
+    const l = saisie.locataires[i];
+    const enr = l.id ? locatairesEnr.find((x) => x.id === l.id) : undefined;
+    const garant = enr?.garant ?? l.garant;
+    const locataireNom = enr
+      ? `${enr.prenom} ${enr.nom}`.trim()
+      : `${l.prenom ?? ''} ${l.nom ?? ''}`.trim();
+    const a = bienChoisi?.adresse ?? saisie.bien.adresse;
+    const bienAdresse = [a.ligne1, `${a.codePostal ?? ''} ${a.ville ?? ''}`.trim()]
+      .filter((x) => x && x.trim())
+      .join(', ');
+    const blob = await rendrePdf(
+      <ActeCautionnementPdf
+        bailleur={saisie.bailleur}
+        garant={garant}
+        locataireNom={locataireNom || undefined}
+        bienAdresse={bienAdresse || undefined}
+        loyerHC={saisie.loyerHC}
+        charges={saisie.charges.montant}
+        typeBailLabel={TYPE_BAIL_LABELS[saisie.typeBail]}
+        dureeMois={saisie.dureeMois}
+      />,
+    );
+    const nomGarant = garant ? `${garant.prenom ?? ''} ${garant.nom ?? ''}`.trim() : '';
+    telechargerBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
   };
 
   const enregistrer = async () => {
     setEnregistrement(true);
+    // Code de l'étape en cours : affiché en cas d'échec pour localiser la panne
+    // depuis une tablette, où la console du navigateur n'est pas consultable.
+    let etape = 'E1 (paramètres)';
     try {
+      // Une ligne locataire laissée entièrement vide n'est pas enregistrée :
+      // elle ne doit ni polluer la liste des locataires, ni être référencée
+      // par le bail. L'aperçu, lui, continue d'afficher la saisie telle quelle.
+      const saisieEnr: SaisieBail = {
+        ...saisie,
+        locataires: saisie.locataires.filter(
+          (l) => l.id || l.nom?.trim() || l.prenom?.trim() || l.email?.trim(),
+        ),
+      };
       const params = await getParametres();
       // Mémorise le bailleur saisi si les Paramètres sont vides.
       const bailleurEnr = saisie.bailleur.nom.trim() ? saisie.bailleur : params.bailleur;
@@ -198,8 +242,9 @@ export function BailRapidePage() {
 
       // --- Mode édition : met à jour le bail et régénère son PDF (inventaire/grille inchangés) ---
       if (edition && bailExistant) {
+        etape = 'E2 (construction du bail)';
         const { bail: brut, bien, locataires } = construireDocs(
-          saisie,
+          saisieEnr,
           bailExistant.reference,
           resolveBien,
           resolveLocataire,
@@ -227,16 +272,19 @@ export function BailRapidePage() {
           annexesChecklist: brut.annexesChecklist,
           updatedAt: nowISO(),
         };
+        etape = 'E3 (écriture en base)';
         await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
-          if (!saisie.bienId) await db.biens.add(bien);
-          const locsInline = locataires.filter((_, i) => !saisie.locataires[i]?.id);
+          if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
+          const locsInline = locataires.filter((_, i) => !saisieEnr.locataires[i]?.id);
           if (locsInline.length) await db.locataires.bulkAdd(locsInline);
           await db.baux.put(bailMaj);
         });
         const nomsMaj = nomsPersonnes(locataires);
+        etape = 'E4 (génération du PDF)';
         const blob = await rendrePdf(
           <BailPdf bail={bailMaj} bien={bien} locataires={locataires} parametres={paramsPdf} brouillon />,
         );
+        etape = 'E5 (enregistrement du PDF)';
         await enregistrerDocument({
           reference: bailMaj.reference,
           type: 'bail',
@@ -251,9 +299,11 @@ export function BailRapidePage() {
       }
 
       // --- Mode création : bail + inventaire + grille de vétusté ---
+      etape = 'E2 (numérotation)';
       const reference = await prochaineReference('bail');
       const refGrille = await prochaineReference('document');
-      const { bail, bien, locataires } = construireDocs(saisie, reference, resolveBien, resolveLocataire);
+      etape = 'E3 (construction du bail)';
+      const { bail, bien, locataires } = construireDocs(saisieEnr, reference, resolveBien, resolveLocataire);
 
       // Un bail persisté doit avoir une date valide (les pages de suivi la supposent).
       const bailFinal = {
@@ -262,6 +312,7 @@ export function BailRapidePage() {
         dateEffet: bail.dateEffet || format(new Date(), 'yyyy-MM-dd'),
       };
 
+      etape = 'E4 (génération des PDF)';
       const blobBail = await rendrePdf(
         <BailPdf bail={bailFinal} bien={bien} locataires={locataires} parametres={paramsPdf} brouillon />,
       );
@@ -269,22 +320,24 @@ export function BailRapidePage() {
         <GrilleVetustePdf reference={refGrille} grille={params.grilleVetuste} bailReference={reference} />,
       );
 
+      etape = 'E5 (écriture en base)';
       await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
-        if (!saisie.bienId) await db.biens.add(bien);
-        const locsInline = locataires.filter((_, i) => !saisie.locataires[i]?.id);
+        if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
+        const locsInline = locataires.filter((_, i) => !saisieEnr.locataires[i]?.id);
         if (locsInline.length) await db.locataires.bulkAdd(locsInline);
         await db.baux.add(bailFinal);
       });
 
       const noms = nomsPersonnes(locataires);
+      etape = 'E6 (enregistrement des PDF)';
       await enregistrerDocument({ reference, type: 'bail', titre: `Bail meublé — ${bien.nom} — ${noms}`, blob: blobBail, bienId: bien.id, bailId: bail.id });
       await enregistrerDocument({ reference: refGrille, type: 'grille_vetuste', titre: `Grille de vétusté — ${bien.nom} — annexe du bail ${reference}`, blob: blobGrille, bienId: bien.id, bailId: bail.id });
 
       toast('success', `Bail ${reference} enregistré. L'inventaire du mobilier sera réalisé avec l'état des lieux d'entrée.`);
       navigate(`/baux/${bail.id}`);
     } catch (e) {
-      console.error(e);
-      toast('error', "Erreur lors de l'enregistrement du bail.");
+      console.error(`Enregistrement du bail — échec ${etape}`, e);
+      toast('error', `Échec à l'étape ${etape} : ${decrireErreur(e)}`);
     } finally {
       setEnregistrement(false);
     }
@@ -301,7 +354,7 @@ export function BailRapidePage() {
         }
       />
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(460px,52%)] lg:items-start lg:gap-6">
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(460px,50%)] xl:items-start xl:gap-6">
         {/* ------------------------- Formulaire ------------------------- */}
         <div className="space-y-4">
           <Section titre="Bailleur" description="Pré-rempli depuis vos Paramètres si renseigné.">
@@ -323,7 +376,7 @@ export function BailRapidePage() {
             <Field label="Adresse" required>
               <Input value={saisie.bailleur.adresse} onChange={(e) => majBailleur({ adresse: e.target.value })} />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <Field label="Email">
                 <Input type="email" value={saisie.bailleur.email} onChange={(e) => majBailleur({ email: e.target.value })} />
               </Field>
@@ -337,20 +390,26 @@ export function BailRapidePage() {
           </Section>
 
           <Section titre="Logement">
-            <Field label="Bien" hint="Choisissez un bien enregistré (toutes ses infos seront utilisées) ou saisissez un logement ici.">
-              <Select
-                value={saisie.bienId ?? ''}
-                onChange={(e) => maj({ bienId: e.target.value || undefined })}
-              >
-                <option value="">— Saisir un logement ici —</option>
-                {biens.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nom} ({b.adresse.ville})
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <Field label="Bien" hint="Choisissez un bien enregistré (toutes ses infos seront utilisées), créez-le, ou saisissez-le ici sans l'enregistrer.">
+                  <Select
+                    value={saisie.bienId ?? ''}
+                    onChange={(e) => maj({ bienId: e.target.value || undefined })}
+                  >
+                    <option value="">— Saisir un logement ici —</option>
+                    {biens.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.nom} ({b.adresse.ville})
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
+              <Button variant="secondary" onClick={() => setModaleBien(true)} className="shrink-0">
+                <Plus size={16} /> Créer un logement
+              </Button>
+            </div>
             {bienChoisi ? (
               <div className="flex items-start gap-3 rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
                 <Building2 size={18} className="mt-0.5 shrink-0 text-accent-500" />
@@ -388,7 +447,7 @@ export function BailRapidePage() {
                 <Field label="Adresse du logement" required>
                   <Input value={saisie.bien.adresse.ligne1} onChange={(e) => majAdresse({ ligne1: e.target.value })} placeholder="12 rue des Lilas" />
                 </Field>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <Field label="Code postal" required>
                     <Input value={saisie.bien.adresse.codePostal} onChange={(e) => majAdresse({ codePostal: e.target.value })} />
                   </Field>
@@ -399,7 +458,7 @@ export function BailRapidePage() {
                     <Input value={saisie.bien.etage ?? ''} onChange={(e) => majBien({ etage: e.target.value })} />
                   </Field>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <Field label="Surface Boutin (m²)" required>
                     <Input type="number" step="0.01" min="0" value={saisie.bien.surfaceBoutin ?? ''} onChange={(e) => majBien({ surfaceBoutin: e.target.value === '' ? undefined : Number(e.target.value) })} />
                   </Field>
@@ -445,16 +504,23 @@ export function BailRapidePage() {
                       </Button>
                     )}
                   </div>
-                  <Field label="Locataire">
-                    <Select value={l.id ?? ''} onChange={(e) => majLoc(i, { id: e.target.value || undefined })}>
-                      <option value="">— Saisir ici —</option>
-                      {locatairesEnr.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.civilite} {x.prenom} {x.nom}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="min-w-0 flex-1">
+                      <Field label="Locataire">
+                        <Select value={l.id ?? ''} onChange={(e) => majLoc(i, { id: e.target.value || undefined })}>
+                          <option value="">— Saisir ici —</option>
+                          {locatairesEnr.map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.civilite} {x.prenom} {x.nom}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                    </div>
+                    <Button variant="secondary" onClick={() => setModaleLocataire(i)} className="shrink-0">
+                      <Plus size={16} /> Créer un locataire
+                    </Button>
+                  </div>
                   {enr ? (
                     <div className="rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
                       <div className="flex items-start gap-3">
@@ -469,7 +535,7 @@ export function BailRapidePage() {
                         </div>
                       </div>
                       {enr.garant && enr.garant.type !== 'visale' && (
-                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void telechargerActe()}>
+                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void telechargerActe(i)}>
                           <FileDown size={14} /> Télécharger le modèle vierge d'acte de cautionnement
                         </Button>
                       )}
@@ -482,7 +548,7 @@ export function BailRapidePage() {
                     </div>
                   ) : (
                     <>
-                      <div className="grid gap-4 sm:grid-cols-4">
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <Field label="Civilité" required>
                           <Select value={l.civilite ?? 'M'} onChange={(e) => majLoc(i, { civilite: e.target.value as 'M' | 'Mme' })}>
                             <option value="M">M.</option>
@@ -499,7 +565,7 @@ export function BailRapidePage() {
                           <Input value={l.telephone ?? ''} onChange={(e) => majLoc(i, { telephone: e.target.value })} />
                         </Field>
                       </div>
-                      <div className="grid gap-4 sm:grid-cols-3">
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         <Field label="Email">
                           <Input type="email" value={l.email ?? ''} onChange={(e) => majLoc(i, { email: e.target.value })} />
                         </Field>
@@ -549,7 +615,7 @@ export function BailRapidePage() {
                                 <Field label="Adresse du garant (optionnel)" hint="Peut être complétée à la main sur l'acte imprimé.">
                                   <Input value={l.garant.adresse} onChange={(e) => majLoc(i, { garant: { ...l.garant!, adresse: e.target.value } })} />
                                 </Field>
-                                <Button variant="secondary" size="sm" onClick={() => void telechargerActe()}>
+                                <Button variant="secondary" size="sm" onClick={() => void telechargerActe(i)}>
                                   <FileDown size={14} /> Télécharger le modèle vierge d'acte de cautionnement
                                 </Button>
                                 <p className="text-xs text-accent-500">
@@ -629,7 +695,7 @@ export function BailRapidePage() {
                 <Input type="number" step="0.01" min="0" disabled={mobilite} value={mobilite ? '' : saisie.depotGarantie ?? ''} onChange={(e) => maj({ depotGarantie: e.target.value === '' ? undefined : Number(e.target.value) })} />
               </Field>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <Field label="Charges">
                 <Select value={saisie.charges.mode} onChange={(e) => maj({ charges: { ...saisie.charges, mode: e.target.value as 'forfait' | 'provisions' } })}>
                   <option value="forfait">Forfait</option>
@@ -710,7 +776,7 @@ export function BailRapidePage() {
         </div>
 
         {/* ------------------------- Aperçu ------------------------- */}
-        <div className="mt-4 lg:sticky lg:top-4 lg:mt-0">
+        <div className="mt-4 xl:sticky xl:top-4 xl:mt-0">
           <Card className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-accent-900">
@@ -752,6 +818,19 @@ export function BailRapidePage() {
           </Card>
         </div>
       </div>
+
+      <BienRapideModal
+        open={modaleBien}
+        onClose={() => setModaleBien(false)}
+        onCree={(b) => maj({ bienId: b.id })}
+      />
+      <LocataireFormModal
+        open={modaleLocataire !== null}
+        onClose={() => setModaleLocataire(null)}
+        onEnregistre={(l) => {
+          if (modaleLocataire !== null) majLoc(modaleLocataire, { id: l.id });
+        }}
+      />
     </div>
   );
 }

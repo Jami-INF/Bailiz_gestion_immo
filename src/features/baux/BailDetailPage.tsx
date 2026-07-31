@@ -2,7 +2,16 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
-import { Calculator, ClipboardList, Download, Pencil } from 'lucide-react';
+import {
+  Calculator,
+  ClipboardList,
+  Download,
+  Pencil,
+  Receipt,
+  Ruler,
+  Scale,
+  ShieldQuestion,
+} from 'lucide-react';
 import { db, getParametres, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import type { Bail, ElementEDL, EtatDesLieux } from '@/types';
@@ -13,6 +22,10 @@ import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
 import { rendrePdf, enregistrerDocument, nomsPersonnes, telechargerDocument } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { CourrierIrlPdf } from '@/lib/pdf/CourrierIrlPdf';
+import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
+import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
+import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
+import { telechargerBlob } from '@/lib/backup';
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { STATUT_BAIL_UI } from './BauxPage';
 
@@ -59,6 +72,58 @@ export function BailDetailPage() {
       bailId: bail.id,
     });
     telechargerDocument({ blob, reference: bail.reference, titre });
+  };
+
+  /** Fiche d'aide juridique (préavis, congés, impayés, délais) — archivée et téléchargée. */
+  const genererFicheAide = async () => {
+    const reference = await prochaineReference('document');
+    const blob = await rendrePdf(<FicheAidePdf reference={reference} />);
+    const titre = 'Fiche d’aide juridique du bailleur meublé';
+    await enregistrerDocument({ reference, type: 'fiche_aide', titre, blob, bienId: bien.id, bailId: bail.id });
+    telechargerDocument({ blob, reference, titre });
+    toast('success', "Fiche d'aide juridique générée.");
+  };
+
+  /** Grille de vétusté du bail (annexe, décret 2016-382) — reprend celle des Paramètres. */
+  const genererGrilleVetuste = async () => {
+    const reference = await prochaineReference('document');
+    const parametres = await getParametres();
+    const blob = await rendrePdf(
+      <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} bailReference={bail.reference} />,
+    );
+    const titre = `Grille de vétusté — ${bien.nom} — annexe du bail ${bail.reference}`;
+    await enregistrerDocument({ reference, type: 'grille_vetuste', titre, blob, bienId: bien.id, bailId: bail.id });
+    telechargerDocument({ blob, reference, titre });
+    toast('success', 'Grille de vétusté générée.');
+  };
+
+  /**
+   * Acte de cautionnement pré-rempli depuis ce bail (premier locataire pourvu
+   * d'une caution personne physique) ; les données manquantes restent à
+   * compléter à la main. Simplement téléchargé : il n'a pas vocation à être
+   * archivé tant qu'il n'est pas signé.
+   */
+  const telechargerActeCautionnement = async () => {
+    const avecCaution = locataires.find((l) => l.garant && l.garant.type !== 'visale');
+    const cible = avecCaution ?? locataires[0];
+    const adresse = [bien.adresse.ligne1, `${bien.adresse.codePostal} ${bien.adresse.ville}`.trim()]
+      .filter((x) => x && x.trim())
+      .join(', ');
+    const blob = await rendrePdf(
+      <ActeCautionnementPdf
+        bailleur={parametres.bailleur}
+        garant={avecCaution?.garant}
+        locataireNom={cible ? `${cible.prenom} ${cible.nom}`.trim() : undefined}
+        bienAdresse={adresse || undefined}
+        loyerHC={bail.loyerHC}
+        charges={bail.charges.montant}
+        typeBailLabel={TYPE_BAIL_LABELS[bail.typeBail]}
+        dureeMois={bail.dureeMois}
+      />,
+    );
+    const g = avecCaution?.garant;
+    const nomGarant = g ? `${g.prenom ?? ''} ${g.nom ?? ''}`.trim() : '';
+    telechargerBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
   };
 
   const creerEdl = async (type: 'entree' | 'sortie') => {
@@ -288,6 +353,98 @@ export function BailDetailPage() {
                   Créer l'état des lieux de sortie (comparatif)
                 </Button>
               )
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="mb-1 font-semibold text-accent-900">Documents utiles</h2>
+          <p className="mb-3 text-sm text-accent-500">
+            Pré-remplis à partir de ce bail (hors bail et état des lieux, qui ont leurs propres blocs).
+          </p>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => void genererFicheAide()}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+            >
+              <Scale size={16} className="mt-0.5 shrink-0 text-accent-400" />
+              <span>
+                <span className="block text-sm font-medium text-accent-900">Fiche d'aide juridique</span>
+                <span className="block text-xs text-accent-500">
+                  Préavis, congés, notification, impayés, dépôt de garantie, prescription, ADIL.
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void telechargerActeCautionnement()}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+            >
+              <ShieldQuestion size={16} className="mt-0.5 shrink-0 text-accent-400" />
+              <span>
+                <span className="block text-sm font-medium text-accent-900">Attestation de garant</span>
+                <span className="block text-xs text-accent-500">
+                  Acte de cautionnement solidaire — modèle vierge, à compléter et signer à la main.
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void genererGrilleVetuste()}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+            >
+              <Ruler size={16} className="mt-0.5 shrink-0 text-accent-400" />
+              <span>
+                <span className="block text-sm font-medium text-accent-900">Grille de vétusté</span>
+                <span className="block text-xs text-accent-500">
+                  Annexe du bail (décret 2016-382), utilisée pour les retenues à la sortie.
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setModaleIrl(true)}
+              disabled={!bail.revisionIRL.revisable}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              <Calculator size={16} className="mt-0.5 shrink-0 text-accent-400" />
+              <span>
+                <span className="block text-sm font-medium text-accent-900">Courrier de révision IRL</span>
+                <span className="block text-xs text-accent-500">
+                  {bail.revisionIRL.revisable
+                    ? 'Calcule le nouveau loyer et génère le courrier au locataire.'
+                    : 'Indisponible : le loyer de ce bail n’est pas révisable.'}
+                </span>
+              </span>
+            </button>
+            {edlSortie?.statut === 'signe' ? (
+              <Link
+                to={`/edl/${edlSortie.id}/synthese`}
+                className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+              >
+                <Receipt size={16} className="mt-0.5 shrink-0 text-accent-400" />
+                <span>
+                  <span className="block text-sm font-medium text-accent-900">
+                    Lettre de restitution du dépôt
+                  </span>
+                  <span className="block text-xs text-accent-500">
+                    Décompte des retenues et délais légaux, depuis la synthèse de sortie.
+                  </span>
+                </span>
+              </Link>
+            ) : (
+              <div className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 opacity-50">
+                <Receipt size={16} className="mt-0.5 shrink-0 text-accent-400" />
+                <span>
+                  <span className="block text-sm font-medium text-accent-900">
+                    Lettre de restitution du dépôt
+                  </span>
+                  <span className="block text-xs text-accent-500">
+                    Disponible une fois l'état des lieux de sortie signé.
+                  </span>
+                </span>
+              </div>
             )}
           </div>
         </Card>

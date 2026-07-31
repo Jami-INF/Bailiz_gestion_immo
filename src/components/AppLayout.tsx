@@ -13,6 +13,8 @@ import {
   WifiOff,
   ShieldCheck,
   ShieldAlert,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
 import { format, isToday } from 'date-fns';
@@ -141,6 +143,21 @@ export function AppLayout() {
     })();
   }, []);
   const location = useLocation();
+
+  /**
+   * Navigation latérale repliée (icônes seules) : choix mémorisé, et replié par
+   * défaut sur les largeurs de type tablette, où la place gagnée compte.
+   */
+  const [navRepliee, setNavRepliee] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const enr = window.localStorage.getItem('bailiz.navRepliee');
+    if (enr !== null) return enr === '1';
+    return window.innerWidth < 1280;
+  });
+  useEffect(() => {
+    window.localStorage.setItem('bailiz.navRepliee', navRepliee ? '1' : '0');
+  }, [navRepliee]);
+
   // Mode terrain EDL : plein écran sans navigation latérale
   const pleinEcran = /^\/edl\/[^/]+/.test(location.pathname);
   // Formulaire de bail (avec aperçu du document) : conteneur élargi
@@ -151,24 +168,35 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen">
       {!pleinEcran && (
-        <aside className="fixed inset-x-0 bottom-0 z-40 border-t border-accent-200 bg-white sm:static sm:inset-auto sm:flex sm:w-60 sm:shrink-0 sm:flex-col sm:border-r sm:border-t-0">
-          <div className="hidden items-center gap-2 px-5 py-5 sm:flex">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-700 text-white">
+        <aside
+          className={`fixed inset-x-0 bottom-0 z-40 border-t border-accent-200 bg-white sm:static sm:inset-auto sm:flex sm:shrink-0 sm:flex-col sm:border-r sm:border-t-0 ${
+            navRepliee ? 'sm:w-16' : 'sm:w-60'
+          }`}
+        >
+          <div
+            className={`hidden items-center gap-2 py-5 sm:flex ${navRepliee ? 'justify-center px-0' : 'px-5'}`}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-700 text-white">
               <Building2 size={18} />
             </div>
-            <div>
-              <div className="text-base font-bold text-accent-900">Bailiz</div>
-              <div className="text-xs text-accent-500">Gestion locative LMNP</div>
-            </div>
+            {!navRepliee && (
+              <div>
+                <div className="text-base font-bold text-accent-900">Bailiz</div>
+                <div className="text-xs text-accent-500">Gestion locative LMNP</div>
+              </div>
+            )}
           </div>
-          <nav className="flex justify-around sm:flex-col sm:gap-1 sm:px-3">
+          <nav className={`flex justify-around sm:flex-col sm:gap-1 ${navRepliee ? 'sm:px-2' : 'sm:px-3'}`}>
             {nav.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/'}
+                title={navRepliee ? label : undefined}
                 className={({ isActive }) =>
-                  `flex min-h-touch flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium sm:flex-row sm:gap-3 sm:px-3 sm:text-sm ${
+                  `flex min-h-touch flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium sm:flex-row sm:gap-3 sm:text-sm ${
+                    navRepliee ? 'px-2 sm:justify-center sm:px-0' : 'px-2 sm:px-3'
+                  } ${
                     isActive
                       ? 'text-accent-900 sm:bg-accent-100'
                       : 'text-accent-500 hover:text-accent-800 sm:hover:bg-accent-50'
@@ -176,12 +204,30 @@ export function AppLayout() {
                 }
               >
                 <Icon size={20} className="shrink-0" />
-                <span className="max-[380px]:hidden sm:block">{label}</span>
+                <span className={`max-[380px]:hidden ${navRepliee ? 'sm:hidden' : 'sm:block'}`}>{label}</span>
               </NavLink>
             ))}
           </nav>
           <div className="hidden grow sm:block" />
-          <div className="hidden flex-col gap-2 border-t border-accent-200 px-5 py-4 text-xs text-accent-500 sm:flex">
+          <div className="hidden border-t border-accent-200 sm:block">
+            <button
+              type="button"
+              onClick={() => setNavRepliee((v) => !v)}
+              title={navRepliee ? 'Déplier le menu' : 'Replier le menu'}
+              aria-label={navRepliee ? 'Déplier le menu' : 'Replier le menu'}
+              className={`flex min-h-touch w-full items-center gap-3 py-3 text-sm font-medium text-accent-500 hover:bg-accent-50 hover:text-accent-800 ${
+                navRepliee ? 'justify-center px-0' : 'px-5'
+              }`}
+            >
+              {navRepliee ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              {!navRepliee && <span>Replier le menu</span>}
+            </button>
+          </div>
+          <div
+            className={`hidden flex-col gap-2 border-t border-accent-200 px-5 py-4 text-xs text-accent-500 ${
+              navRepliee ? 'sm:hidden' : 'sm:flex'
+            }`}
+          >
             <SauvegardeStatut />
             <span className="flex items-center gap-1.5">
               {persiste ? (
