@@ -55,11 +55,13 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
 
   // Aide-mémoire des pièces que le locataire doit remettre (adapté au dossier).
   const garants = locataires.filter((l) => l.garant);
+  const garantsPhysiques = garants.filter((l) => l.garant!.type !== 'visale');
+  const garantsVisale = garants.filter((l) => l.garant!.type === 'visale');
   const piecesLocataire: string[] = [
-    `Pièce d'identité en cours de validité (chaque locataire${garants.length ? ' et chaque garant' : ''})`,
+    `Pièce d'identité en cours de validité (chaque locataire${garantsPhysiques.length ? ' et chaque garant' : ''})`,
     "Attestation d'assurance habitation couvrant les risques locatifs, en cours de validité",
     ...(bail.typeBail !== 'mobilite' ? ['Justificatif du versement du dépôt de garantie'] : []),
-    ...(garants.some((l) => l.garant!.type !== 'visale')
+    ...(garantsPhysiques.length
       ? [
           'Acte de cautionnement signé par le garant',
           "Pièce d'identité du garant en cours de validité",
@@ -68,7 +70,9 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
           'Justificatif de domicile du garant',
         ]
       : []),
-    ...(garants.some((l) => l.garant!.type === 'visale') ? ['Attestation de garantie Visale en cours de validité'] : []),
+    ...(garantsVisale.length
+      ? ['Attestation de garantie Visale en cours de validité (contrat activé par le bailleur sur visale.fr)']
+      : []),
     ...(bail.typeBail === 'meuble_etudiant_9mois' ? ["Certificat de scolarité de l'année en cours"] : []),
     ...(bail.typeBail === 'mobilite'
       ? ['Justificatif du motif de mobilité (formation, études, stage, mutation, mission…)']
@@ -140,13 +144,20 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
             <Text style={s.h3}>Garant(s)</Text>
             {locataires
               .filter((l) => l.garant)
-              .map((l) => (
-                <Text style={s.tiersLigne} key={l.id}>
-                  {l.garant!.type === 'visale'
-                    ? `Garantie Visale au bénéfice de ${l.prenom} ${l.nom}.`
-                    : `${l.garant!.prenom} ${l.garant!.nom}, demeurant ${l.garant!.adresse} — caution de ${l.prenom} ${l.nom} (acte de cautionnement joint).`}
-                </Text>
-              ))}
+              .map((l) =>
+                l.garant!.type === 'visale' ? (
+                  <Text style={s.tiersLigne} key={l.id}>
+                    Garantie Visale (Action Logement) au bénéfice de {l.prenom} {l.nom}
+                    {l.garant!.numeroVisa ? ` — visa n°${l.garant!.numeroVisa}` : ''}.
+                  </Text>
+                ) : (
+                  <Text style={s.tiersLigne} key={l.id}>
+                    {l.garant!.prenom} {l.garant!.nom}, demeurant{' '}
+                    <Rempl v={l.garant!.adresse} brouillon={brouillon} taille={30} /> — caution de{' '}
+                    {l.prenom} {l.nom} (acte de cautionnement joint).
+                  </Text>
+                ),
+              )}
           </>
         )}
 
@@ -347,12 +358,20 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
           <Text style={s.p}>
             {locataires
               .filter((l) => l.garant)
-              .map((l) =>
-                l.garant!.type === 'visale'
-                  ? `Le locataire ${l.prenom} ${l.nom} bénéficie de la garantie Visale.`
-                  : `Cautionnement de ${l.garant!.prenom} ${l.garant!.nom}, demeurant ${l.garant!.adresse}, pour le locataire ${l.prenom} ${l.nom} (acte de cautionnement joint).`,
-              )
-              .join(' ')}
+              .map((l, i) => (
+                <Text key={l.id}>
+                  {i > 0 ? ' ' : ''}
+                  {l.garant!.type === 'visale' ? (
+                    <>Le locataire {l.prenom} {l.nom} bénéficie de la garantie Visale (Action Logement).</>
+                  ) : (
+                    <>
+                      Cautionnement de {l.garant!.prenom} {l.garant!.nom}, demeurant{' '}
+                      <Rempl v={l.garant!.adresse} brouillon={brouillon} taille={30} />, pour le
+                      locataire {l.prenom} {l.nom} (acte de cautionnement joint).
+                    </>
+                  )}
+                </Text>
+              ))}
           </Text>
         )}
 

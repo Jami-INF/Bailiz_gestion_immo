@@ -87,6 +87,14 @@ export interface Garant {
   prenom: string;
   adresse: string;
   type: 'physique' | 'visale' | 'autre';
+  /**
+   * Garantie Visale uniquement : numéro du visa certifié délivré par le
+   * locataire sur visale.fr (valable 3 mois, 6 pour étudiants/alternants/
+   * service civique), à activer par le bailleur sur son espace visale.fr
+   * avant la signature du bail. Le contrat de cautionnement est alors émis
+   * par Action Logement, sans acte à rédiger par le bailleur.
+   */
+  numeroVisa?: string;
 }
 
 export interface Locataire {

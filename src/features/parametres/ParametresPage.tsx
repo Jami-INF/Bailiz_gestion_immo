@@ -32,7 +32,7 @@ import {
   getConfigAutosave,
   pousserSiActive,
 } from '@/lib/autosave';
-import { activerGDrive, desactiverGDrive, pousserSauvegardeGDrive } from '@/lib/gdrive';
+import { activerGDrive, CLIENT_ID_GDRIVE, desactiverGDrive, pousserSauvegardeGDrive } from '@/lib/gdrive';
 import { usePersistanceStockage } from '@/hooks/useStatuts';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
@@ -481,7 +481,7 @@ function SauvegardeGDrivePanel() {
   const config = parametres?.sauvegardeGDrive;
 
   const connecter = async () => {
-    const id = (clientId || config?.clientId || '').trim();
+    const id = (clientId || config?.clientId || CLIENT_ID_GDRIVE).trim();
     if (!id.endsWith('.apps.googleusercontent.com')) {
       toast('error', "L'ID client doit se terminer par .apps.googleusercontent.com");
       return;
@@ -556,10 +556,10 @@ function SauvegardeGDrivePanel() {
         <div className="space-y-3">
           <Field
             label="ID client OAuth Google"
-            hint="À créer une fois sur console.cloud.google.com (API Drive activée, ID client OAuth « Application Web » avec ce site en origine autorisée). Cet identifiant n'est pas un secret."
+            hint="Pré-rempli avec l'identifiant officiel de l'application : il suffit de cliquer sur « Connecter ». Ne le remplacez que si vous utilisez votre propre projet Google Cloud (console.cloud.google.com, API Drive activée, ID client OAuth « Application Web » avec ce site en origine autorisée). Cet identifiant n'est pas un secret."
           >
             <Input
-              value={clientId || config?.clientId || ''}
+              value={clientId || config?.clientId || CLIENT_ID_GDRIVE}
               onChange={(e) => setClientId(e.target.value)}
               placeholder="1234567890-abc123.apps.googleusercontent.com"
             />

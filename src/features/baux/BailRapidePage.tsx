@@ -178,30 +178,10 @@ export function BailRapidePage() {
     telechargerBlob(apercu.blob, nom);
   };
 
-  /** Génère et télécharge l'acte de cautionnement pré-rempli du garant du locataire i. */
-  const telechargerActe = async (i: number) => {
-    const l = saisie.locataires[i];
-    const enr = l.id ? locatairesEnr.find((x) => x.id === l.id) : undefined;
-    const g = enr?.garant ?? l.garant;
-    if (!g || g.type === 'visale') return;
-    const locataireNom = enr
-      ? `${enr.prenom} ${enr.nom}`
-      : `${l.prenom ?? ''} ${l.nom ?? ''}`.trim() || 'le locataire';
-    const a = bienChoisi?.adresse ?? saisie.bien.adresse;
-    const bienAdresse = `${a.ligne1}, ${a.codePostal} ${a.ville}`.trim();
-    const blob = await rendrePdf(
-      <ActeCautionnementPdf
-        bailleur={saisie.bailleur}
-        garant={g}
-        locataireNom={locataireNom}
-        bienAdresse={bienAdresse}
-        loyerHC={saisie.loyerHC ?? 0}
-        charges={saisie.charges.montant ?? 0}
-        typeBailLabel={TYPE_BAIL_LABELS[saisie.typeBail]}
-        dureeMois={saisie.dureeMois ?? 12}
-      />,
-    );
-    telechargerBlob(blob, `Acte de cautionnement - ${g.prenom} ${g.nom}.pdf`);
+  /** Télécharge le modèle vierge d'acte de cautionnement (à compléter et signer à la main). */
+  const telechargerActe = async () => {
+    const blob = await rendrePdf(<ActeCautionnementPdf />);
+    telechargerBlob(blob, 'Acte de cautionnement - modèle vierge.pdf');
   };
 
   const enregistrer = async () => {
@@ -489,9 +469,15 @@ export function BailRapidePage() {
                         </div>
                       </div>
                       {enr.garant && enr.garant.type !== 'visale' && (
-                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void telechargerActe(i)}>
-                          <FileDown size={14} /> Télécharger l'attestation de garant (acte de cautionnement)
+                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void telechargerActe()}>
+                          <FileDown size={14} /> Télécharger le modèle vierge d'acte de cautionnement
                         </Button>
+                      )}
+                      {enr.garant && enr.garant.type === 'visale' && (
+                        <p className="mt-3 text-xs text-accent-600">
+                          Garantie Visale : contrat de cautionnement à activer sur votre espace bailleur
+                          visale.fr avec le visa transmis par le locataire — rien à générer ici.
+                        </p>
                       )}
                     </div>
                   ) : (
@@ -550,7 +536,7 @@ export function BailRapidePage() {
                                 <option value="autre">Autre</option>
                               </Select>
                             </Field>
-                            {l.garant.type !== 'visale' && (
+                            {l.garant.type !== 'visale' ? (
                               <>
                                 <div className="grid gap-4 sm:grid-cols-2">
                                   <Field label="Prénom du garant" required>
@@ -560,14 +546,27 @@ export function BailRapidePage() {
                                     <Input value={l.garant.nom} onChange={(e) => majLoc(i, { garant: { ...l.garant!, nom: e.target.value } })} />
                                   </Field>
                                 </div>
-                                <Field label="Adresse du garant" required>
+                                <Field label="Adresse du garant (optionnel)" hint="Peut être complétée à la main sur l'acte imprimé.">
                                   <Input value={l.garant.adresse} onChange={(e) => majLoc(i, { garant: { ...l.garant!, adresse: e.target.value } })} />
                                 </Field>
-                                <Button variant="secondary" size="sm" onClick={() => void telechargerActe(i)}>
-                                  <FileDown size={14} /> Télécharger l'attestation de garant (acte de cautionnement)
+                                <Button variant="secondary" size="sm" onClick={() => void telechargerActe()}>
+                                  <FileDown size={14} /> Télécharger le modèle vierge d'acte de cautionnement
                                 </Button>
                                 <p className="text-xs text-accent-500">
-                                  Les pièces du garant (avis d'impôt, 3 dernières fiches de paie, pièce d'identité, justificatif de domicile) sont ajoutées à la liste des documents à remettre, dans le bail.
+                                  Modèle vierge, à compléter et signer à la main après impression. Les pièces du garant (avis d'impôt, 3 dernières fiches de paie, pièce d'identité, justificatif de domicile) sont ajoutées à la liste des documents à remettre, dans le bail.
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <Field label="Numéro de visa Visale (optionnel)" hint="Fourni par le locataire depuis son espace visale.fr.">
+                                  <Input value={l.garant.numeroVisa ?? ''} onChange={(e) => majLoc(i, { garant: { ...l.garant!, numeroVisa: e.target.value } })} />
+                                </Field>
+                                <p className="text-xs text-accent-600">
+                                  Aucun acte à rédiger : le locataire obtient un <strong>visa certifié</strong> sur
+                                  visale.fr (valable 3 mois, 6 pour étudiants/alternants/service civique) et vous le
+                                  transmet. Vous <strong>activez le contrat de cautionnement</strong> depuis votre
+                                  propre espace bailleur sur visale.fr, avant la signature du bail — le contrat est
+                                  alors émis directement par Action Logement, gratuitement.
                                 </p>
                               </>
                             )}
