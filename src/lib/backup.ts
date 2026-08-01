@@ -17,6 +17,23 @@ interface DonneesExport {
   parametres: unknown;
 }
 
+/**
+ * Vrai si la base ne contient aucune donnée métier (appareil neuf, ou données
+ * effacées par le navigateur). Sert de garde-fou avant une sauvegarde
+ * automatique : pousser une archive vide sur une destination partagée
+ * évincerait, par rotation, les sauvegardes pleines des autres appareils.
+ */
+export async function baseSansDonnees(): Promise<boolean> {
+  const compteurs = await Promise.all([
+    db.biens.count(),
+    db.locataires.count(),
+    db.baux.count(),
+    db.edls.count(),
+    db.documents.count(),
+  ]);
+  return compteurs.every((n) => n === 0);
+}
+
 /** Exporte toutes les données + photos + PDF dans un fichier ZIP. */
 export async function exporterSauvegarde(): Promise<Blob> {
   const zip = new JSZip();

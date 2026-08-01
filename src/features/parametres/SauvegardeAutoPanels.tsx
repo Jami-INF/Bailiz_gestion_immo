@@ -18,6 +18,9 @@ import { Button, Card, Field, Input, useToast } from '@/components/ui';
  * Panneaux de sauvegarde automatique (dossier local synchronisé et Google
  * Drive), extraits de la page Paramètres qui devenait trop longue.
  */
+const MSG_BASE_VIDE =
+  "Aucune donnée sur cet appareil : rien n'a été envoyé, pour ne pas écraser vos sauvegardes existantes. Utilisez « Importer une sauvegarde » pour récupérer vos données ici.";
+
 export function SauvegardeAutoPanel() {
   const toast = useToast();
   const config = useLiveQuery(() => getConfigAutosave());
@@ -27,6 +30,7 @@ export function SauvegardeAutoPanel() {
       await choisirDossierAutosave();
       const resultat = await pousserSiActive(true);
       if (resultat === 'ok') toast('success', 'Dossier configuré — première sauvegarde effectuée.');
+      else if (resultat === 'base_vide') toast('warning', `Dossier configuré. ${MSG_BASE_VIDE}`);
       else toast('warning', 'Dossier configuré, mais la première sauvegarde a échoué.');
     } catch {
       // Sélecteur annulé par l'utilisateur : rien à faire.
@@ -36,6 +40,7 @@ export function SauvegardeAutoPanel() {
   const pousserMaintenant = async () => {
     const resultat = await pousserSiActive(true);
     if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier.');
+    else if (resultat === 'base_vide') toast('warning', MSG_BASE_VIDE);
     else if (resultat === 'permission_requise')
       toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
     else toast('error', `Échec de la sauvegarde automatique — ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
@@ -139,6 +144,8 @@ export function SauvegardeGDrivePanel() {
       const resultat = await pousserSauvegardeGDrive(true);
       if (resultat === 'ok') {
         toast('success', 'Google Drive connecté — première sauvegarde poussée dans le dossier « Bailiz ».');
+      } else if (resultat === 'base_vide') {
+        toast('warning', `Google Drive connecté. ${MSG_BASE_VIDE}`);
       } else if (resultat === 'permission_requise') {
         toast('warning', 'Autorisation Google expirée : réessayez.');
         await desactiverGDrive();
@@ -160,6 +167,7 @@ export function SauvegardeGDrivePanel() {
     const resultat = await pousserSauvegardeGDrive(true);
     setEnCours(false);
     if (resultat === 'ok') toast('success', 'Sauvegarde poussée sur Google Drive.');
+    else if (resultat === 'base_vide') toast('warning', MSG_BASE_VIDE);
     else if (resultat === 'hors_ligne') toast('warning', 'Hors-ligne : envoi automatique au retour du réseau.');
     else if (resultat === 'permission_requise') toast('warning', 'Reconnectez-vous à Google (fenêtre fermée ?).');
     else toast('error', `Échec de l'envoi vers Google Drive — ${derniereErreurGDrive() ?? 'cause inconnue'}`);
@@ -204,19 +212,31 @@ export function SauvegardeGDrivePanel() {
         </div>
       ) : (
         <div className="space-y-3">
-          <Field
-            label="ID client OAuth Google"
-            hint="Pré-rempli avec l'identifiant officiel de l'application : il suffit de cliquer sur « Connecter ». Ne le remplacez que si vous utilisez votre propre projet Google Cloud (console.cloud.google.com, API Drive activée, ID client OAuth « Application Web » avec ce site en origine autorisée). Cet identifiant n'est pas un secret."
-          >
-            <Input
-              value={clientId || config?.clientId || CLIENT_ID_GDRIVE}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="1234567890-abc123.apps.googleusercontent.com"
-            />
-          </Field>
           <Button onClick={() => void connecter()} disabled={enCours}>
             <HardDriveUpload size={16} /> {enCours ? 'Connexion…' : 'Connecter Google Drive'}
           </Button>
+          {/*
+            Réglage technique replié : l'identifiant de l'application suffit dans
+            tous les cas. Il n'est utile qu'à qui héberge sa propre copie de
+            Bailiz avec son projet Google Cloud.
+          */}
+          <details className="rounded-lg border border-accent-200 px-3 py-2">
+            <summary className="cursor-pointer text-sm text-accent-600">
+              Utiliser mon propre projet Google Cloud (avancé)
+            </summary>
+            <div className="mt-3">
+              <Field
+                label="ID client OAuth Google"
+                hint="Renseigné par défaut avec l'identifiant de l'application : vous n'avez rien à modifier. À remplacer uniquement si vous hébergez votre propre copie (console.cloud.google.com, API Drive activée, ID client OAuth « Application Web » avec ce site en origine autorisée). Cet identifiant n'est pas un secret."
+              >
+                <Input
+                  value={clientId || config?.clientId || CLIENT_ID_GDRIVE}
+                  onChange={(e) => setClientId(e.target.value)}
+                  placeholder="1234567890-abc123.apps.googleusercontent.com"
+                />
+              </Field>
+            </div>
+          </details>
         </div>
       )}
     </Card>

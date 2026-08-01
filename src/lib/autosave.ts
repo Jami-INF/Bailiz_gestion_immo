@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { db, type ConfigSauvegardeAuto } from './db';
-import { exporterSauvegarde } from './backup';
+import { baseSansDonnees, exporterSauvegarde } from './backup';
 import { nowISO } from './ids';
 import { fichiersASupprimer } from './rotation';
 import { decrireErreur } from './erreurs';
@@ -26,6 +26,8 @@ export type ResultatPush =
   | 'permission_requise'
   | 'hors_ligne'
   | 'non_supporte'
+  /** Rien à sauvegarder : on n'écrase pas les archives existantes avec du vide. */
+  | 'base_vide'
   | 'erreur';
 
 /** Délai de regroupement des modifications avant push (anti-rafale). */
@@ -114,6 +116,7 @@ async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPu
   if (!autosaveSupportee()) return 'non_supporte';
   const config = await getConfigAutosave();
   if (!config) return 'inactif';
+  if (await baseSansDonnees()) return 'base_vide';
   try {
     const permission = await permissionAutosave(config.handle, gesteUtilisateur);
     if (permission !== 'granted') return 'permission_requise';

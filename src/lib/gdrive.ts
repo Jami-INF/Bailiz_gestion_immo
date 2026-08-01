@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { db, getParametres } from './db';
-import { exporterSauvegarde } from './backup';
+import { baseSansDonnees, exporterSauvegarde } from './backup';
 import { uid, nowISO } from './ids';
 import { fichiersASupprimer } from './rotation';
 import { decrireErreur } from './erreurs';
@@ -33,7 +33,14 @@ const API = 'https://www.googleapis.com/drive/v3';
 const API_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 const NOM_DOSSIER = 'Bailiz';
 
-export type ResultatGDrive = 'ok' | 'inactif' | 'permission_requise' | 'hors_ligne' | 'erreur';
+export type ResultatGDrive =
+  | 'ok'
+  | 'inactif'
+  | 'permission_requise'
+  | 'hors_ligne'
+  /** Rien à sauvegarder : on n'écrase pas les archives existantes avec du vide. */
+  | 'base_vide'
+  | 'erreur';
 
 export interface ConfigGDrive {
   clientId: string;
@@ -258,6 +265,10 @@ async function faireRotation(token: string, dossierId: string): Promise<void> {
 export async function pousserSauvegardeGDrive(interactif: boolean): Promise<ResultatGDrive> {
   const config = await getConfigGDrive();
   if (!config?.actif || !config.clientId) return 'inactif';
+  // Vérifié avant l'état du réseau : un appareil neuf ne doit jamais pousser
+  // d'archive vide — la rotation (10 dernières) supprimerait les sauvegardes
+  // pleines des autres appareils — ni en mettre une en file d'attente.
+  if (await baseSansDonnees()) return 'base_vide';
   if (!navigator.onLine) return 'hors_ligne';
   try {
     let token = await obtenirJeton(config.clientId, interactif);
