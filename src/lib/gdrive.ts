@@ -73,6 +73,15 @@ async function majConfigGDrive(maj: Partial<ConfigGDrive>): Promise<void> {
 }
 
 /**
+ * Demande (ou réutilise) une autorisation Google. À appeler **en première
+ * instruction** d'un gestionnaire de clic, avant tout accès à IndexedDB : sinon
+ * Safari/iOS considère l'activation expirée et bloque la fenêtre sans erreur.
+ */
+export function demanderAutorisationGoogle(clientId = CLIENT_ID_GDRIVE): Promise<string | null> {
+  return obtenirJeton(clientId.trim(), true);
+}
+
+/**
  * Connexion interactive : demande le jeton **en premier**, avant toute écriture
  * en base, pour rester dans le geste utilisateur (contrainte Safari/iOS).
  * Retourne `false` si l'utilisateur a refusé ou si la fenêtre a été bloquée.
@@ -144,9 +153,20 @@ function chargerGsi(): Promise<void> {
  * Obtient un jeton d'accès. En mode silencieux (`interactif = false`),
  * n'affiche aucune fenêtre : échoue si la session Google ne le permet pas.
  */
-async function obtenirJeton(clientId: string, interactif: boolean): Promise<string | null> {
-  if (jeton && Date.now() < jeton.expireA - 60_000) return jeton.accessToken;
-  await chargerGsi();
+function obtenirJeton(clientId: string, interactif: boolean): Promise<string | null> {
+  if (jeton && Date.now() < jeton.expireA - 60_000) return Promise.resolve(jeton.accessToken);
+  // Aucune attente insérée si le script est déjà chargé : sur Safari/iOS, la
+  // fenêtre Google n'est autorisée que tant que dure l'activation du geste
+  // utilisateur, qu'un simple `await` suffit parfois à faire expirer.
+  return gsiPret() ? demanderJeton(clientId, interactif) : chargerGsi().then(() => demanderJeton(clientId, interactif));
+}
+
+/** Vrai si Google Identity Services est chargé et utilisable immédiatement. */
+function gsiPret(): boolean {
+  return typeof google !== 'undefined' && Boolean(google.accounts?.oauth2);
+}
+
+function demanderJeton(clientId: string, interactif: boolean): Promise<string | null> {
   return new Promise((resolve) => {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: clientId,

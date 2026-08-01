@@ -11,7 +11,7 @@ import {
   getConfigAutosave,
   pousserSiActive,
 } from '@/lib/autosave';
-import { CLIENT_ID_GDRIVE, connecterGDrive, derniereErreurGDrive, desactiverGDrive, pousserSauvegardeGDrive, prechargerGsi } from '@/lib/gdrive';
+import { CLIENT_ID_GDRIVE, connecterGDrive, demanderAutorisationGoogle, derniereErreurGDrive, desactiverGDrive, pousserSauvegardeGDrive, prechargerGsi } from '@/lib/gdrive';
 import { Button, Card, Field, Input, useToast } from '@/components/ui';
 
 /**
@@ -117,6 +117,10 @@ export function SauvegardeGDrivePanel() {
   const [clientId, setClientId] = useState('');
   const [enCours, setEnCours] = useState(false);
   const config = parametres?.sauvegardeGDrive;
+  // Un envoi qui date signale presque toujours une autorisation Google expirée.
+  const envoiAncien =
+    Boolean(config?.actif) &&
+    (!config?.dernierPush || Date.now() - new Date(config.dernierPush).getTime() > 24 * 3600 * 1000);
 
   // Le script Google est chargé dès l'affichage : au clic, la fenêtre de
   // connexion doit s'ouvrir sans attente réseau, sinon Safari/iOS la bloque.
@@ -164,6 +168,19 @@ export function SauvegardeGDrivePanel() {
 
   const pousserMaintenant = async () => {
     setEnCours(true);
+    // L'autorisation est demandée AVANT tout accès à la base : la fenêtre Google
+    // doit s'ouvrir dans l'activation du clic, sinon Safari/iOS la bloque
+    // silencieusement (« fenêtre fermée » alors que rien ne s'est ouvert).
+    const idClient = config?.clientId || CLIENT_ID_GDRIVE;
+    const autorise = await demanderAutorisationGoogle(idClient);
+    if (!autorise) {
+      setEnCours(false);
+      toast(
+        'warning',
+        "Autorisation Google non obtenue : la fenêtre a été fermée, refusée, ou bloquée par le navigateur. Sur iPad : Réglages > Safari > désactiver « Bloquer les fenêtres surgissantes », puis réessayez.",
+      );
+      return;
+    }
     const resultat = await pousserSauvegardeGDrive(true);
     setEnCours(false);
     if (resultat === 'ok') toast('success', 'Sauvegarde poussée sur Google Drive.');
@@ -191,6 +208,14 @@ export function SauvegardeGDrivePanel() {
             Connecté — dossier « Bailiz » sur votre Drive. Dernier envoi :{' '}
             {config.dernierPush ? format(new Date(config.dernierPush), 'dd/MM/yyyy à HH:mm') : 'jamais'}
           </p>
+          {envoiAncien && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Aucun envoi depuis plus de 24 h. L'autorisation Google expire au bout d'environ une
+              heure et ne peut pas être renouvelée sans vous (l'application n'a aucun serveur) —
+              c'est systématique sur iPad, où Safari bloque le renouvellement silencieux. Cliquez
+              sur « Sauvegarder maintenant » pour ré-autoriser et repartir.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => void pousserMaintenant()} disabled={enCours}>
               <HardDriveUpload size={14} /> {enCours ? 'Envoi…' : 'Sauvegarder maintenant'}

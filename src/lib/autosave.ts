@@ -167,6 +167,8 @@ export async function destinationConfiguree(): Promise<boolean> {
 
 let observateurInitialise = false;
 let timerDebounce: ReturnType<typeof setTimeout> | undefined;
+/** Évite de répéter l'avertissement de reconnexion à chaque modification. */
+let reconnexionSignalee = false;
 let notifier: ((type: 'success' | 'warning', message: string) => void) | undefined;
 
 function planifierPush(): void {
@@ -176,9 +178,26 @@ function planifierPush(): void {
   clearTimeout(timerDebounce);
   timerDebounce = setTimeout(() => {
     void pousserSiActive(false).then((resultat) => {
-      if (resultat === 'ok') notifier?.('success', 'Sauvegarde automatique effectuée.');
-      // permission_requise / inactif : silencieux — le bouton « Sauvegarder »
-      // et les pushs post-signature couvrent la re-demande d'autorisation.
+      if (resultat === 'ok') {
+        reconnexionSignalee = false;
+        notifier?.('success', 'Sauvegarde automatique effectuée.');
+        return;
+      }
+      /*
+       * `permission_requise` : le jeton Google n'est pas persisté (aucun
+       * serveur pour détenir un refresh token) et son renouvellement silencieux
+       * échoue dès que le navigateur bloque les cookies tiers — c'est le cas par
+       * défaut sur Safari/iOS. Sans message, l'utilisateur croit ses données
+       * sauvegardées alors que plus rien ne part : on prévient, une seule fois
+       * par session pour ne pas harceler.
+       */
+      if (resultat === 'permission_requise' && !reconnexionSignalee) {
+        reconnexionSignalee = true;
+        notifier?.(
+          'warning',
+          'Sauvegarde automatique en attente : reconnectez Google Drive depuis les Paramètres (l’autorisation a expiré).',
+        );
+      }
     });
   }, DEBOUNCE_MODIFICATIONS_MS);
 }
