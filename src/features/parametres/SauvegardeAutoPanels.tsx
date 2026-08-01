@@ -117,10 +117,17 @@ export function SauvegardeGDrivePanel() {
   const [clientId, setClientId] = useState('');
   const [enCours, setEnCours] = useState(false);
   const config = parametres?.sauvegardeGDrive;
-  // Un envoi qui date signale presque toujours une autorisation Google expirée.
-  const envoiAncien =
-    Boolean(config?.actif) &&
-    (!config?.dernierPush || Date.now() - new Date(config.dernierPush).getTime() > 24 * 3600 * 1000);
+  /*
+   * Un envoi qui date signale presque toujours une autorisation Google expirée.
+   * L'heure courante est lue dans un effet, jamais pendant le rendu : celui-ci
+   * doit rester déterministe (règle react-hooks/purity).
+   */
+  const [envoiAncien, setEnvoiAncien] = useState(false);
+  useEffect(() => {
+    const actif = Boolean(config?.actif);
+    const dernier = config?.dernierPush;
+    setEnvoiAncien(actif && (!dernier || Date.now() - new Date(dernier).getTime() > 24 * 3600 * 1000));
+  }, [config?.actif, config?.dernierPush]);
 
   // Le script Google est chargé dès l'affichage : au clic, la fenêtre de
   // connexion doit s'ouvrir sans attente réseau, sinon Safari/iOS la bloque.
