@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Building2, Plus, MapPin } from 'lucide-react';
 import { db } from '@/lib/db';
+import { formatAdresse } from '@/lib/adresse';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 
 export function BiensPage() {
@@ -54,7 +55,7 @@ export function BiensPage() {
                   <p className="mt-1 flex items-start gap-1 text-sm text-accent-600">
                     <MapPin size={14} className="mt-0.5 shrink-0" />
                     <span className="break-words">
-                      {bien.adresse.ligne1}, {bien.adresse.codePostal} {bien.adresse.ville}
+                      {formatAdresse(bien.adresse)}
                     </span>
                   </p>
                   <p className="mt-2 text-sm text-accent-500">

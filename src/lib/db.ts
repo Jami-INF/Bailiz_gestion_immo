@@ -23,10 +23,11 @@ export interface ConfigSauvegardeAuto {
   dernierPush?: string;
 }
 
-export class BailizDB extends Dexie {
+class BailizDB extends Dexie {
   biens!: EntityTable<Bien, 'id'>;
   locataires!: EntityTable<Locataire, 'id'>;
   baux!: EntityTable<Bail, 'id'>;
+  /** @deprecated Fusionné dans l'état des lieux ; conservé pour les anciennes sauvegardes. */
   inventaires!: EntityTable<Inventaire, 'id'>;
   edls!: EntityTable<EtatDesLieux, 'id'>;
   photos!: EntityTable<Photo, 'id'>;
@@ -40,6 +41,8 @@ export class BailizDB extends Dexie {
       biens: 'id, nom, updatedAt',
       locataires: 'id, nom, updatedAt',
       baux: 'id, reference, bienId, statut, updatedAt, *locataireIds',
+      // Table héritée : l'inventaire du mobilier est désormais intégré à l'EDL
+      // (une seule signature). Conservée pour relire les anciennes sauvegardes.
       inventaires: 'id, reference, bailId, statut',
       edls: 'id, reference, bailId, type, statut, updatedAt',
       photos: 'id, edlId',
@@ -55,7 +58,7 @@ export class BailizDB extends Dexie {
 
 export const db = new BailizDB();
 
-export function parametresDefaut(): Parametres {
+function parametresDefaut(): Parametres {
   return {
     id: 'singleton',
     bailleur: {

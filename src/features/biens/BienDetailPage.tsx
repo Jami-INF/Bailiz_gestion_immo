@@ -5,6 +5,8 @@ import { fr } from 'date-fns/locale';
 import { Pencil, Trash2, FileText, Plus, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { db } from '@/lib/db';
+import { urlExterneSure } from '@/lib/liens';
+import { formatAdresse } from '@/lib/adresse';
 import { Badge, Button, Card, ConfirmModal, PageHeader, useToast } from '@/components/ui';
 import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
 
@@ -19,6 +21,8 @@ export function BienDetailPage() {
   if (!bien) return null;
 
   const bailEnCours = baux?.find((b) => ['signe', 'actif'].includes(b.statut));
+  // Lien saisi librement : filtré avant d'être rendu cliquable (cf. QR code du bail).
+  const lienDossierTechnique = urlExterneSure(bien.dossierTechniqueUrl);
 
   const supprimer = async () => {
     if (baux && baux.length > 0) {
@@ -34,7 +38,7 @@ export function BienDetailPage() {
     <div>
       <PageHeader
         titre={bien.nom}
-        sousTitre={`${bien.adresse.ligne1}, ${bien.adresse.codePostal} ${bien.adresse.ville}`}
+        sousTitre={formatAdresse(bien.adresse)}
         actions={
           <>
             <Link to={`/biens/${bien.id}/modifier`}>
@@ -100,15 +104,20 @@ export function BienDetailPage() {
               {bien.classeDPE ? `DPE ${bien.classeDPE}` : 'DPE non renseigné'}
             </Badge>
           </div>
-          {bien.dossierTechniqueUrl ? (
+          {lienDossierTechnique ? (
             <a
-              href={bien.dossierTechniqueUrl}
+              href={lienDossierTechnique}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-800 underline"
             >
               Ouvrir le dossier technique <ExternalLink size={14} />
             </a>
+          ) : bien.dossierTechniqueUrl ? (
+            <p className="text-sm text-red-600">
+              Le lien enregistré n'est pas une adresse web valide (seuls http et https sont acceptés).
+              Corrigez-le via « Modifier » : il est aussi imprimé en QR code sur le bail.
+            </p>
           ) : (
             <p className="text-sm text-accent-500">
               Aucun lien de dossier technique (DPE, ERP, CREP, élec/gaz…). Ajoutez-le via « Modifier ».

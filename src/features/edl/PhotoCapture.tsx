@@ -3,6 +3,7 @@ import { Camera, X } from 'lucide-react';
 import { db } from '@/lib/db';
 import { compresserImage } from '@/lib/images';
 import { uid, nowISO } from '@/lib/ids';
+import { decrireErreur } from '@/lib/erreurs';
 import { useToast } from '@/components/ui';
 
 /**
@@ -66,7 +67,7 @@ export function PhotoCapture({
       onChange([...photoIds, ...ids]);
     } catch (e) {
       console.error(e);
-      toast('error', "Impossible d'enregistrer la photo.");
+      toast('error', `Impossible d'enregistrer la photo — ${decrireErreur(e)}`);
     } finally {
       if (inputRef.current) inputRef.current.value = '';
     }

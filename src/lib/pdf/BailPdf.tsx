@@ -3,6 +3,7 @@ import type { Bail, Bien, Locataire, Parametres } from '@/types';
 import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros } from '@/lib/calculs';
 import { montantEnLettres } from '@/lib/lettres';
+import { urlExterneSure } from '@/lib/liens';
 import {
   CaseACocher,
   EntetePdf,
@@ -52,6 +53,9 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
     bail.loyerHC +
     bail.charges.montant +
     (bail.assuranceColocataires ? Math.round((bail.assuranceColocataires.montantAnnuel / 12) * 100) / 100 : 0);
+
+  // Le QR code est scanné par un tiers : seule une URL http(s) valide est encodée.
+  const lienDossierTechnique = urlExterneSure(bien.dossierTechniqueUrl);
 
   // Aide-mémoire des pièces que le locataire doit remettre (adapté au dossier).
   const garants = locataires.filter((l) => l.garant);
@@ -442,9 +446,9 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
             {a.genereeParApp ? ' (générée par l’application)' : ''}
           </CaseACocher>
         ))}
-        {bien.dossierTechniqueUrl && (
+        {lienDossierTechnique && (
           <View style={[s.carte, { flexDirection: 'row', alignItems: 'center' }]} wrap={false}>
-            <QrCode value={bien.dossierTechniqueUrl} taille={92} />
+            <QrCode value={lienDossierTechnique} taille={92} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[s.gras, { marginBottom: 3 }]}>
                 Dossier de diagnostic technique — accès en ligne
@@ -453,7 +457,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
                 Scannez ce QR code pour consulter les diagnostics du logement (DPE, ERP,
                 électricité/gaz, surface…) mis à disposition par le bailleur.
               </Text>
-              <Text style={[s.petit, { marginTop: 4 }]}>{bien.dossierTechniqueUrl}</Text>
+              <Text style={[s.petit, { marginTop: 4 }]}>{lienDossierTechnique}</Text>
             </View>
           </View>
         )}

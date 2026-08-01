@@ -90,7 +90,7 @@ export function construireBienInline(b: SaisieBail['bien']): Bien {
 }
 
 /** Construit un `Locataire` complet à partir d'une ligne de saisie inline. */
-export function construireLocataireInline(l: SaisieBail['locataires'][number]): Locataire {
+function construireLocataireInline(l: SaisieBail['locataires'][number]): Locataire {
   return {
     id: uid(),
     civilite: l.civilite ?? 'M',
@@ -108,7 +108,7 @@ export function construireLocataireInline(l: SaisieBail['locataires'][number]): 
 }
 
 /** Construit le `Bail` à partir de la saisie et des entités bien/locataires résolues. */
-export function construireBail(
+function construireBail(
   saisie: SaisieBail,
   bien: Bien,
   locataires: Locataire[],

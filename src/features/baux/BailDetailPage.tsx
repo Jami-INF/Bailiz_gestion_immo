@@ -19,13 +19,20 @@ import { TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros, prorataPremierLoyer, revisionIRL } from '@/lib/calculs';
 import { construirePiecesSortie } from '@/lib/etat';
 import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
-import { rendrePdf, enregistrerDocument, nomsPersonnes, telechargerDocument } from '@/lib/pdf/generer';
+import {
+  enregistrerDocument,
+  genererEtArchiver,
+  nomsPersonnes,
+  rendrePdf,
+  telechargerDocument,
+} from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { CourrierIrlPdf } from '@/lib/pdf/CourrierIrlPdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
 import { telechargerBlob } from '@/lib/backup';
+import { formatAdresse } from '@/lib/adresse';
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { STATUT_BAIL_UI } from './BauxPage';
 
@@ -76,24 +83,31 @@ export function BailDetailPage() {
 
   /** Fiche d'aide juridique (préavis, congés, impayés, délais) — archivée et téléchargée. */
   const genererFicheAide = async () => {
-    const reference = await prochaineReference('document');
-    const blob = await rendrePdf(<FicheAidePdf reference={reference} />);
-    const titre = 'Fiche d’aide juridique du bailleur meublé';
-    await enregistrerDocument({ reference, type: 'fiche_aide', titre, blob, bienId: bien.id, bailId: bail.id });
-    telechargerDocument({ blob, reference, titre });
+    await genererEtArchiver({
+      type: 'fiche_aide',
+      titre: 'Fiche d’aide juridique du bailleur meublé',
+      element: (reference) => <FicheAidePdf reference={reference} />,
+      bienId: bien.id,
+      bailId: bail.id,
+    });
     toast('success', "Fiche d'aide juridique générée.");
   };
 
   /** Grille de vétusté du bail (annexe, décret 2016-382) — reprend celle des Paramètres. */
   const genererGrilleVetuste = async () => {
-    const reference = await prochaineReference('document');
-    const parametres = await getParametres();
-    const blob = await rendrePdf(
-      <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} bailReference={bail.reference} />,
-    );
-    const titre = `Grille de vétusté — ${bien.nom} — annexe du bail ${bail.reference}`;
-    await enregistrerDocument({ reference, type: 'grille_vetuste', titre, blob, bienId: bien.id, bailId: bail.id });
-    telechargerDocument({ blob, reference, titre });
+    await genererEtArchiver({
+      type: 'grille_vetuste',
+      titre: `Grille de vétusté — ${bien.nom} — annexe du bail ${bail.reference}`,
+      element: (reference) => (
+        <GrilleVetustePdf
+          reference={reference}
+          grille={parametres.grilleVetuste}
+          bailReference={bail.reference}
+        />
+      ),
+      bienId: bien.id,
+      bailId: bail.id,
+    });
     toast('success', 'Grille de vétusté générée.');
   };
 
@@ -106,9 +120,7 @@ export function BailDetailPage() {
   const telechargerActeCautionnement = async () => {
     const avecCaution = locataires.find((l) => l.garant && l.garant.type !== 'visale');
     const cible = avecCaution ?? locataires[0];
-    const adresse = [bien.adresse.ligne1, `${bien.adresse.codePostal} ${bien.adresse.ville}`.trim()]
-      .filter((x) => x && x.trim())
-      .join(', ');
+    const adresse = formatAdresse(bien.adresse);
     const blob = await rendrePdf(
       <ActeCautionnementPdf
         bailleur={parametres.bailleur}
@@ -193,35 +205,30 @@ export function BailDetailPage() {
   const genererCourrierIrl = async () => {
     if (!bail.revisionIRL.valeurIndice || !nouvelIndice) return;
     const calc = revisionIRL(bail.loyerHC, bail.revisionIRL.valeurIndice, nouvelIndice);
-    const parametres = await getParametres();
-    const reference = await prochaineReference('document');
+    const parametresBailleur = await getParametres();
     const anniversaire = new Date(bail.dateEffet);
     anniversaire.setFullYear(new Date().getFullYear());
-    const blob = await rendrePdf(
-      <CourrierIrlPdf
-        reference={reference}
-        bail={bail}
-        bien={bien}
-        locataires={locataires}
-        parametres={parametres}
-        ancienIndice={bail.revisionIRL.valeurIndice}
-        nouvelIndice={nouvelIndice}
-        nouveauTrimestre={nouveauTrimestre}
-        ancienLoyer={bail.loyerHC}
-        nouveauLoyer={calc.nouveauLoyer}
-        dateApplication={anniversaire.toISOString()}
-      />,
-    );
-    const titre = `Révision IRL ${new Date().getFullYear()} — ${bien.nom} — ${nomsLocs}`;
-    await enregistrerDocument({
-      reference,
+    await genererEtArchiver({
       type: 'courrier_irl',
-      titre,
-      blob,
+      titre: `Révision IRL ${new Date().getFullYear()} — ${bien.nom} — ${nomsLocs}`,
       bienId: bien.id,
       bailId: bail.id,
+      element: (reference) => (
+        <CourrierIrlPdf
+          reference={reference}
+          bail={bail}
+          bien={bien}
+          locataires={locataires}
+          parametres={parametresBailleur}
+          ancienIndice={bail.revisionIRL.valeurIndice}
+          nouvelIndice={nouvelIndice}
+          nouveauTrimestre={nouveauTrimestre}
+          ancienLoyer={bail.loyerHC}
+          nouveauLoyer={calc.nouveauLoyer}
+          dateApplication={anniversaire.toISOString()}
+        />
+      ),
     });
-    telechargerDocument({ blob, reference, titre });
     setModaleIrl(false);
     toast('success', `Courrier de révision généré : nouveau loyer ${formatEuros(calc.nouveauLoyer)}.`);
   };

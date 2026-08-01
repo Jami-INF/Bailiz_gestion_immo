@@ -85,3 +85,43 @@ describe('elementsDegrades', () => {
     expect(degrades[0].element.nom).toBe('Sol');
   });
 });
+
+describe('EDL enrichi (quantités et éléments manquants)', () => {
+  it('reporte quantité et postes obligatoires du décret sur l’EDL de sortie', () => {
+    const entree = edlEntreeFixture();
+    entree.pieces.push({
+      id: 'pm',
+      nom: 'Mobilier obligatoire (décret n°2015-981)',
+      ordre: 1,
+      elements: [
+        { id: 'm1', nom: 'Literie', categorie: 'mobilier', quantite: 2, obligatoireDecret: true, etat: 'bon', photoIds: [] },
+      ],
+    });
+    const pieces = construirePiecesSortie(entree);
+    const literie = pieces[1].elements[0];
+    expect(literie.quantite).toBe(2);
+    expect(literie.obligatoireDecret).toBe(true);
+    // L'état de sortie reste à saisir, celui d'entrée sert de référence.
+    expect(literie.etat).toBeUndefined();
+    expect(literie.etatEntree).toBe('bon');
+  });
+
+  it('compte un élément marqué manquant comme renseigné dans la progression', () => {
+    const pieces = [
+      {
+        id: 'p1',
+        nom: 'Séjour',
+        ordre: 0,
+        elements: [
+          { id: 'a', nom: 'Sol', categorie: 'sol' as const, etat: 'bon' as const, photoIds: [] },
+          { id: 'b', nom: 'Canapé', categorie: 'mobilier' as const, manquant: true, photoIds: [] },
+          { id: 'c', nom: 'Table', categorie: 'mobilier' as const, photoIds: [] },
+        ],
+      },
+    ];
+    const prog = progressionEDL(pieces);
+    expect(prog.total).toBe(3);
+    expect(prog.renseignes).toBe(2);
+  });
+});
+

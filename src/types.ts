@@ -145,6 +145,7 @@ export interface Bail {
   };
   clausesParticulieres: string[];
   annexesChecklist: AnnexeChecklistItem[];
+  /** @deprecated Hérité : l'inventaire est intégré à l'EDL depuis la fusion. */
   inventaireId?: string;
   edlEntreeId?: string;
   edlSortieId?: string;
@@ -168,6 +169,13 @@ export interface AnnexeChecklistItem {
 
 export type EtatNote = 'neuf' | 'tres_bon' | 'bon' | 'usage' | 'mauvais';
 
+/**
+ * @deprecated L'inventaire du mobilier est désormais intégré à l'état des lieux
+ * (rubrique « Mobilier obligatoire » + quantités par élément), qui vaut
+ * inventaire au sens du décret n°2015-981. Ce type et la table Dexie
+ * `inventaires` ne sont conservés que pour relire les sauvegardes antérieures
+ * à la fusion : ne plus créer de nouvel `Inventaire`.
+ */
 export interface LigneInventaire {
   pieceNom: string;
   designation: string;
@@ -177,6 +185,7 @@ export interface LigneInventaire {
   obligatoireDecret?: boolean; // fait partie des 11 éléments du décret 2015-981
 }
 
+/** @deprecated Voir {@link LigneInventaire} : conservé pour la relecture des anciennes sauvegardes. */
 export interface Inventaire {
   id: string;
   reference: string; // "INV-2026-0001"
@@ -473,3 +482,9 @@ export const TYPE_DOCUMENT_LABELS: Record<TypeDocument, string> = {
   grille_vetuste: 'Grille de vétusté (annexe)',
   fiche_aide: 'Fiche d’aide juridique',
 };
+
+/** Types de logement proposés à la saisie (formulaire de bien et de bail). */
+export const TYPES_BIEN: TypeBien[] = ['T1', 'T1bis', 'T2', 'T3', 'T4', 'autre'];
+
+/** Classes du DPE, de la plus performante à la moins performante. */
+export const CLASSES_DPE: ClasseDPE[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];

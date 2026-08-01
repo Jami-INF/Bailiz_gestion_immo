@@ -5,7 +5,6 @@ import { addDays, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { db } from '@/lib/db';
-import { prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import type { ElementEDL, EtatDesLieux } from '@/types';
 import { ETAT_LABELS } from '@/types';
@@ -18,7 +17,7 @@ import {
   type LigneRetenue,
 } from '@/lib/calculs';
 import { elementsDegrades } from '@/lib/etat';
-import { rendrePdf, enregistrerDocument, nomsPersonnes, telechargerDocument } from '@/lib/pdf/generer';
+import { genererEtArchiver, nomsPersonnes } from '@/lib/pdf/generer';
 import { LettreRestitutionPdf } from '@/lib/pdf/LettreRestitutionPdf';
 import { Button, Card, Field, Input, PageHeader, Select, useToast } from '@/components/ui';
 import { chargerContexteEdl } from './edlPdfUtils';
@@ -100,31 +99,26 @@ export function EdlSynthesePage() {
     : undefined;
 
   const genererLettre = async () => {
-    const reference = await prochaineReference('document');
-    const blob = await rendrePdf(
-      <LettreRestitutionPdf
-        reference={reference}
-        bail={bail}
-        bien={bien}
-        locataires={locataires}
-        parametres={parametres}
-        retenues={lignes}
-        autresRetenues={[]}
-        dateEdlSortie={edl.signatures?.dateSignature ?? edl.date}
-        nouvelleAdresse={edl.nouvelleAdresseLocataire}
-      />,
-    );
-    const titre = `Restitution du dépôt — ${bien.nom} — ${nomsPersonnes(locataires)}`;
-    await enregistrerDocument({
-      reference,
+    await genererEtArchiver({
       type: 'lettre_restitution',
-      titre,
-      blob,
+      titre: `Restitution du dépôt — ${bien.nom} — ${nomsPersonnes(locataires)}`,
       bienId: bien.id,
       bailId: bail.id,
       edlId: edl.id,
+      element: (reference) => (
+        <LettreRestitutionPdf
+          reference={reference}
+          bail={bail}
+          bien={bien}
+          locataires={locataires}
+          parametres={parametres}
+          retenues={lignes}
+          autresRetenues={[]}
+          dateEdlSortie={edl.signatures?.dateSignature ?? edl.date}
+          nouvelleAdresse={edl.nouvelleAdresseLocataire}
+        />
+      ),
     });
-    telechargerDocument({ blob, reference, titre });
     toast('success', 'Lettre de restitution générée avec le décompte détaillé.');
   };
 

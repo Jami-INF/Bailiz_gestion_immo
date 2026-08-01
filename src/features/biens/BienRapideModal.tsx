@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '@/lib/db';
 import type { Bien, ClasseDPE, SaisieBail, TypeBien } from '@/types';
+import { CLASSES_DPE, TYPES_BIEN } from '@/types';
 import { construireBienInline } from '@/lib/pdf/bailRapide';
 import { Button, Field, Input, Modal, Select, useToast } from '@/components/ui';
-
-const TYPES_BIEN: TypeBien[] = ['T1', 'T1bis', 'T2', 'T3', 'T4', 'autre'];
-const CLASSES_DPE: ClasseDPE[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
 function vide(): SaisieBail['bien'] {
   return { adresse: { ligne1: '', codePostal: '', ville: '' } };

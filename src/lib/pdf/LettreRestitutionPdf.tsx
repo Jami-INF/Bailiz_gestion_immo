@@ -2,6 +2,7 @@ import { Document, Page, Text, View } from '@react-pdf/renderer';
 import type { Bail, Bien, Locataire, Parametres } from '@/types';
 import { formatEuros, type LigneRetenue } from '@/lib/calculs';
 import { EntetePdf, PiedDePagePdf, formatDateFr, pdfStyles as s } from './commun';
+import { formatAdresse } from '@/lib/adresse';
 
 interface Props {
   reference: string;
@@ -43,7 +44,7 @@ export function LettreRestitutionPdf(p: Props) {
         </View>
         <Text style={s.p}>
           Objet : restitution du dépôt de garantie — bail {p.bail.reference}, logement situé{' '}
-          {p.bien.adresse.ligne1}, {p.bien.adresse.codePostal} {p.bien.adresse.ville}.
+          {formatAdresse(p.bien.adresse)}.
         </Text>
         <Text style={[s.p, { marginTop: 8 }]}>Madame, Monsieur,</Text>
         <Text style={s.p}>

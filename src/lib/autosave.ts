@@ -3,6 +3,7 @@ import { db, type ConfigSauvegardeAuto } from './db';
 import { exporterSauvegarde } from './backup';
 import { nowISO } from './ids';
 import { fichiersASupprimer } from './rotation';
+import { decrireErreur } from './erreurs';
 import { getConfigGDrive, pousserSauvegardeGDrive } from './gdrive';
 
 export { fichiersASupprimer } from './rotation';
@@ -60,7 +61,7 @@ export async function desactiverAutosave(): Promise<void> {
  * navigateur, elle repasse à « prompt » : la re-demande exige un geste
  * utilisateur (bouton dans Paramètres ou après signature).
  */
-export async function permissionAutosave(
+async function permissionAutosave(
   handle: FileSystemDirectoryHandle,
   demander: boolean,
 ): Promise<PermissionState> {
@@ -70,7 +71,7 @@ export async function permissionAutosave(
 }
 
 /** Exporte le ZIP dans le dossier configuré, avec rotation des anciennes archives. */
-export async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<void> {
+async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<void> {
   const blob = await exporterSauvegarde();
   const nom = `bailiz-sauvegarde-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.zip`;
   const fichier = await config.handle.getFileHandle(nom, { create: true });
@@ -94,6 +95,17 @@ export async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<v
   await db.sauvegardeAuto.put({ ...config, dernierPush: nowISO() });
 }
 
+/**
+ * Dernière cause d'échec de sauvegarde, conservée pour l'affichage : les
+ * fonctions publiques renvoient un code (`'erreur'`…) qui, seul, ne permet pas
+ * de diagnostiquer depuis une tablette.
+ */
+let derniereErreur: string | undefined;
+
+export function derniereErreurSauvegarde(): string | undefined {
+  return derniereErreur;
+}
+
 /** Évite les pushs concurrents (bouton + planifié + signature). */
 let pushEnCours = false;
 
@@ -109,6 +121,7 @@ async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPu
     return 'ok';
   } catch (e) {
     console.error('Sauvegarde vers le dossier impossible :', e);
+    derniereErreur = decrireErreur(e);
     return 'erreur';
   }
 }

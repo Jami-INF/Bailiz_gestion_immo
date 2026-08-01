@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import type { DocumentProps } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { sha256Hex } from '@/lib/crypto';
-import { db } from '@/lib/db';
+import { db, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import type { DocumentGenere, TypeDocument } from '@/types';
 import { telechargerBlob } from '@/lib/backup';
@@ -96,4 +96,37 @@ export function telechargerDocument(doc: {
   createdAt?: string;
 }): void {
   telechargerBlob(doc.blob, nomFichierDocument(doc));
+}
+
+/**
+ * Pipeline commun d'un document annexe : attribution d'une référence,
+ * rendu, archivage dans la bibliothèque puis téléchargement. Regroupé ici car
+ * la séquence était répétée à l'identique dans chaque page qui génère un PDF.
+ */
+export async function genererEtArchiver(params: {
+  type: TypeDocument;
+  /** Titre du document ; reçoit la référence attribuée si besoin. */
+  titre: string | ((reference: string) => string);
+  /** Construit le document à rendre à partir de la référence attribuée. */
+  element: (reference: string) => DocElement;
+  bienId?: string;
+  bailId?: string;
+  edlId?: string;
+  /** Téléchargement immédiat (défaut : true). */
+  telecharger?: boolean;
+}): Promise<{ reference: string; blob: Blob }> {
+  const reference = await prochaineReference('document');
+  const blob = await rendrePdf(params.element(reference));
+  const titre = typeof params.titre === 'function' ? params.titre(reference) : params.titre;
+  await enregistrerDocument({
+    reference,
+    type: params.type,
+    titre,
+    blob,
+    bienId: params.bienId,
+    bailId: params.bailId,
+    edlId: params.edlId,
+  });
+  if (params.telecharger !== false) telechargerDocument({ blob, reference, titre });
+  return { reference, blob };
 }

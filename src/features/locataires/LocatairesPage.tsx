@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Users, Plus, Pencil, Trash2, ShieldQuestion } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -12,6 +12,7 @@ import {
   PageHeader,
   useToast,
 } from '@/components/ui';
+import { perimetreSuppressionLocataire, supprimerLocataireEtDonnees, type PerimetreSuppression } from '@/lib/rgpd';
 import { LocataireFormModal } from './LocataireFormModal';
 
 export function LocatairesPage() {
@@ -20,6 +21,23 @@ export function LocatairesPage() {
   const toast = useToast();
   const [modale, setModale] = useState<{ ouvert: boolean; locataire?: Locataire }>({ ouvert: false });
   const [suppression, setSuppression] = useState<Locataire | null>(null);
+  /** Ce que la suppression effacera réellement (annoncé avant confirmation). */
+  const [perimetre, setPerimetre] = useState<PerimetreSuppression | null>(null);
+
+  // Calcule le périmètre dès l'ouverture de la confirmation.
+  useEffect(() => {
+    if (!suppression) {
+      setPerimetre(null);
+      return;
+    }
+    let annule = false;
+    void perimetreSuppressionLocataire(suppression.id).then((p) => {
+      if (!annule) setPerimetre(p);
+    });
+    return () => {
+      annule = true;
+    };
+  }, [suppression]);
 
   const ouvrir = (locataire?: Locataire) => setModale({ ouvert: true, locataire });
 
@@ -33,8 +51,20 @@ export function LocatairesPage() {
       toast('error', 'Suppression bloquée : un bail actif ou en cours est lié à ce locataire.');
       return;
     }
-    await db.locataires.delete(l.id);
-    toast('success', 'Locataire et données personnelles supprimés définitivement.');
+    // Efface aussi baux, EDL, photos et PDF qui portent ses données personnelles.
+    const efface = await supprimerLocataireEtDonnees(l.id);
+    const details = [
+      efface.bauxSupprimes.length ? `${efface.bauxSupprimes.length} bail(s)` : '',
+      efface.edls ? `${efface.edls} état(s) des lieux` : '',
+      efface.photos ? `${efface.photos} photo(s)` : '',
+      efface.documents ? `${efface.documents} PDF` : '',
+    ].filter(Boolean);
+    toast(
+      'success',
+      details.length
+        ? `Locataire supprimé, ainsi que ${details.join(', ')}.`
+        : 'Locataire et données personnelles supprimés définitivement.',
+    );
   };
 
   if (!locataires) return null;
@@ -117,7 +147,41 @@ export function LocatairesPage() {
         onClose={() => setSuppression(null)}
         onConfirm={() => suppression && void supprimerDefinitivement(suppression)}
         title="Supprimer définitivement ce locataire ?"
-        message="Toutes ses données personnelles seront effacées de cet appareil (droit à l'effacement, RGPD). La suppression est bloquée si un bail actif y est lié. Cette action est irréversible."
+        message={
+          <div className="space-y-2">
+            <p>
+              Ses données personnelles seront effacées de cet appareil (droit à l'effacement, RGPD),
+              <strong> ainsi que tous les documents qui les contiennent</strong>. La suppression est
+              bloquée si un bail actif ou en cours y est lié. Cette action est irréversible.
+            </p>
+            {perimetre && (
+              <div className="rounded-lg bg-accent-50 p-3 text-sm">
+                <p className="font-medium text-accent-800">Seront également supprimés :</p>
+                {perimetre.bauxSupprimes.length === 0 &&
+                perimetre.edls === 0 &&
+                perimetre.photos === 0 &&
+                perimetre.documents === 0 ? (
+                  <p className="text-accent-600">Aucune autre donnée liée.</p>
+                ) : (
+                  <ul className="mt-1 list-inside list-disc text-accent-700">
+                    {perimetre.bauxSupprimes.length > 0 && (
+                      <li>{perimetre.bauxSupprimes.length} bail(s) : {perimetre.bauxSupprimes.join(', ')}</li>
+                    )}
+                    {perimetre.edls > 0 && <li>{perimetre.edls} état(s) des lieux</li>}
+                    {perimetre.photos > 0 && <li>{perimetre.photos} photo(s)</li>}
+                    {perimetre.documents > 0 && <li>{perimetre.documents} PDF archivé(s)</li>}
+                  </ul>
+                )}
+                {perimetre.bauxPartages.length > 0 && (
+                  <p className="mt-2 text-accent-600">
+                    Conservé(s) car en colocation : {perimetre.bauxPartages.join(', ')} — le locataire
+                    en est retiré, mais son nom peut subsister dans les PDF déjà générés.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        }
         confirmLabel="Supprimer définitivement"
         danger
       />

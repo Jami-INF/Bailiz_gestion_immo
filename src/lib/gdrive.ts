@@ -3,6 +3,7 @@ import { db, getParametres } from './db';
 import { exporterSauvegarde } from './backup';
 import { uid, nowISO } from './ids';
 import { fichiersASupprimer } from './rotation';
+import { decrireErreur } from './erreurs';
 
 /**
  * Sauvegarde vers Google Drive, 100 % côté client :
@@ -39,6 +40,13 @@ export interface ConfigGDrive {
   actif: boolean;
   dossierId?: string;
   dernierPush?: string;
+}
+
+/** Dernière cause d'échec d'envoi vers Drive (voir `derniereErreurSauvegarde`). */
+let derniereErreurDrive: string | undefined;
+
+export function derniereErreurGDrive(): string | undefined {
+  return derniereErreurDrive;
 }
 
 let chargementGsi: Promise<void> | null = null;
@@ -251,6 +259,7 @@ export async function pousserSauvegardeGDrive(interactif: boolean): Promise<Resu
     return 'ok';
   } catch (e) {
     console.error('Sauvegarde Google Drive impossible :', e);
+    derniereErreurDrive = decrireErreur(e);
     return 'erreur';
   }
 }

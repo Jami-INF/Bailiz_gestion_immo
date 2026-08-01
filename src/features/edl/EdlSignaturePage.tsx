@@ -8,6 +8,7 @@ import type { EtatDesLieux, SignatureBloc } from '@/types';
 import { ETAT_LABELS, COMPTEUR_LABELS } from '@/types';
 import { formatHash } from '@/lib/crypto';
 import { progressionEDL } from '@/lib/etat';
+import { decrireErreur } from '@/lib/erreurs';
 import {
   rendrePdfAvecHash,
   enregistrerDocument,
@@ -95,7 +96,7 @@ export function EdlSignaturePage() {
       });
     } catch (e) {
       console.error(e);
-      toast('error', 'Erreur lors de la génération du PDF signé.');
+      toast('error', `Échec de la signature — ${decrireErreur(e)}`);
     } finally {
       setEnCours(false);
     }

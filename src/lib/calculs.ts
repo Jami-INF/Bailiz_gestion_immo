@@ -168,5 +168,5 @@ export function formatEuros(montant: number): string {
   // Helvetica des PDF : on les remplace par des espaces simples.
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
     .format(montant)
-    .replace(/[  ]/g, ' ');
+    .replace(/[\u202f\u00a0]/g, ' ');
 }

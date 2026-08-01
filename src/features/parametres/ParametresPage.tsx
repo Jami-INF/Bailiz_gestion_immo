@@ -3,7 +3,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import {
   FileText,
-  FolderSync,
   HardDriveDownload,
   HardDriveUpload,
   Plus,
@@ -12,8 +11,8 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { db, getParametres, prochaineReference } from '@/lib/db';
-import { rendrePdf, enregistrerDocument, telechargerDocument } from '@/lib/pdf/generer';
+import { db, getParametres } from '@/lib/db';
+import { genererEtArchiver } from '@/lib/pdf/generer';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import type { LigneVetuste, Parametres } from '@/types';
@@ -25,15 +24,8 @@ import {
   telechargerBlob,
 } from '@/lib/backup';
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
-import {
-  autosaveSupportee,
-  choisirDossierAutosave,
-  desactiverAutosave,
-  getConfigAutosave,
-  pousserSiActive,
-} from '@/lib/autosave';
-import { activerGDrive, CLIENT_ID_GDRIVE, desactiverGDrive, pousserSauvegardeGDrive } from '@/lib/gdrive';
 import { usePersistanceStockage } from '@/hooks/useStatuts';
+import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
 
@@ -85,22 +77,22 @@ export function ParametresPage() {
   };
 
   const genererGrillePdf = async () => {
-    const reference = await prochaineReference('document');
-    const blob = await rendrePdf(
-      <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} />,
-    );
-    const titre = 'Grille de vétusté (avec mode d’emploi)';
-    await enregistrerDocument({ reference, type: 'grille_vetuste', titre, blob });
-    telechargerDocument({ blob, reference, titre });
+    await genererEtArchiver({
+      type: 'grille_vetuste',
+      titre: 'Grille de vétusté (avec mode d’emploi)',
+      element: (reference) => (
+        <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} />
+      ),
+    });
     toast('success', 'Grille de vétusté générée (PDF).');
   };
 
   const genererFicheAide = async () => {
-    const reference = await prochaineReference('document');
-    const blob = await rendrePdf(<FicheAidePdf reference={reference} />);
-    const titre = 'Fiche d’aide juridique du bailleur meublé';
-    await enregistrerDocument({ reference, type: 'fiche_aide', titre, blob });
-    telechargerDocument({ blob, reference, titre });
+    await genererEtArchiver({
+      type: 'fiche_aide',
+      titre: 'Fiche d’aide juridique du bailleur meublé',
+      element: (reference) => <FicheAidePdf reference={reference} />,
+    });
     toast('success', "Fiche d'aide juridique générée (PDF).");
   };
 
@@ -385,190 +377,3 @@ export function ParametresPage() {
 }
 
 /** Panneau « push ZIP » : sauvegarde automatique vers un dossier synchronisé. */
-function SauvegardeAutoPanel() {
-  const toast = useToast();
-  const config = useLiveQuery(() => getConfigAutosave());
-
-  const activer = async () => {
-    try {
-      await choisirDossierAutosave();
-      const resultat = await pousserSiActive(true);
-      if (resultat === 'ok') toast('success', 'Dossier configuré — première sauvegarde effectuée.');
-      else toast('warning', 'Dossier configuré, mais la première sauvegarde a échoué.');
-    } catch {
-      // Sélecteur annulé par l'utilisateur : rien à faire.
-    }
-  };
-
-  const pousserMaintenant = async () => {
-    const resultat = await pousserSiActive(true);
-    if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier.');
-    else if (resultat === 'permission_requise')
-      toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
-    else toast('error', 'Échec de la sauvegarde automatique.');
-  };
-
-  return (
-    <Card>
-      <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-        <FolderSync size={18} /> Sauvegarde automatique (dossier synchronisé)
-      </h2>
-      {!autosaveSupportee() ? (
-        <p className="text-sm text-accent-600">
-          Non disponible sur ce navigateur (API File System Access requise — Chrome ou Edge sur
-          ordinateur). Sur tablette/mobile, utilisez l'export manuel ci-dessus.
-        </p>
-      ) : (
-        <>
-          <p className="mb-3 text-sm text-accent-600">
-            Choisissez un dossier <span className="font-medium">synchronisé par votre cloud</span>{' '}
-            (Google Drive, OneDrive, iCloud Drive…) : l'application y poussera automatiquement
-            l'archive complète après chaque document signé et à l'ouverture si la dernière
-            sauvegarde date de plus de 7 jours. Les 10 archives les plus récentes sont
-            conservées, les plus anciennes supprimées.
-          </p>
-          {config ? (
-            <div className="space-y-3">
-              <p className="text-sm text-accent-800">
-                Dossier : <span className="font-semibold">{config.nomDossier}</span> — dernier
-                push :{' '}
-                {config.dernierPush
-                  ? format(new Date(config.dernierPush), 'dd/MM/yyyy à HH:mm')
-                  : 'jamais'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => void pousserMaintenant()}>
-                  <FolderSync size={14} /> Sauvegarder maintenant
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => void activer()}>
-                  Changer de dossier
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    void desactiverAutosave().then(() => toast('info', 'Sauvegarde automatique désactivée.'))
-                  }
-                >
-                  Désactiver
-                </Button>
-              </div>
-              <p className="text-xs text-accent-500">
-                Après un redémarrage du navigateur, une confirmation d'autorisation peut être
-                demandée au prochain push (fonctionnement normal de l'API).
-              </p>
-            </div>
-          ) : (
-            <Button onClick={() => void activer()}>
-              <FolderSync size={16} /> Choisir le dossier de sauvegarde
-            </Button>
-          )}
-        </>
-      )}
-    </Card>
-  );
-}
-
-/**
- * Sauvegarde vers Google Drive (API drive.file) : fonctionne sur tous les
- * navigateurs, y compris Safari/iPad où File System Access n'existe pas.
- */
-function SauvegardeGDrivePanel() {
-  const toast = useToast();
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
-  const [clientId, setClientId] = useState('');
-  const [enCours, setEnCours] = useState(false);
-  const config = parametres?.sauvegardeGDrive;
-
-  const connecter = async () => {
-    const id = (clientId || config?.clientId || CLIENT_ID_GDRIVE).trim();
-    if (!id.endsWith('.apps.googleusercontent.com')) {
-      toast('error', "L'ID client doit se terminer par .apps.googleusercontent.com");
-      return;
-    }
-    setEnCours(true);
-    try {
-      await activerGDrive(id);
-      const resultat = await pousserSauvegardeGDrive(true);
-      if (resultat === 'ok') {
-        toast('success', 'Google Drive connecté — première sauvegarde poussée dans le dossier « Bailiz ».');
-      } else if (resultat === 'permission_requise') {
-        toast('warning', 'Connexion Google refusée ou fermée : réessayez.');
-        await desactiverGDrive();
-      } else if (resultat === 'hors_ligne') {
-        toast('warning', 'Configuré — la première sauvegarde partira au retour du réseau.');
-      } else {
-        toast('error', "Échec de l'envoi vers Drive. Vérifiez l'ID client et les origines autorisées.");
-      }
-    } finally {
-      setEnCours(false);
-    }
-  };
-
-  const pousserMaintenant = async () => {
-    setEnCours(true);
-    const resultat = await pousserSauvegardeGDrive(true);
-    setEnCours(false);
-    if (resultat === 'ok') toast('success', 'Sauvegarde poussée sur Google Drive.');
-    else if (resultat === 'hors_ligne') toast('warning', 'Hors-ligne : envoi automatique au retour du réseau.');
-    else if (resultat === 'permission_requise') toast('warning', 'Reconnectez-vous à Google (fenêtre fermée ?).');
-    else toast('error', "Échec de l'envoi vers Google Drive.");
-  };
-
-  return (
-    <Card>
-      <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-        <HardDriveUpload size={18} /> Sauvegarde Google Drive (iPad et tous navigateurs)
-      </h2>
-      <p className="mb-3 text-sm text-accent-600">
-        Envoie l'archive complète directement sur votre Google Drive (dossier « Bailiz »),
-        avec les mêmes déclencheurs que le dossier local : après chaque signature, à chaque
-        modification et à l'ouverture. L'application n'accède qu'aux fichiers qu'elle a
-        elle-même créés (scope <span className="font-mono text-xs">drive.file</span>). Hors
-        connexion, l'envoi repart automatiquement au retour du réseau.
-      </p>
-      {config?.actif ? (
-        <div className="space-y-3">
-          <p className="text-sm text-accent-800">
-            Connecté — dossier « Bailiz » sur votre Drive. Dernier envoi :{' '}
-            {config.dernierPush ? format(new Date(config.dernierPush), 'dd/MM/yyyy à HH:mm') : 'jamais'}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void pousserMaintenant()} disabled={enCours}>
-              <HardDriveUpload size={14} /> {enCours ? 'Envoi…' : 'Sauvegarder maintenant'}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                void desactiverGDrive().then(() => toast('info', 'Sauvegarde Google Drive désactivée.'))
-              }
-            >
-              Déconnecter
-            </Button>
-          </div>
-          <p className="text-xs text-accent-500">
-            Après un certain temps d'inactivité, Google peut redemander une confirmation lors
-            du prochain envoi (fenêtre de connexion) : c'est normal.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <Field
-            label="ID client OAuth Google"
-            hint="Pré-rempli avec l'identifiant officiel de l'application : il suffit de cliquer sur « Connecter ». Ne le remplacez que si vous utilisez votre propre projet Google Cloud (console.cloud.google.com, API Drive activée, ID client OAuth « Application Web » avec ce site en origine autorisée). Cet identifiant n'est pas un secret."
-          >
-            <Input
-              value={clientId || config?.clientId || CLIENT_ID_GDRIVE}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="1234567890-abc123.apps.googleusercontent.com"
-            />
-          </Field>
-          <Button onClick={() => void connecter()} disabled={enCours}>
-            <HardDriveUpload size={16} /> {enCours ? 'Connexion…' : 'Connecter Google Drive'}
-          </Button>
-        </div>
-      )}
-    </Card>
-  );
-}

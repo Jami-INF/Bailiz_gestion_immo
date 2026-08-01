@@ -2,6 +2,7 @@ import { Document, Page, Text, View } from '@react-pdf/renderer';
 import type { Bail, Bien, Locataire, Parametres } from '@/types';
 import { formatEuros } from '@/lib/calculs';
 import { EntetePdf, PiedDePagePdf, formatDateFr, pdfStyles as s } from './commun';
+import { formatAdresse } from '@/lib/adresse';
 
 interface Props {
   reference: string;
@@ -36,7 +37,7 @@ export function CourrierIrlPdf(p: Props) {
             </Text>
           ))}
           <Text>
-            {p.bien.adresse.ligne1}, {p.bien.adresse.codePostal} {p.bien.adresse.ville}
+            {formatAdresse(p.bien.adresse)}
           </Text>
         </View>
         <Text style={s.p}>Objet : révision annuelle du loyer — bail {p.bail.reference}</Text>

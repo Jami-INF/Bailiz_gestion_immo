@@ -9,6 +9,7 @@ interface DonneesExport {
   biens: unknown[];
   locataires: unknown[];
   baux: unknown[];
+  /** Hérité : l'inventaire est fusionné dans l'EDL. Conservé pour relire/réécrire les sauvegardes antérieures. */
   inventaires: unknown[];
   edls: unknown[];
   documents: { meta: unknown; fichier: string }[];

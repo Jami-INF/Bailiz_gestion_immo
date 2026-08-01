@@ -2,25 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
-import {
-  AlertTriangle,
-  Building2,
-  FileDown,
-  Pencil,
-  Plus,
-  Printer,
-  Save,
-  Share2,
-  Trash2,
-  Users,
-} from 'lucide-react';
-import type { Bail, ClasseDPE, Garant, Parametres, SaisieBail, TypeBien } from '@/types';
-import { TYPE_BAIL_LABELS } from '@/types';
+import { AlertTriangle, Building2, Pencil, Plus } from 'lucide-react';
+import type { Bail, ClasseDPE, Parametres, SaisieBail, TypeBien } from '@/types';
+import { CLASSES_DPE, TYPES_BIEN, TYPE_BAIL_LABELS } from '@/types';
 import { db, getParametres, prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import { formatEuros } from '@/lib/calculs';
 import { decrireErreur } from '@/lib/erreurs';
 import { telechargerBlob } from '@/lib/backup';
+import { formatAdresse } from '@/lib/adresse';
 import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
@@ -28,33 +18,20 @@ import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
 import { bailVersSaisie, construireDocs, dureeParDefaut, saisieVide } from '@/lib/pdf/bailRapide';
 import { LocataireFormModal } from '@/features/locataires/LocataireFormModal';
 import { BienRapideModal } from '@/features/biens/BienRapideModal';
+import { SectionLocataires } from './SectionLocataires';
+import { ApercuBailPanel } from './ApercuBailPanel';
 import {
   Button,
-  Card,
   Checkbox,
   DateInput,
   Field,
   Input,
   PageHeader,
+  Section,
   Select,
   Textarea,
   useToast,
 } from '@/components/ui';
-
-const TYPES_BIEN: TypeBien[] = ['T1', 'T1bis', 'T2', 'T3', 'T4', 'autre'];
-const CLASSES_DPE: ClasseDPE[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-
-function Section({ titre, description, children }: { titre: string; description?: string; children: React.ReactNode }) {
-  return (
-    <Card className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold text-accent-900">{titre}</h2>
-        {description && <p className="mt-0.5 text-sm text-accent-500">{description}</p>}
-      </div>
-      {children}
-    </Card>
-  );
-}
 
 export function BailRapidePage() {
   const navigate = useNavigate();
@@ -184,7 +161,6 @@ export function BailRapidePage() {
     telechargerBlob(apercu.blob, nom);
   };
 
-  /** Télécharge le modèle vierge d'acte de cautionnement (à compléter et signer à la main). */
   /**
    * Acte de cautionnement du garant du locataire `i`, pré-rempli avec ce que le
    * bail connaît déjà ; les champs manquants restent à compléter à la main.
@@ -197,9 +173,7 @@ export function BailRapidePage() {
       ? `${enr.prenom} ${enr.nom}`.trim()
       : `${l.prenom ?? ''} ${l.nom ?? ''}`.trim();
     const a = bienChoisi?.adresse ?? saisie.bien.adresse;
-    const bienAdresse = [a.ligne1, `${a.codePostal ?? ''} ${a.ville ?? ''}`.trim()]
-      .filter((x) => x && x.trim())
-      .join(', ');
+    const bienAdresse = formatAdresse(a);
     const blob = await rendrePdf(
       <ActeCautionnementPdf
         bailleur={saisie.bailleur}
@@ -415,8 +389,7 @@ export function BailRapidePage() {
                 <Building2 size={18} className="mt-0.5 shrink-0 text-accent-500" />
                 <div>
                   <div className="font-medium text-accent-900">{bienChoisi.nom}</div>
-                  {bienChoisi.type} · {bienChoisi.surfaceBoutin} m² · {bienChoisi.adresse.ligne1},{' '}
-                  {bienChoisi.adresse.codePostal} {bienChoisi.adresse.ville}
+                  {bienChoisi.type} · {bienChoisi.surfaceBoutin} m² · {formatAdresse(bienChoisi.adresse)}
                   {bienChoisi.classeDPE && ` · DPE ${bienChoisi.classeDPE}`}
                   <button
                     type="button"
@@ -491,175 +464,15 @@ export function BailRapidePage() {
             )}
           </Section>
 
-          <Section titre="Locataire(s)" description="Chaque locataire peut être choisi parmi les enregistrés, ou saisi ici.">
-            {saisie.locataires.map((l, i) => {
-              const enr = l.id ? locatairesEnr.find((x) => x.id === l.id) : undefined;
-              return (
-                <div key={i} className="space-y-4 rounded-lg border border-accent-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-accent-800">{coloc ? `Locataire ${i + 1}` : 'Locataire'}</span>
-                    {saisie.locataires.length > 1 && (
-                      <Button variant="ghost" size="sm" onClick={() => maj({ locataires: saisie.locataires.filter((_, idx) => idx !== i) })}>
-                        <Trash2 size={16} /> Retirer
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <div className="min-w-0 flex-1">
-                      <Field label="Locataire">
-                        <Select value={l.id ?? ''} onChange={(e) => majLoc(i, { id: e.target.value || undefined })}>
-                          <option value="">— Saisir ici —</option>
-                          {locatairesEnr.map((x) => (
-                            <option key={x.id} value={x.id}>
-                              {x.civilite} {x.prenom} {x.nom}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                    </div>
-                    <Button variant="secondary" onClick={() => setModaleLocataire(i)} className="shrink-0">
-                      <Plus size={16} /> Créer un locataire
-                    </Button>
-                  </div>
-                  {enr ? (
-                    <div className="rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
-                      <div className="flex items-start gap-3">
-                        <Users size={18} className="mt-0.5 shrink-0 text-accent-500" />
-                        <div>
-                          <div className="font-medium text-accent-900">
-                            {enr.civilite} {enr.prenom} {enr.nom}
-                          </div>
-                          {enr.email}
-                          {enr.telephone ? ` · ${enr.telephone}` : ''}
-                          {enr.garant ? ' · avec garant' : ''}
-                        </div>
-                      </div>
-                      {enr.garant && enr.garant.type !== 'visale' && (
-                        <Button variant="secondary" size="sm" className="mt-3" onClick={() => void telechargerActe(i)}>
-                          <FileDown size={14} /> Télécharger le modèle vierge d'acte de cautionnement
-                        </Button>
-                      )}
-                      {enr.garant && enr.garant.type === 'visale' && (
-                        <p className="mt-3 text-xs text-accent-600">
-                          Garantie Visale : contrat de cautionnement à activer sur votre espace bailleur
-                          visale.fr avec le visa transmis par le locataire — rien à générer ici.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <Field label="Civilité" required>
-                          <Select value={l.civilite ?? 'M'} onChange={(e) => majLoc(i, { civilite: e.target.value as 'M' | 'Mme' })}>
-                            <option value="M">M.</option>
-                            <option value="Mme">Mme</option>
-                          </Select>
-                        </Field>
-                        <Field label="Prénom" required>
-                          <Input value={l.prenom ?? ''} onChange={(e) => majLoc(i, { prenom: e.target.value })} />
-                        </Field>
-                        <Field label="Nom" required>
-                          <Input value={l.nom ?? ''} onChange={(e) => majLoc(i, { nom: e.target.value })} />
-                        </Field>
-                        <Field label="Téléphone">
-                          <Input value={l.telephone ?? ''} onChange={(e) => majLoc(i, { telephone: e.target.value })} />
-                        </Field>
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        <Field label="Email">
-                          <Input type="email" value={l.email ?? ''} onChange={(e) => majLoc(i, { email: e.target.value })} />
-                        </Field>
-                        <Field label="Date de naissance">
-                          <DateInput value={l.dateNaissance ?? ''} onChange={(iso) => majLoc(i, { dateNaissance: iso || undefined })} />
-                        </Field>
-                        <Field label="Lieu de naissance">
-                          <Input value={l.lieuNaissance ?? ''} onChange={(e) => majLoc(i, { lieuNaissance: e.target.value })} />
-                        </Field>
-                      </div>
-                      <Field label="Adresse actuelle (optionnel)" hint="Domicile du locataire avant l'entrée dans les lieux.">
-                        <Input value={l.adresseActuelle ?? ''} onChange={(e) => majLoc(i, { adresseActuelle: e.target.value })} />
-                      </Field>
-
-                      <div className="space-y-3 rounded-lg border border-accent-200 bg-accent-50 p-3">
-                        <Checkbox
-                          label="Ce locataire a un garant (caution)"
-                          checked={!!l.garant}
-                          onChange={(e) =>
-                            majLoc(i, {
-                              garant: e.target.checked ? { type: 'physique', nom: '', prenom: '', adresse: '' } : undefined,
-                            })
-                          }
-                        />
-                        {l.garant && (
-                          <>
-                            <Field label="Type de garantie">
-                              <Select
-                                value={l.garant.type}
-                                onChange={(e) => majLoc(i, { garant: { ...l.garant!, type: e.target.value as Garant['type'] } })}
-                              >
-                                <option value="physique">Personne physique (caution)</option>
-                                <option value="visale">Garantie Visale</option>
-                                <option value="autre">Autre</option>
-                              </Select>
-                            </Field>
-                            {l.garant.type !== 'visale' ? (
-                              <>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                  <Field label="Prénom du garant" required>
-                                    <Input value={l.garant.prenom} onChange={(e) => majLoc(i, { garant: { ...l.garant!, prenom: e.target.value } })} />
-                                  </Field>
-                                  <Field label="Nom du garant" required>
-                                    <Input value={l.garant.nom} onChange={(e) => majLoc(i, { garant: { ...l.garant!, nom: e.target.value } })} />
-                                  </Field>
-                                </div>
-                                <Field label="Adresse du garant (optionnel)" hint="Peut être complétée à la main sur l'acte imprimé.">
-                                  <Input value={l.garant.adresse} onChange={(e) => majLoc(i, { garant: { ...l.garant!, adresse: e.target.value } })} />
-                                </Field>
-                                <Button variant="secondary" size="sm" onClick={() => void telechargerActe(i)}>
-                                  <FileDown size={14} /> Télécharger le modèle vierge d'acte de cautionnement
-                                </Button>
-                                <p className="text-xs text-accent-500">
-                                  Modèle vierge, à compléter et signer à la main après impression. Les pièces du garant (avis d'impôt, 3 dernières fiches de paie, pièce d'identité, justificatif de domicile) sont ajoutées à la liste des documents à remettre, dans le bail.
-                                </p>
-                              </>
-                            ) : (
-                              <>
-                                <Field label="Numéro de visa Visale (optionnel)" hint="Fourni par le locataire depuis son espace visale.fr.">
-                                  <Input value={l.garant.numeroVisa ?? ''} onChange={(e) => majLoc(i, { garant: { ...l.garant!, numeroVisa: e.target.value } })} />
-                                </Field>
-                                <p className="text-xs text-accent-600">
-                                  Aucun acte à rédiger : le locataire obtient un <strong>visa certifié</strong> sur
-                                  visale.fr (valable 3 mois, 6 pour étudiants/alternants/service civique) et vous le
-                                  transmet. Vous <strong>activez le contrat de cautionnement</strong> depuis votre
-                                  propre espace bailleur sur visale.fr, avant la signature du bail — le contrat est
-                                  alors émis directement par Action Logement, gratuitement.
-                                </p>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            <Button variant="secondary" onClick={() => maj({ locataires: [...saisie.locataires, { civilite: 'M' }] })}>
-              <Plus size={16} /> Ajouter un colocataire
-            </Button>
-            {coloc && (
-              <div className="space-y-3 rounded-lg bg-accent-50 p-4">
-                <Checkbox
-                  label="Insérer une clause de solidarité entre colocataires (recommandé)"
-                  checked={saisie.clauseSolidarite}
-                  onChange={(e) => maj({ clauseSolidarite: e.target.checked })}
-                />
-                <Field label="Assurance souscrite par le bailleur pour les colocataires — montant annuel (€)" hint="Laissez vide si les colocataires s'assurent eux-mêmes.">
-                  <Input type="number" step="0.01" min="0" value={saisie.assuranceMontantAnnuel ?? ''} onChange={(e) => maj({ assuranceMontantAnnuel: e.target.value === '' ? undefined : Number(e.target.value) })} />
-                </Field>
-              </div>
-            )}
-          </Section>
+          <SectionLocataires
+            saisie={saisie}
+            locatairesEnr={locatairesEnr}
+            coloc={coloc}
+            maj={maj}
+            majLoc={majLoc}
+            onCreerLocataire={(i) => setModaleLocataire(i)}
+            onTelechargerActe={(i) => void telechargerActe(i)}
+          />
 
           <Section titre="Type & durée">
             <div className="space-y-2">
@@ -776,47 +589,19 @@ export function BailRapidePage() {
         </div>
 
         {/* ------------------------- Aperçu ------------------------- */}
-        <div className="mt-4 xl:sticky xl:top-4 xl:mt-0">
-          <Card className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-base font-semibold text-accent-900">
-                Aperçu {generation && <span className="text-xs font-normal text-accent-400">· mise à jour…</span>}
-              </h2>
-              <Checkbox label="Auto" checked={autoApercu} onChange={(e) => setAutoApercu(e.target.checked)} className="text-xs" />
-            </div>
-            {!autoApercu && (
-              <Button variant="secondary" size="sm" onClick={() => void genererApercu()} disabled={generation}>
-                Mettre à jour l’aperçu
-              </Button>
-            )}
-            {apercu ? (
-              <iframe title="Aperçu du bail" src={apercu.url} className="h-[calc(100vh-12rem)] min-h-[560px] w-full rounded-lg border border-accent-200 bg-white" />
-            ) : (
-              <div className="flex h-[calc(100vh-12rem)] min-h-[560px] items-center justify-center rounded-lg border border-dashed border-accent-200 text-sm text-accent-400">
-                L’aperçu s’affiche ici.
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="secondary" size="sm" onClick={() => void partager()} disabled={!apercu}>
-                <Share2 size={16} /> Partager
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => apercu && telechargerBlob(apercu.blob, nomFichier())} disabled={!apercu}>
-                <FileDown size={16} /> Télécharger
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => apercu && window.open(apercu.url, '_blank')} disabled={!apercu}>
-                <Printer size={16} /> Imprimer
-              </Button>
-              <Button size="sm" onClick={() => void enregistrer()} disabled={enregistrement || !pret}>
-                <Save size={16} /> {enregistrement ? 'Enregistrement…' : edition ? 'Enregistrer les modifications' : 'Enregistrer'}
-              </Button>
-            </div>
-            <p className="text-xs text-accent-500">
-              {edition
-                ? 'Vous pouvez modifier et régénérer ce bail autant de fois que nécessaire. Le PDF peut aussi être partagé, téléchargé ou imprimé.'
-                : "« Enregistrer » crée le bail dans l'app avec son inventaire et sa grille de vétusté. Sinon, rien n'est stocké : le PDF part par partage, téléchargement ou impression."}
-            </p>
-          </Card>
-        </div>
+        <ApercuBailPanel
+          apercu={apercu}
+          generation={generation}
+          autoApercu={autoApercu}
+          onAutoApercuChange={setAutoApercu}
+          onRegenerer={() => void genererApercu()}
+          onPartager={() => void partager()}
+          onEnregistrer={() => void enregistrer()}
+          nomFichier={nomFichier}
+          enregistrement={enregistrement}
+          pret={pret}
+          edition={edition}
+        />
       </div>
 
       <BienRapideModal
