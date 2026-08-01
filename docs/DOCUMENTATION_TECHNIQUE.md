@@ -34,7 +34,7 @@ Principes structurants :
 | Dépendance | Rôle | Où c'est utilisé |
 |---|---|---|
 | `react`, `react-dom` (18) | UI | partout |
-| `react-router-dom` (6) | Routing (**HashRouter** — pas de config serveur nécessaire, compatible `file://` et PWA) | `App.tsx` |
+| `react-router-dom` (7) | Routing (**HashRouter** — pas de config serveur nécessaire, compatible `file://` et PWA) | `App.tsx` |
 | `dexie` (4) + `dexie-react-hooks` | IndexedDB + hook réactif `useLiveQuery` | `lib/db.ts`, toutes les pages |
 | `@react-pdf/renderer` (4) | Génération PDF déclarative côté client | `lib/pdf/*` |
 | `signature_pad` (5) | Capture de signature sur canvas | `components/SignatureFlow.tsx` |
@@ -95,6 +95,11 @@ src/
     crypto.ts              sha256Hex (Web Crypto), formatHash
     images.ts              compresserImage (canvas 1600px JPEG 0,7), blobVersDataUrl
     backup.ts              Export/import ZIP, détection de conflits, telechargerBlob
+    rgpd.ts                Suppression complète d'un locataire (baux, EDL, photos, PDF) et
+                           calcul préalable du périmètre effacé
+    erreurs.ts             decrireErreur : cause exploitable (quota, permission, contrainte)
+    adresse.ts             formatAdresse (adresse sur une ligne, parties vides ignorées)
+    liens.ts               Liens du projet + urlExterneSure (filtre http/https)
     defauts.ts             DONNÉES LÉGALES/MÉTIER : MOBILIER_OBLIGATOIRE (décret 2015-981),
                            BIBLIOTHEQUE_PIECES, GRILLE_VETUSTE_DEFAUT, VALIDITE_DIAGNOSTICS,
                            LIEN_NOTICE_INFORMATION
@@ -103,8 +108,11 @@ src/
                            SignaturesPdf, ZoneSignatureManuscrite, formatDateFr
       generer.ts           rendrePdf, rendrePdfAvecHash (2 passes), enregistrerDocument,
                            telechargerDocument
-      BailPdf.tsx          Bail type décret 2015-587 (parties I à VIII)
-      InventairePdf.tsx    Inventaire mobilier (annexe obligatoire)
+      BailPdf.tsx          Bail type décret 2015-587 (parties I à XI), champs manquants
+                           rendus en zones pointillées, QR code du dossier technique,
+                           checklist des pièces à remettre
+      ActeCautionnementPdf.tsx  Acte de cautionnement solidaire (art. 22-1), pré-rempli
+                           depuis le bail ; ne s'applique pas à Visale
       EdlPdf.tsx           EDL entrée/sortie + tableau comparatif + annexe photos
       LettreRestitutionPdf.tsx  Décompte dépôt de garantie
       CourrierIrlPdf.tsx   Courrier de révision annuelle
@@ -120,13 +128,16 @@ src/
                                        footer global rendu par AppLayout sur toutes les pages)
     dashboard/TableauDeBordPage.tsx    Alertes + échéancier (logique inline, voir §5.6)
     biens/     BiensPage, BienFormPage (4 étapes), BienDetailPage,
-               PiecesEditeur, DiagnosticsEditeur, diagnostics.ts (validité/badges)
-    locataires/LocatairesPage.tsx      CRUD modal (RHF+zod) + suppression RGPD
-    baux/      BauxPage (+ STATUT_BAIL_UI), BailAssistantPage (7 étapes),
-               BailDetailPage (cycle de vie, calculateurs), InventairePanel,
+               PiecesEditeur, BienRapideModal (création rapide depuis le bail)
+    locataires/LocatairesPage.tsx      Liste + suppression RGPD (périmètre annoncé)
+               LocataireFormModal.tsx  Formulaire partagé (RHF+zod), utilisé aussi par le bail
+    baux/      BauxPage (+ STATUT_BAIL_UI), BailRapidePage (formulaire unifié mono-écran
+               avec aperçu PDF ; création et édition), SectionLocataires, ApercuBailPanel,
+               BailDetailPage (cycle de vie, calculateurs, documents utiles),
                annexes.ts (checklist des annexes par défaut)
-    edl/       EdlListePage, EdlTerrainPage (mode terrain), EdlSignaturePage,
-               EdlSynthesePage, PhotoCapture, edlPdfUtils.ts
+    biens/     … + BienRapideModal (création d'un logement sans quitter le bail)
+    edl/       EdlListePage, EdlTerrainPage (mode terrain), SectionsReleves (compteurs/clés),
+               EdlSignaturePage, EdlSynthesePage, PhotoCapture, edlPdfUtils.ts
     documents/DocumentsPage.tsx        Bibliothèque filtrable
     parametres/ParametresPage.tsx      Bailleur, grille vétusté, sauvegarde, RGPD
 ```
@@ -140,7 +151,7 @@ maintenir les deux synchrones).
 
 | Table | Index | Contenu |
 |---|---|---|
-| `biens` | `id, nom, updatedAt` | Bien + diagnostics + `piecesModele` (trame des EDL) |
+| `biens` | `id, nom, updatedAt` | Bien + lien du dossier technique + `piecesModele` (trame des EDL) |
 | `locataires` | `id, nom, updatedAt` | Locataire + garant |
 | `baux` | `id, reference, bienId, statut, updatedAt, *locataireIds` | `*locataireIds` = multi-entry (recherche des baux d'un locataire) |
 | `inventaires` | `id, reference, bailId, statut` | Lignes de mobilier + signatures |
@@ -283,26 +294,40 @@ System Access :
   d'entrée** (copie profonde avec nouveaux ids — modifier la trame ne touche jamais un EDL
   existant). La bibliothèque de modèles est dans `defauts.ts` (`BIBLIOTHEQUE_PIECES`) :
   ajouter une pièce type = ajouter une entrée là-bas, rien d'autre.
-- Diagnostics : `DiagnosticsEditeur` calcule `dateExpiration` à l'ajout à partir de
-  `VALIDITE_DIAGNOSTICS` (durées par défaut modifiables dans `defauts.ts`). Les badges
-  viennent de `features/biens/diagnostics.ts` : `expire_bientot` = expiration à ≤ 92 jours.
-- Les éléments de catégorie `mobilier` des pièces alimentent le pré-remplissage de
-  l'inventaire à la création du bail.
+- **Dossier technique** : plus de saisie de diagnostics datés (le suivi des validités a été
+  retiré, il faisait double emploi avec les fichiers eux-mêmes). Le bien porte simplement
+  `dossierTechniqueUrl` — un lien vers le dossier en ligne (Drive, cloud) — dont un **QR code**
+  est imprimé sur le bail. L'URL passe par `urlExterneSure` (http/https uniquement) avant
+  d'être rendue cliquable ou encodée : le QR est scanné par un tiers.
+- Les éléments de catégorie `mobilier` des pièces (avec leur `quantite`) alimentent la partie
+  inventaire de l'état des lieux d'entrée.
 
 ### 5.2 Locataires
 
 - CRUD en modal avec react-hook-form + zod (`schema`). Le garant est aplati dans le
   formulaire (`avecGarant`, `garantNom`…) et reconstruit en objet `Garant` à l'enregistrement.
-- **Suppression RGPD** : refusée si un bail lié est en statut `genere`, `signe` ou `actif`.
-  Les baux `brouillon`/`termine` ne bloquent pas.
+- **Suppression RGPD** (`lib/rgpd.ts`) : refusée si un bail lié est en statut `genere`,
+  `signe` ou `actif`. Sinon `supprimerLocataireEtDonnees` efface, dans une transaction, le
+  locataire **et tout ce qui porte ses données personnelles** : baux dont il est seul
+  titulaire, EDL de ces baux, photos et **PDF archivés** (rattachés par `bailId` ou `edlId`).
+  En colocation le bail est conservé, le locataire seulement retiré de `locataireIds`.
+  `perimetreSuppressionLocataire` calcule ce périmètre sans rien modifier, pour l'annoncer
+  dans la confirmation. Toute nouvelle table portant des données personnelles doit être
+  ajoutée ici (et couverte dans `rgpd.test.ts`).
 
 ### 5.3 Baux
 
-- `BailAssistantPage` : brouillon local (interface `Brouillon`), validations recalculées à
-  chaque rendu de l'étape 3 (tableau `erreurs`) — **toutes les règles viennent de
-  `lib/calculs.ts`** (`validerDepotGarantie`, `validerDuree`) + le contrôle encadrement des
-  loyers (loyer HC ≤ référence majorée sauf complément justifié). Ne jamais dupliquer une
-  règle légale dans un composant : l'ajouter dans `calculs.ts` avec un test.
+- `BailRapidePage` : **formulaire unifié mono-écran** (création et édition) avec aperçu PDF
+  débattu à 500 ms. La saisie vit dans le type transitoire `SaisieBail` (aucune table Dexie) ;
+  `lib/pdf/bailRapide.ts` la convertit en entités (`construireDocs`) et sait la recharger
+  depuis un bail existant (`bailVersSaisie`). Bien et locataires sont **résolus depuis la base
+  si sélectionnés**, sinon construits inline.
+- **Validation non bloquante** : les incohérences (DPE G, dépôt > 2 mois, durée atypique)
+  s'affichent en avertissements, jamais en blocage — l'outil produit un document à compléter.
+  Les règles légales restent dans `lib/calculs.ts` : ne jamais en dupliquer une dans un
+  composant, l'ajouter là avec un test.
+- **Champs manquants** : `Rempl` (dans `pdf/commun.tsx`) rend une valeur ou, en mode
+  `brouillon`, une zone pointillée à compléter à la main. `0` est traité comme vide.
 - Le PDF suit la trame complète I–XI du contrat type : I désignation (mandataire « sans
   objet »), II objet (identifiant fiscal, habitat, période de construction, classe DPE +
   rappel des seuils de décence, TIC), III durée, IV conditions financières (zone tendue à la
@@ -312,34 +337,39 @@ System Access :
   résolutoire** (`bail.clauseResolutoire`, défaut true — coder `!== false` pour les baux
   antérieurs au champ), IX honoraires (néant), X clauses particulières, XI annexes (dont
   attestation d'assurance du locataire dans la checklist).
-- La génération (étape 7) fait, dans l'ordre : références (bail + inventaire) → construction
-  de l'`Inventaire` pré-rempli (11 postes `MOBILIER_OBLIGATOIRE` marqués `obligatoireDecret`
-  + mobilier des pièces) → rendu des 2 PDF → transaction d'insertion → `enregistrerDocument`
-  ×2 → navigation vers la fiche.
-- **Cycle de vie** (`BailDetailPage`) : `genere` → `signe` via la modale « trois voies » :
-  (a) impression + signature manuscrite, (b) prestataire eIDAS (recommandé) — ces deux voies
-  se confirment manuellement avec saisie de la date effective — ou (c) **signature sur écran
-  dans l'app** (`signerSurEcran`) : même parcours `SignatureFlow` que les EDL (relecture,
-  nom tapé, « lu et approuvé », horodatage), PDF régénéré avec le bloc de signatures
-  (`bail.signatures`) via `rendrePdfAvecHash`, empreinte stockée dans `bail.pdfHash` et
-  document enregistré `signe: true`. Puis `actif` (bouton manuel) → `termine`
-  (**automatique**, déclenché par la signature de l'EDL de sortie dans `EdlSignaturePage`).
-  Un bail signé n'est plus régénérable ni re-signable (boutons masqués par statut). La
-  mention « signature électronique simple, art. 1366-1367 » figure sur le PDF signé sur
-  écran ; l'app continue de recommander la voie eIDAS.
+- L'enregistrement fait, dans l'ordre : références (bail + grille) → construction des entités
+  → rendu des PDF → transaction d'insertion → `enregistrerDocument` → navigation. Chaque
+  étape porte un **code (E1…E6)** affiché en cas d'échec avec la cause réelle
+  (`decrireErreur`) : sur tablette, la console n'est pas consultable.
+- **Aucun inventaire séparé n'est créé** : l'EDL vaut inventaire (voir §5.4).
+- **Pas de signature électronique du bail** : il est destiné à être imprimé et signé à la
+  main (le PDF porte les zones de signature manuscrite). Le bail reste donc **modifiable et
+  régénérable sans limite** — « Modifier » recharge le formulaire, l'enregistrement met à jour
+  l'entité et régénère le PDF sous la **même référence**. « Télécharger le PDF » le reconstruit
+  toujours depuis les données courantes : aucun écart possible entre l'écran et le document.
+- **Cycle de vie** (`BailDetailPage`) : `genere` → `actif` (bouton « Marquer le logement
+  loué ») → `termine` (bouton, ou **automatiquement** à la signature de l'EDL de sortie). Le
+  statut `signe` n'est plus attribué ; il reste dans `StatutBail` pour lire les baux antérieurs.
+- **Documents utiles** de la fiche bail : fiche d'aide juridique, acte de cautionnement
+  (pré-rempli, non archivé car modèle à signer), grille de vétusté, courrier IRL, lettre de
+  restitution. Tous passent par `genererEtArchiver` (référence + rendu + archivage +
+  téléchargement) — utiliser ce helper pour tout nouveau document annexe.
 - La checklist d'annexes est figée dans le bail à la création (`annexesParDefaut(bien)` —
   l'extrait de copropriété ne s'ajoute que si `regimeJuridique === 'copropriete'`).
-- `InventairePanel` : édition des lignes (les 11 postes du décret ne sont pas supprimables,
-  seulement quantité 0 + alerte), signature via `SignatureFlow` en modal → PDF haché +
-  `statut: 'signe'` (verrouillage).
 - Calculateurs : prorata affiché en permanence (`prorataPremierLoyer` — jour d'effet inclus) ;
   révision IRL en modal (`revisionIRL` = loyer × nouvel indice / indice de référence),
   génère `CourrierIrlPdf` avec date d'application = anniversaire de l'année courante.
 
-### 5.4 États des lieux (cœur de l'app)
+### 5.4 États des lieux (cœur de l'app — vaut inventaire)
+
+**L'EDL vaut inventaire** (décret n°2015-981) : il n'existe plus d'entité `Inventaire`
+distincte. Le mobilier porte une `quantite` en plus de son `etat`, et les 11 postes
+obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `obligatoireDecret`
+(non supprimable ; quantité 0 ⇒ alerte de non-conformité du meublé).
 
 **Création** (depuis `BailDetailPage.creerEdl`) :
-- entrée : pièces copiées depuis `bien.piecesModele` (nouveaux ids) ;
+- entrée : pièces copiées depuis `bien.piecesModele` (nouveaux ids) + la pièce des 11 postes
+  obligatoires (`MOBILIER_OBLIGATOIRE`) ;
 - sortie : exige un EDL d'entrée **signé** ; structure dupliquée par
   `construirePiecesSortie(edlEntree)` qui reporte `etat→etatEntree`,
   `commentaire→commentaireEntree`, `photoIds→photoIdsEntree` et remet à zéro les champs de
@@ -347,7 +377,14 @@ System Access :
 
 **Mode terrain** (`EdlTerrainPage`) :
 - Plein écran : `AppLayout` masque la navigation quand l'URL matche `/edl/:id` (regex
-  `pleinEcran`). Onglets = Compteurs, Clés, une entrée par pièce, Infos.
+  `pleinEcran`). Onglets = Compteurs, Clés, une entrée par pièce, Infos. Le changement
+  d'onglet ramène en haut de page.
+- **Enrichissement du logement depuis le terrain (entrée uniquement)** : ajouter un élément ou
+  une pièce l'écrit dans l'EDL **et** dans `bien.piecesModele`, pour les états des lieux
+  suivants. En **sortie**, aucun ajout n'est possible : un élément absent se marque
+  `manquant: true`, ce qui vaut dégradation (l'état d'entrée y est mis en évidence).
+- **Photos** : par élément, et aussi sur les observations générales (`edl.photoIds`) ; toutes
+  sont reprises dans l'annexe photographique du PDF (`chargerPhotosPourPdf`).
 - **Autosauvegarde** : il n'y a PAS d'état local du document. Chaque interaction appelle
   `maj()` → `db.edls.put(...)` → `useLiveQuery` re-rend. Deux conséquences à respecter :
   1. les boutons/selects sont contrôlés (valeur lue de la base) ;
@@ -386,6 +423,12 @@ System Access :
 - Saisie par élément : `coutRemiseEnEtat`, `posteVetuste` (référence une ligne de
   `parametres.grilleVetuste` **par son libellé `poste`** — renommer un poste de la grille
   casse le lien : les éléments pointant vers l'ancien nom retombent à 100 %), `ageEquipementAnnees`.
+- **Rectification d'un EDL signé** : un document contradictoire ne se modifie pas
+  unilatéralement, mais les deux parties peuvent convenir d'une version corrigée. « Rectifier »
+  repasse l'EDL en `brouillon`, **archive la version signée** (date + `pdfHash`) dans
+  `edl.rectifications[]` et impose une **nouvelle signature des deux parties**. Le PDF
+  re-signé porte « annule et remplace la version signée du … » et le document s'intitule
+  « (rectificatif n°X, signé) ». Le PDF signé précédent reste dans la bibliothèque.
 - **Exception au verrouillage, volontaire** : ces trois champs restent modifiables après
   signature car ils appartiennent au décompte de restitution, pas au constat signé (le PDF
   signé n'en dépend pas).
@@ -409,7 +452,6 @@ System Access :
 ### 5.6 Tableau de bord
 
 Toute la logique d'alertes est dans `TableauDeBordPage` (pas de lib dédiée) :
-- diagnostics expirés / < 3 mois (via `validiteDiagnostic`) ;
 - EDL d'entrée signé alors que le bail est encore `brouillon`/`genere` ;
 - dépôt à restituer : EDL de sortie signé → date limite = signature + 30 ou 60 jours selon
   dégradations, alerte affichée à ≤ 45 jours de l'échéance (rouge à ≤ 7 jours) ;
@@ -496,16 +538,24 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
    `npm --prefix`) utilisée pour le développement piloté depuis l'autre workspace — anecdote
    d'outillage, pas une dépendance du projet.
 8. **Suppression d'entités** : bien supprimable seulement sans baux liés ; locataire cf.
-   RGPD ; baux/EDL/documents n'ont pas de suppression UI (choix : traçabilité). Si vous en
-   ajoutez une, gérer les cascades (photos, documents, références croisées `inventaireId`,
-   `edlEntreeId`, `edlSortieId`).
+   RGPD, via `lib/rgpd.ts` qui gère déjà la cascade (baux, EDL, photos, PDF). Baux/EDL/
+   documents n'ont pas de suppression UI directe (choix : traçabilité). Si vous en ajoutez
+   une, réutiliser cette cascade et les références croisées (`edlEntreeId`, `edlSortieId`).
 
 ## 8. Tests et qualité
 
 ```bash
+npm run lint        # ESLint (flat config) — exécuté en CI avant les tests
 npm test            # Vitest, environnement node, src/**/*.test.ts
 npx tsc -b          # type-check strict (aussi exécuté par npm run build)
 ```
+
+**ESLint** (`eslint.config.js`) vise les vrais défauts, pas le style : règles des hooks,
+variables/imports morts, `no-explicit-any`, `eqeqeq`, `no-console` (sauf `warn`/`error`).
+Les règles du React Compiler (`set-state-in-effect`, `incompatible-library`) sont laissées en
+**avertissement** : elles signalent ici des synchronisations d'état légitimes (réinitialiser un
+formulaire à l'ouverture d'une modale, amorcer une saisie depuis des données asynchrones).
+La CI échoue sur toute **erreur** ESLint.
 
 | Fichier | Couvre |
 |---|---|
@@ -515,7 +565,17 @@ npx tsc -b          # type-check strict (aussi exécuté par npm run build)
 | `lib/dates.test.ts` | parsing JJ/MM/AAAA (dates inexistantes rejetées), formatage, masque de saisie |
 | `lib/lettres.test.ts` | nombres en lettres (règles françaises : 71, 80, 200, accords), montants en euros |
 | `lib/autosave.test.ts` | rotation des archives (seuil, tri chronologique, fichiers étrangers ignorés) |
+| `lib/gdrive.test.ts` | configuration Google Drive (activation, état, rotation des archives distantes) |
+| `lib/pdf/generer.test.ts` | nommage des fichiers téléchargés, remplacement des versions non signées |
 | `lib/pdf/BailPdf.test.ts` | rendu smoke du bail complet (fixtures avec toutes les mentions légales) via `renderToBuffer` |
+| `lib/pdf/bailRapide.test.ts` | `construireDocs` (bien/locataire résolus ou inline), défauts de saisie, mobilité (dépôt interdit, IRL désactivée), colocation, clauses, `bailVersSaisie` |
+| `lib/pdf/ActeCautionnementPdf.test.ts` | rendu vierge, rendu pré-rempli, loyer à 0 (montants laissés à compléter), garant sans adresse |
+| `lib/db.test.ts` | numérotation `TYPE-ANNEE-XXXX`, séquences indépendantes par type, remise à zéro annuelle, absence de collision en concurrence |
+| `lib/rgpd.test.ts` | suppression complète (bail, EDL, photos, PDF), conservation d'un bail en colocation, isolation des autres locataires |
+| `lib/erreurs.test.ts` | traduction des causes (quota, contrainte de clé, erreur inconnue, valeur non-`Error`) |
+| `lib/adresse.test.ts` | assemblage d'adresse, complément, parties manquantes sans séparateur orphelin |
+| `lib/liens.test.ts` | `urlExterneSure` : http/https acceptés, schéma ajouté, `javascript:`/`data:`/`file:` rejetés |
+| `features/baux/annexes.test.ts` | annexes générées cochées d'office, pièces externes à fournir, règlement de copropriété conditionnel, EDL valant inventaire |
 | `validerDecenceDPE` (dans calculs.test) | calendrier loi Climat : G bloquant 2025, F 2028, E 2034, classe absente signalée |
 | `lib/backup.test.ts` | export→import sur base vierge (100 % données+photos restaurées, octets identiques), détection de conflits, fusion sans perte (via `fake-indexeddb`) |
 
@@ -544,7 +604,7 @@ la conformité juridique des documents.
 
 | Évolution | Point d'accroche |
 |---|---|
-| Signature eIDAS (Yousign/DocuSign) | La modale « Faire signer le bail » (`BailDetailPage`) présente déjà les trois voies ; brancher l'API sur la voie (b), le PDF « prêt à signer » existe (`documents`) |
+| Signature eIDAS (Yousign/DocuSign) | Hors périmètre : le bail est volontairement signé sur papier. Le PDF « prêt à signer » existe (`documents`) si l'on souhaitait brancher un prestataire |
 | Quittances / suivi des paiements | Nouvelle table Dexie + type de document ; les séquences et la bibliothèque absorbent un nouveau `TypeDocument` sans refonte |
 | Synchronisation multi-appareils | Le format d'export ZIP (§4.4) est le pivot : mêmes ids partout, fusion par id déjà implémentée |
 | Comptabilité LMNP | Hors périmètre — ne pas mélanger avec ce code, prévoir un module séparé |
