@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { AlertTriangle, Building2, Pencil, Plus } from 'lucide-react';
-import type { Bail, ClasseDPE, Parametres, SaisieBail, TypeBien } from '@/types';
+import type { Bail, ClasseDPE, Locataire, Parametres, SaisieBail, TypeBien } from '@/types';
 import { CLASSES_DPE, TYPES_BIEN, TYPE_BAIL_LABELS } from '@/types';
 import { db, getParametres, prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
@@ -50,8 +50,11 @@ export function BailRapidePage() {
   const [generation, setGeneration] = useState(false);
   const [enregistrement, setEnregistrement] = useState(false);
   const [modaleBien, setModaleBien] = useState(false);
-  /** Index du locataire dont on ouvre la modale de création (null = fermée). */
-  const [modaleLocataire, setModaleLocataire] = useState<number | null>(null);
+  /**
+   * Modale locataire : `index` = emplacement du bail concerné, `locataire` =
+   * fiche à modifier (absent = création). `null` = modale fermée.
+   */
+  const [modaleLocataire, setModaleLocataire] = useState<{ index: number; locataire?: Locataire } | null>(null);
   const enCoursRef = useRef(false);
 
   // Amorce la saisie une seule fois : depuis un bail existant (édition) ou vierge (création).
@@ -140,7 +143,7 @@ export function BailRapidePage() {
     const noms = nomsPersonnes(
       saisie.locataires.map((l) => {
         const enr = l.id ? locatairesEnr.find((x) => x.id === l.id) : undefined;
-        return { prenom: enr?.prenom ?? l.prenom ?? '', nom: enr?.nom ?? l.nom ?? '' };
+        return { prenom: enr?.prenom ?? '', nom: enr?.nom ?? '' };
       }),
     );
     return `Bail meublé${noms ? ` - ${noms}` : ''}.pdf`;
@@ -168,10 +171,8 @@ export function BailRapidePage() {
   const telechargerActe = async (i: number) => {
     const l = saisie.locataires[i];
     const enr = l.id ? locatairesEnr.find((x) => x.id === l.id) : undefined;
-    const garant = enr?.garant ?? l.garant;
-    const locataireNom = enr
-      ? `${enr.prenom} ${enr.nom}`.trim()
-      : `${l.prenom ?? ''} ${l.nom ?? ''}`.trim();
+    const garant = enr?.garant;
+    const locataireNom = enr ? `${enr.prenom} ${enr.nom}`.trim() : '';
     const a = bienChoisi?.adresse ?? saisie.bien.adresse;
     const bienAdresse = formatAdresse(a);
     const blob = await rendrePdf(
@@ -196,14 +197,11 @@ export function BailRapidePage() {
     // depuis une tablette, où la console du navigateur n'est pas consultable.
     let etape = 'E1 (paramètres)';
     try {
-      // Une ligne locataire laissée entièrement vide n'est pas enregistrée :
-      // elle ne doit ni polluer la liste des locataires, ni être référencée
-      // par le bail. L'aperçu, lui, continue d'afficher la saisie telle quelle.
+      // Un emplacement de locataire laissé vide n'est pas référencé par le bail
+      // enregistré (l'aperçu, lui, continue d'afficher des pointillés).
       const saisieEnr: SaisieBail = {
         ...saisie,
-        locataires: saisie.locataires.filter(
-          (l) => l.id || l.nom?.trim() || l.prenom?.trim() || l.email?.trim(),
-        ),
+        locataires: saisie.locataires.filter((l) => l.id),
       };
       const params = await getParametres();
       // Mémorise le bailleur saisi si les Paramètres sont vides.
@@ -249,8 +247,6 @@ export function BailRapidePage() {
         etape = 'E3 (écriture en base)';
         await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
           if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
-          const locsInline = locataires.filter((_, i) => !saisieEnr.locataires[i]?.id);
-          if (locsInline.length) await db.locataires.bulkAdd(locsInline);
           await db.baux.put(bailMaj);
         });
         const nomsMaj = nomsPersonnes(locataires);
@@ -297,8 +293,6 @@ export function BailRapidePage() {
       etape = 'E5 (écriture en base)';
       await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
         if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
-        const locsInline = locataires.filter((_, i) => !saisieEnr.locataires[i]?.id);
-        if (locsInline.length) await db.locataires.bulkAdd(locsInline);
         await db.baux.add(bailFinal);
       });
 
@@ -470,7 +464,12 @@ export function BailRapidePage() {
             coloc={coloc}
             maj={maj}
             majLoc={majLoc}
-            onCreerLocataire={(i) => setModaleLocataire(i)}
+            onCreerLocataire={(i) => setModaleLocataire({ index: i })}
+            onModifierLocataire={(i) => {
+              const id = saisie.locataires[i]?.id;
+              const fiche = id ? locatairesEnr.find((x) => x.id === id) : undefined;
+              if (fiche) setModaleLocataire({ index: i, locataire: fiche });
+            }}
             onTelechargerActe={(i) => void telechargerActe(i)}
           />
 
@@ -612,8 +611,9 @@ export function BailRapidePage() {
       <LocataireFormModal
         open={modaleLocataire !== null}
         onClose={() => setModaleLocataire(null)}
+        locataire={modaleLocataire?.locataire}
         onEnregistre={(l) => {
-          if (modaleLocataire !== null) majLoc(modaleLocataire, { id: l.id });
+          if (modaleLocataire) majLoc(modaleLocataire.index, { id: l.id });
         }}
       />
     </div>

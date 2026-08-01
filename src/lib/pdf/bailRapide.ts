@@ -14,7 +14,7 @@ export function saisieVide(bailleur: Parametres['bailleur'], bienId?: string): S
     bailleur,
     bienId,
     bien: { adresse: { ligne1: '', codePostal: '', ville: '' } },
-    locataires: [{ civilite: 'M' }],
+    locataires: [{}],
     typeBail: 'meuble_1an',
     dateEffet: format(new Date(), 'yyyy-MM-dd'),
     dureeMois: 12,
@@ -89,19 +89,15 @@ export function construireBienInline(b: SaisieBail['bien']): Bien {
   };
 }
 
-/** Construit un `Locataire` complet à partir d'une ligne de saisie inline. */
-function construireLocataireInline(l: SaisieBail['locataires'][number]): Locataire {
+/** Emplacement de locataire non renseigné : le PDF affichera des pointillés. */
+function locataireVide(): Locataire {
   return {
     id: uid(),
-    civilite: l.civilite ?? 'M',
-    nom: l.nom?.trim() ?? '',
-    prenom: l.prenom?.trim() ?? '',
-    dateNaissance: l.dateNaissance,
-    lieuNaissance: l.lieuNaissance,
-    adresseActuelle: l.adresseActuelle?.trim() || undefined,
-    email: l.email?.trim() ?? '',
-    telephone: l.telephone?.trim() ?? '',
-    garant: l.garant,
+    civilite: 'M',
+    nom: '',
+    prenom: '',
+    email: '',
+    telephone: '',
     createdAt: nowISO(),
     updatedAt: nowISO(),
   };
@@ -176,7 +172,7 @@ export function construireDocs(
 ): { bail: Bail; bien: Bien; locataires: Locataire[] } {
   const bien = (saisie.bienId ? resolveBien(saisie.bienId) : undefined) ?? construireBienInline(saisie.bien);
   const locataires = (saisie.locataires.length ? saisie.locataires : [{}]).map(
-    (l) => (l.id ? resolveLocataire(l.id) : undefined) ?? construireLocataireInline(l),
+    (l) => (l.id ? resolveLocataire(l.id) : undefined) ?? locataireVide(),
   );
   const bail = construireBail(saisie, bien, locataires, reference);
   return { bail, bien, locataires };

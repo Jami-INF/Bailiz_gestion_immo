@@ -122,15 +122,17 @@ describe('construireDocs', () => {
     expect(bail.reference).toBe('BAIL-2026-0001');
   });
 
-  it('retombe sur une saisie inline quand la référence ne résout pas', () => {
+  it('construit des entités vides quand rien ne résout (bail à compléter à la main)', () => {
     const saisie: SaisieBail = {
       ...saisieVide(bailleur, 'bien-inconnu'),
-      locataires: [{ prenom: 'Léo', nom: 'Durand', email: 'leo@x.fr', telephone: '0700000000' }],
+      locataires: [{ id: 'loc-inconnu' }],
     };
     const { bien, locataires, bail } = construireDocs(saisie, 'REF', resolveBien, resolveLocataire);
     expect(bien.id).not.toBe('bien-1');
-    expect(locataires[0].prenom).toBe('Léo');
-    // Le bail doit pointer vers le bien réellement construit.
+    // Emplacement non renseigné : le PDF affichera des pointillés.
+    expect(locataires[0].prenom).toBe('');
+    expect(locataires[0].nom).toBe('');
+    // Le bail doit pointer vers les entités réellement construites.
     expect(bail.bienId).toBe(bien.id);
     expect(bail.locataireIds).toEqual([locataires[0].id]);
   });
@@ -160,7 +162,7 @@ describe('construireDocs', () => {
     const coloc = construireDocs(
       {
         ...saisieDeBase(),
-        locataires: [{ id: 'loc-1' }, { prenom: 'Paul', nom: 'Martin' }],
+        locataires: [{ id: 'loc-1' }, { id: 'loc-2' }],
         clauseSolidarite: true,
         assuranceMontantAnnuel: 180,
       },

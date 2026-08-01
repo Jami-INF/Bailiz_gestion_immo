@@ -361,19 +361,13 @@ export interface SaisieBail {
     chauffage?: string; // texte libre simplifié (ex. « individuel électrique »)
     eauChaude?: string;
   };
-  locataires: {
-    /** Locataire enregistré sélectionné ; si absent, les champs inline sont utilisés. */
-    id?: string;
-    civilite?: 'M' | 'Mme';
-    nom?: string;
-    prenom?: string;
-    email?: string;
-    telephone?: string;
-    dateNaissance?: string;
-    lieuNaissance?: string;
-    adresseActuelle?: string;
-    garant?: Garant;
-  }[];
+  /**
+   * Locataires du bail, référencés par leur fiche enregistrée. La saisie se fait
+   * via le formulaire locataire partagé (`LocataireFormModal`) : aucun champ
+   * n'est dupliqué ici. Une entrée sans `id` = emplacement non renseigné, rendu
+   * en zones à compléter à la main sur le PDF.
+   */
+  locataires: { id?: string }[];
   typeBail: TypeBail;
   dateEffet?: string;
   dureeMois?: number;
