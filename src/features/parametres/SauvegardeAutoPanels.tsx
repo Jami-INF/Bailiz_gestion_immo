@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { FolderSync, HardDriveUpload } from 'lucide-react';
@@ -11,13 +11,7 @@ import {
   getConfigAutosave,
   pousserSiActive,
 } from '@/lib/autosave';
-import {
-  activerGDrive,
-  CLIENT_ID_GDRIVE,
-  derniereErreurGDrive,
-  desactiverGDrive,
-  pousserSauvegardeGDrive,
-} from '@/lib/gdrive';
+import { CLIENT_ID_GDRIVE, connecterGDrive, derniereErreurGDrive, desactiverGDrive, pousserSauvegardeGDrive, prechargerGsi } from '@/lib/gdrive';
 import { Button, Card, Field, Input, useToast } from '@/components/ui';
 
 /**
@@ -119,6 +113,12 @@ export function SauvegardeGDrivePanel() {
   const [enCours, setEnCours] = useState(false);
   const config = parametres?.sauvegardeGDrive;
 
+  // Le script Google est chargé dès l'affichage : au clic, la fenêtre de
+  // connexion doit s'ouvrir sans attente réseau, sinon Safari/iOS la bloque.
+  useEffect(() => {
+    prechargerGsi();
+  }, []);
+
   const connecter = async () => {
     const id = (clientId || config?.clientId || CLIENT_ID_GDRIVE).trim();
     if (!id.endsWith('.apps.googleusercontent.com')) {
@@ -127,12 +127,20 @@ export function SauvegardeGDrivePanel() {
     }
     setEnCours(true);
     try {
-      await activerGDrive(id);
+      // Jeton demandé en premier, dans le geste utilisateur (contrainte Safari).
+      const autorise = await connecterGDrive(id);
+      if (!autorise) {
+        toast(
+          'warning',
+          "Connexion Google non aboutie : fenêtre fermée, refusée, ou bloquée par le navigateur. Sur iPad, autorisez les fenêtres surgissantes pour ce site (Réglages > Safari) puis réessayez.",
+        );
+        return;
+      }
       const resultat = await pousserSauvegardeGDrive(true);
       if (resultat === 'ok') {
         toast('success', 'Google Drive connecté — première sauvegarde poussée dans le dossier « Bailiz ».');
       } else if (resultat === 'permission_requise') {
-        toast('warning', 'Connexion Google refusée ou fermée : réessayez.');
+        toast('warning', 'Autorisation Google expirée : réessayez.');
         await desactiverGDrive();
       } else if (resultat === 'hors_ligne') {
         toast('warning', 'Configuré — la première sauvegarde partira au retour du réseau.');

@@ -21,7 +21,7 @@ import { decrireErreur } from './erreurs';
 /**
  * ID client OAuth de l'instance officielle (console.cloud.google.com, projet
  * Bailiz). Donnée publique par conception : la protection vient des origines
- * JavaScript autorisées côté Google (jami-inf.github.io, localhost:5273).
+ * JavaScript autorisées côté Google (jami-inf.github.io, localhost:5173).
  * En cas de fork/redéploiement sur un autre domaine, créer son propre ID.
  */
 export const CLIENT_ID_GDRIVE =
@@ -65,6 +65,18 @@ async function majConfigGDrive(maj: Partial<ConfigGDrive>): Promise<void> {
   });
 }
 
+/**
+ * Connexion interactive : demande le jeton **en premier**, avant toute écriture
+ * en base, pour rester dans le geste utilisateur (contrainte Safari/iOS).
+ * Retourne `false` si l'utilisateur a refusé ou si la fenêtre a été bloquée.
+ */
+export async function connecterGDrive(clientId = CLIENT_ID_GDRIVE): Promise<boolean> {
+  const token = await obtenirJeton(clientId.trim(), true);
+  if (!token) return false;
+  await activerGDrive(clientId);
+  return true;
+}
+
 export async function activerGDrive(clientId = CLIENT_ID_GDRIVE): Promise<void> {
   const params = await getParametres();
   await db.parametres.put({
@@ -87,6 +99,18 @@ export async function desactiverGDrive(): Promise<void> {
   await db.parametres.put({
     ...params,
     sauvegardeGDrive: { ...params.sauvegardeGDrive, actif: false },
+  });
+}
+
+/**
+ * Précharge le script Google Identity Services. À appeler à l'affichage de
+ * l'écran de configuration : sur Safari/iOS, une fenêtre OAuth n'est autorisée
+ * que dans le tick du geste utilisateur — si le script se télécharge au moment
+ * du clic, la fenêtre est bloquée et la connexion échoue.
+ */
+export function prechargerGsi(): void {
+  void chargerGsi().catch(() => {
+    /* réessayé au clic */
   });
 }
 
