@@ -4,6 +4,7 @@ import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros } from '@/lib/calculs';
 import { montantEnLettres } from '@/lib/lettres';
 import { urlExterneSure } from '@/lib/liens';
+import { formatAdresse } from '@/lib/adresse';
 import {
   CaseACocher,
   EntetePdf,
@@ -41,9 +42,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
       ? 'forfait de charges (révisable dans les mêmes conditions que le loyer)'
       : 'provisions sur charges avec régularisation annuelle';
   const adresseComplete = [
-    bien.adresse.ligne1,
-    bien.adresse.ligne2,
-    `${bien.adresse.codePostal} ${bien.adresse.ville}`,
+    formatAdresse(bien.adresse),
     bien.batiment && `Bâtiment ${bien.batiment}`,
     bien.etage && `Étage ${bien.etage}`,
   ]
@@ -104,16 +103,16 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         <Text style={s.h3}>Le bailleur</Text>
         <View style={s.tiers}>
           <Text style={s.p}>
-            {b.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${b.prenom} ${b.nom}`.trim()} brouillon={brouillon} /> —
+            {b.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${b.prenom} ${b.nom}`.trim()} brouillon={brouillon} taille={40} /> —
             personne physique, loueur en meublé non professionnel (LMNP)
             {b.siret ? `, SIRET : ${b.siret}` : ''}.
           </Text>
-          <Text style={s.tiersLigne}>
-            Demeurant : <Rempl v={b.adresse} brouillon={brouillon} taille={30} />
+          <Text style={brouillon ? s.tiersLigneAComplecter : s.tiersLigne}>
+            Demeurant : <Rempl v={b.adresse} brouillon={brouillon} taille={55} />
           </Text>
-          <Text style={s.tiersLigne}>
-            Courriel : <Rempl v={b.email} brouillon={brouillon} taille={20} />
-            {'     '}Téléphone : <Rempl v={b.telephone} brouillon={brouillon} taille={16} />
+          <Text style={brouillon ? s.tiersLigneAComplecter : s.tiersLigne}>
+            Mail : <Rempl v={b.email} brouillon={brouillon} taille={55} />
+            {'     '}Téléphone : <Rempl v={b.telephone} brouillon={brouillon} taille={32} />
           </Text>
         </View>
         <Text style={s.p}>
@@ -124,21 +123,21 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         {locataires.map((l) => (
           <View style={s.tiers} key={l.id}>
             <Text style={s.p}>
-              {l.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${l.prenom} ${l.nom}`.trim()} brouillon={brouillon} />
+              {l.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${l.prenom} ${l.nom}`.trim()} brouillon={brouillon} taille={40} />
               {(l.dateNaissance || l.lieuNaissance || brouillon) && (
                 <>
-                  , né(e) le <Rempl v={l.dateNaissance ? formatDateFr(l.dateNaissance) : undefined} brouillon={brouillon} taille={14} /> à{' '}
-                  <Rempl v={l.lieuNaissance} brouillon={brouillon} taille={16} />
+                  , né(e) le <Rempl v={l.dateNaissance ? formatDateFr(l.dateNaissance) : undefined} brouillon={brouillon} taille={20} /> à{' '}
+                  <Rempl v={l.lieuNaissance} brouillon={brouillon} taille={28} />
                 </>
               )}
             </Text>
-            <Text style={s.tiersLigne}>
-              Courriel : <Rempl v={l.email} brouillon={brouillon} taille={20} />
-              {'     '}Téléphone : <Rempl v={l.telephone} brouillon={brouillon} taille={16} />
+            <Text style={brouillon ? s.tiersLigneAComplecter : s.tiersLigne}>
+              Mail : <Rempl v={l.email} brouillon={brouillon} taille={55} />
+              {'     '}Téléphone : <Rempl v={l.telephone} brouillon={brouillon} taille={32} />
             </Text>
             {(l.adresseActuelle || brouillon) && (
-              <Text style={s.tiersLigne}>
-                Adresse actuelle : <Rempl v={l.adresseActuelle} brouillon={brouillon} taille={30} />
+              <Text style={brouillon ? s.tiersLigneAComplecter : s.tiersLigne}>
+                Adresse actuelle : <Rempl v={l.adresseActuelle} brouillon={brouillon} taille={55} />
               </Text>
             )}
           </View>
@@ -157,7 +156,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
                 ) : (
                   <Text style={s.tiersLigne} key={l.id}>
                     {l.garant!.prenom} {l.garant!.nom}, demeurant{' '}
-                    <Rempl v={l.garant!.adresse} brouillon={brouillon} taille={30} /> — caution de{' '}
+                    <Rempl v={l.garant!.adresse} brouillon={brouillon} taille={55} /> — caution de{' '}
                     {l.prenom} {l.nom} (acte de cautionnement joint).
                   </Text>
                 ),
@@ -169,7 +168,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         <Text style={s.h2}>II. Objet du contrat</Text>
         <Text style={s.h3}>A. Consistance du logement</Text>
         <Text style={s.p}>
-          Adresse : <Rempl v={adresseComplete} brouillon={brouillon} taille={30} />.{' '}
+          Adresse : <Rempl v={adresseComplete} brouillon={brouillon} taille={55} />.{' '}
           {bail.typeBail !== 'mobilite' && (
             <>
               Identifiant fiscal du logement :{' '}
@@ -177,9 +176,9 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
             </>
           )}
           Type : <Rempl v={bien.type} brouillon={brouillon} taille={6} />,{' '}
-          <Rempl v={bien.nbPieces || undefined} brouillon={brouillon} taille={3} /> pièce
+          <Rempl v={bien.nbPieces || undefined} brouillon={brouillon} taille={5} /> pièce
           {bien.nbPieces > 1 ? 's' : ''} principale{bien.nbPieces > 1 ? 's' : ''}. Surface habitable :{' '}
-          <Rempl v={bien.surfaceBoutin || undefined} brouillon={brouillon} taille={5} /> m² (loi
+          <Rempl v={bien.surfaceBoutin || undefined} brouillon={brouillon} taille={8} /> m² (loi
           Boutin).
         </Text>
         <Text style={s.p}>
@@ -194,9 +193,10 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
           .
         </Text>
         <Text style={s.p}>
-          Chauffage : {bien.chauffage.type} ({bien.chauffage.energie}). Eau chaude sanitaire :{' '}
-          {bien.eauChaude.type === 'individuel' ? 'individuelle' : 'collective'} (
-          {bien.eauChaude.energie}).
+          Chauffage : {bien.chauffage.type}
+          {bien.chauffage.energie.trim() ? ` (${bien.chauffage.energie.trim()})` : ''}. Eau chaude
+          sanitaire : {bien.eauChaude.type === 'individuel' ? 'individuelle' : 'collective'}
+          {bien.eauChaude.energie.trim() ? ` (${bien.eauChaude.energie.trim()})` : ''}.
           {(bien.chauffage.type === 'collectif' || bien.eauChaude.type === 'collectif') &&
             ' Pour les installations collectives, la consommation du locataire est répartie via les charges récupérables.'}
         </Text>

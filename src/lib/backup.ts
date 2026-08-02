@@ -201,6 +201,25 @@ export function sauvegardeAncienne(derniereSauvegarde?: string): boolean {
   return Date.now() - new Date(derniereSauvegarde).getTime() > trenteJours;
 }
 
+/**
+ * Ouvre un document dans un nouvel onglet (lecture et impression immédiates,
+ * sans passer par le dossier de téléchargements — bien plus pratique sur
+ * tablette). Si le navigateur bloque la fenêtre, on retombe sur un
+ * téléchargement classique plutôt que de ne rien faire.
+ */
+export function ouvrirBlob(blob: Blob, nomFichier: string): void {
+  const url = URL.createObjectURL(blob);
+  const onglet = window.open(url, '_blank');
+  if (!onglet) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomFichier;
+    a.click();
+  }
+  // Révocation tardive : l'onglet doit avoir le temps de charger le document.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export function telechargerBlob(blob: Blob, nomFichier: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

@@ -57,6 +57,8 @@ export const pdfStyles = StyleSheet.create({
   // Bloc d'une partie (bailleur, locataire, garant) — aéré, présentation en liste.
   tiers: { marginBottom: 9 },
   tiersLigne: { marginBottom: 2, paddingLeft: 12, color: '#334155' },
+  /** Ligne comportant des zones à compléter à la main : interligne élargi. */
+  tiersLigneAComplecter: { marginBottom: 9, paddingLeft: 12, color: '#334155', lineHeight: 1.9 },
   gras: { fontFamily: 'Helvetica-Bold' },
   petit: { fontSize: 8, color: '#64748b' },
   // Encadré clair (récapitulatifs, mises en avant).

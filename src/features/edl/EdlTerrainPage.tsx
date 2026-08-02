@@ -18,12 +18,13 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { nowISO, uid } from '@/lib/ids';
-import type { CategorieElement, ElementEDL, EtatDesLieux, EtatNote, PieceEDL } from '@/types';
+import type { CategorieElement, Compteur, ElementEDL, EtatDesLieux, EtatNote, PieceEDL } from '@/types';
 import { CATEGORIE_LABELS, ETAT_LABELS } from '@/types';
 import { estDegradation, progressionEDL } from '@/lib/etat';
 import { Badge, Button, Checkbox, DateInput, Field, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
 import { PhotoCapture } from './PhotoCapture';
 import { SectionCles, SectionCompteurs } from './SectionsReleves';
+import { VignetteEntree, VisionneusePhotos, type GroupePhotos } from './VisionneusePhotos';
 
 const COULEURS_ETAT: Record<EtatNote, string> = {
   neuf: 'bg-emerald-600 border-emerald-600',
@@ -49,6 +50,10 @@ export function EdlTerrainPage() {
   const [modalePiece, setModalePiece] = useState(false);
   const [nomNouvellePiece, setNomNouvellePiece] = useState('');
   const [modaleRectifier, setModaleRectifier] = useState(false);
+  /** Photos ouvertes en plein écran (comparaison entrée/sortie). */
+  const [visionneuse, setVisionneuse] = useState<{ titre: string; groupes: GroupePhotos[]; initial: number } | null>(
+    null,
+  );
 
   const onglets = useMemo(() => {
     if (!edl) return [];
@@ -79,6 +84,22 @@ export function EdlTerrainPage() {
   const maj = (m: Partial<EtatDesLieux>) => {
     if (signe) return;
     void db.edls.put({ ...edl, ...m, updatedAt: nowISO() });
+  };
+
+  /**
+   * Met à jour les compteurs de l'EDL et mémorise leurs numéros sur le logement :
+   * un PDL/PCE ne change pas d'un locataire à l'autre, il n'a donc à être saisi
+   * qu'une fois et pré-remplira les états des lieux suivants.
+   */
+  const majCompteurs = (compteurs: Compteur[]) => {
+    maj({ compteurs });
+    if (!bien) return;
+    const reference = compteurs.map((c) => ({ type: c.type, numero: c.numero }));
+    const inchange =
+      bien.compteurs?.length === reference.length &&
+      bien.compteurs.every((c, i) => c.type === reference[i].type && c.numero === reference[i].numero);
+    if (inchange) return;
+    void db.biens.put({ ...bien, compteurs: reference, updatedAt: nowISO() });
   };
 
   const majElement = (pieceId: string, elementId: string, m: Partial<ElementEDL>) => {
@@ -331,7 +352,7 @@ export function EdlTerrainPage() {
 
       <main className="mx-auto w-full max-w-3xl grow px-4 py-4">
         {onglet?.type === 'compteurs' && (
-          <SectionCompteurs edl={edl} lectureSeule={signe} onMaj={(compteurs) => maj({ compteurs })} />
+          <SectionCompteurs edl={edl} lectureSeule={signe} onMaj={majCompteurs} />
         )}
         {onglet?.type === 'cles' && (
           <SectionCles cles={edl.cles} lectureSeule={signe} onMaj={(cles) => maj({ cles })} />
@@ -462,6 +483,21 @@ export function EdlTerrainPage() {
                       }
                       className="flex-1"
                     />
+                    {sortie && (
+                      <VignetteEntree
+                        photoIds={el.photoIdsEntree ?? []}
+                        onOuvrir={() =>
+                          setVisionneuse({
+                            titre: `${onglet.nom} — ${el.nom}`,
+                            groupes: [
+                              { libelle: 'Entrée', photoIds: el.photoIdsEntree ?? [] },
+                              { libelle: 'Sortie', photoIds: el.photoIds },
+                            ],
+                            initial: 0,
+                          })
+                        }
+                      />
+                    )}
                     <div>
                       <span className="mb-1 block text-xs font-medium text-accent-600">Photos</span>
                       <PhotoCapture
@@ -470,6 +506,21 @@ export function EdlTerrainPage() {
                         photoIds={el.photoIds}
                         lectureSeule={signe}
                         onChange={(photoIds) => majElement(onglet.pieceId!, el.id, { photoIds })}
+                        onAgrandir={
+                          el.photoIds.length
+                            ? () =>
+                                setVisionneuse({
+                                  titre: `${onglet.nom} — ${el.nom}`,
+                                  groupes: sortie
+                                    ? [
+                                        { libelle: 'Entrée', photoIds: el.photoIdsEntree ?? [] },
+                                        { libelle: 'Sortie', photoIds: el.photoIds },
+                                      ]
+                                    : [{ libelle: 'Photos', photoIds: el.photoIds }],
+                                  initial: sortie ? 1 : 0,
+                                })
+                            : undefined
+                        }
                       />
                     </div>
                   </div>
@@ -595,6 +646,15 @@ export function EdlTerrainPage() {
           </Button>
         </div>
       </footer>
+
+      {visionneuse && (
+        <VisionneusePhotos
+          titre={visionneuse.titre}
+          groupes={visionneuse.groupes}
+          groupeInitial={visionneuse.initial}
+          onClose={() => setVisionneuse(null)}
+        />
+      )}
 
       <Modal
         open={modaleRectifier}

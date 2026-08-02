@@ -16,12 +16,15 @@ export function PhotoCapture({
   photoIds,
   onChange,
   lectureSeule,
+  onAgrandir,
 }: {
   edlId: string;
   legende: string;
   photoIds: string[];
   onChange: (photoIds: string[]) => void;
   lectureSeule?: boolean;
+  /** Ouvre la visionneuse plein écran ; absent = vignettes non cliquables. */
+  onAgrandir?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -83,7 +86,13 @@ export function PhotoCapture({
       {photoIds.map((id) =>
         urls[id] ? (
           <div key={id} className="relative">
-            <img src={urls[id]} alt={legende} className="h-14 w-14 rounded-lg object-cover" />
+            {onAgrandir ? (
+              <button type="button" onClick={onAgrandir} aria-label={`Agrandir : ${legende}`}>
+                <img src={urls[id]} alt={legende} className="h-14 w-14 rounded-lg object-cover" />
+              </button>
+            ) : (
+              <img src={urls[id]} alt={legende} className="h-14 w-14 rounded-lg object-cover" />
+            )}
             {!lectureSeule && (
               <button
                 type="button"

@@ -9,7 +9,7 @@ import { db, getParametres, prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import { formatEuros } from '@/lib/calculs';
 import { decrireErreur } from '@/lib/erreurs';
-import { telechargerBlob } from '@/lib/backup';
+import { ouvrirBlob, telechargerBlob } from '@/lib/backup';
 import { formatAdresse } from '@/lib/adresse';
 import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
@@ -188,7 +188,7 @@ export function BailRapidePage() {
       />,
     );
     const nomGarant = garant ? `${garant.prenom ?? ''} ${garant.nom ?? ''}`.trim() : '';
-    telechargerBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
+    ouvrirBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
   };
 
   const enregistrer = async () => {

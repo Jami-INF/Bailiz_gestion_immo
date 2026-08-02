@@ -31,7 +31,7 @@ import { CourrierIrlPdf } from '@/lib/pdf/CourrierIrlPdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
-import { telechargerBlob } from '@/lib/backup';
+import { ouvrirBlob } from '@/lib/backup';
 import { formatAdresse } from '@/lib/adresse';
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { STATUT_BAIL_UI } from './BauxPage';
@@ -135,7 +135,28 @@ export function BailDetailPage() {
     );
     const g = avecCaution?.garant;
     const nomGarant = g ? `${g.prenom ?? ''} ${g.nom ?? ''}`.trim() : '';
-    telechargerBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
+    ouvrirBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
+  };
+
+  /**
+   * Compteurs pré-remplis : numéros repris du logement (ou, à défaut, de l'EDL
+   * d'entrée), relevés remis à zéro — un numéro de compteur ne change pas entre
+   * l'entrée et la sortie.
+   */
+  const compteursInitiaux = (): EtatDesLieux['compteurs'] => {
+    const duBien = bien.compteurs?.length
+      ? bien.compteurs.map((c) => ({ type: c.type, numero: c.numero, releve: 0 }))
+      : undefined;
+    const deLEntree = edlEntree?.compteurs.length
+      ? edlEntree.compteurs.map((c) => ({ type: c.type, numero: c.numero, releve: 0 }))
+      : undefined;
+    return (
+      duBien ??
+      deLEntree ?? [
+        { type: 'electricite' as const, releve: 0 },
+        { type: 'eau_froide' as const, releve: 0 },
+      ]
+    );
   };
 
   const creerEdl = async (type: 'entree' | 'sortie') => {
@@ -151,10 +172,10 @@ export function BailDetailPage() {
       type,
       date: nowISO(),
       edlEntreeLieId: type === 'sortie' ? edlEntree!.id : undefined,
-      compteurs: [
-        { type: 'electricite', releve: 0 },
-        { type: 'eau_froide', releve: 0 },
-      ],
+      // Les numéros de compteur (PDL/PCE) appartiennent au logement : on les
+      // reprend de la fiche du bien, sinon de l'EDL d'entrée pour une sortie.
+      // Seuls les relevés sont à ressaisir.
+      compteurs: compteursInitiaux(),
       cles: [{ designation: "Clé porte d'entrée", nombre: 1 }],
       pieces:
         type === 'sortie'

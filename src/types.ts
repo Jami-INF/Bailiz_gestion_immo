@@ -77,6 +77,12 @@ export interface Bien {
   loyerReferenceMajore?: number;
   /** Lien vers le dossier technique en ligne (Drive, cloud…) regroupant le DDT : un QR code vers cette URL est ajouté au bail. */
   dossierTechniqueUrl?: string;
+  /**
+   * Compteurs du logement et leurs numéros (PDL / PCE / n° de série). Ils sont
+   * propres au logement et ne changent pas d'un locataire à l'autre : saisis une
+   * fois, ils pré-remplissent chaque état des lieux, seuls les relevés varient.
+   */
+  compteurs?: { type: TypeCompteur; numero?: string }[];
   piecesModele: PieceModele[];
   createdAt: string;
   updatedAt: string;

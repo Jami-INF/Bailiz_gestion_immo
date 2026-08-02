@@ -6,7 +6,7 @@ import { sha256Hex } from '@/lib/crypto';
 import { db, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import type { DocumentGenere, TypeDocument } from '@/types';
-import { telechargerBlob } from '@/lib/backup';
+import { ouvrirBlob } from '@/lib/backup';
 
 type DocElement = ReactElement<DocumentProps>;
 
@@ -89,13 +89,18 @@ export function nomFichierDocument(doc: {
   return titre ? `${doc.reference} - ${titre} - ${date}.pdf` : `${doc.reference} - ${date}.pdf`;
 }
 
+/**
+ * Présente un document généré : ouverture dans un nouvel onglet, avec repli sur
+ * le téléchargement si la fenêtre est bloquée. Le nom de fichier reste utilisé
+ * pour ce repli et pour l'enregistrement manuel depuis la visionneuse.
+ */
 export function telechargerDocument(doc: {
   blob: Blob;
   reference: string;
   titre?: string;
   createdAt?: string;
 }): void {
-  telechargerBlob(doc.blob, nomFichierDocument(doc));
+  ouvrirBlob(doc.blob, nomFichierDocument(doc));
 }
 
 /**

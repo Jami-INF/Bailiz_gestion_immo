@@ -19,7 +19,7 @@ import { pousserSiActive } from '@/lib/autosave';
 import { EdlPdf } from '@/lib/pdf/EdlPdf';
 import { SignatureFlow } from '@/components/SignatureFlow';
 import { Button, Card, useToast } from '@/components/ui';
-import { chargerContexteEdl, chargerPhotosPourPdf } from './edlPdfUtils';
+import { chargerComparaisons, chargerContexteEdl, chargerPhotosPourPdf } from './edlPdfUtils';
 
 export function EdlSignaturePage() {
   const { id } = useParams();
@@ -55,6 +55,8 @@ export function EdlSignaturePage() {
     try {
       const edlSigne: EtatDesLieux = { ...edl, signatures: bloc, statut: 'signe', updatedAt: nowISO() };
       const photos = await chargerPhotosPourPdf(edlSigne);
+      // Paires avant/après des dégradations (vide pour un EDL d'entrée).
+      const comparaisons = await chargerComparaisons(edlSigne);
       const { blob, hash } = await rendrePdfAvecHash((h) => (
         <EdlPdf
           edl={edlSigne}
@@ -63,6 +65,7 @@ export function EdlSignaturePage() {
           locataires={locataires}
           parametres={parametres}
           photos={photos}
+          comparaisons={comparaisons}
           hash={h}
         />
       ));

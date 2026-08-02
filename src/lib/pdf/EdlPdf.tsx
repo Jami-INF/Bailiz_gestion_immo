@@ -15,6 +15,37 @@ export interface PhotoPourPdf {
   legende: string;
 }
 
+/** Paire avant/après d'un élément dégradé ou manquant, pour le PDF de sortie. */
+export interface ComparaisonPhotos {
+  pieceNom: string;
+  elementNom: string;
+  etatEntree?: string;
+  etatSortie: string;
+  commentaireEntree?: string;
+  commentaireSortie?: string;
+  photosEntree: PhotoPourPdf[];
+  photosSortie: PhotoPourPdf[];
+}
+
+/** Colonne « À l'entrée » / « À la sortie » d'une comparaison. */
+function ColonnePhotos({ titre, photos: lot }: { titre: string; photos: PhotoPourPdf[] }) {
+  return (
+    <View style={{ width: '49%' }}>
+      <Text style={[s.petit, s.gras, { marginBottom: 3 }]}>{titre}</Text>
+      {lot.length === 0 ? (
+        <Text style={s.petit}>Aucune photo.</Text>
+      ) : (
+        lot.map((p, i) => (
+          <View key={i} style={{ marginBottom: 4 }}>
+            <Image src={p.dataUrl} style={{ width: '100%', height: 120, objectFit: 'cover' }} />
+            <Text style={[s.petit, { marginTop: 2 }]}>{p.legende}</Text>
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
 interface Props {
   edl: EtatDesLieux;
   edlEntree?: EtatDesLieux; // pour un EDL de sortie
@@ -23,6 +54,8 @@ interface Props {
   locataires: Locataire[];
   parametres: Parametres;
   photos: PhotoPourPdf[];
+  /** Paires avant/après des éléments dégradés (EDL de sortie uniquement). */
+  comparaisons?: ComparaisonPhotos[];
   hash?: string;
 }
 
@@ -31,7 +64,7 @@ interface Props {
  * du 30 mars 2016. L'EDL de sortie affiche la comparaison poste par poste
  * avec l'EDL d'entrée.
  */
-export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, hash }: Props) {
+export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, comparaisons = [], hash }: Props) {
   const sortie = edl.type === 'sortie';
   const titre = sortie ? 'État des lieux de sortie' : "État des lieux d'entrée";
   const b = parametres.bailleur;
@@ -183,6 +216,33 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, hash }
               </View>
             </View>
           ))}
+
+        {comparaisons.length > 0 && (
+          <>
+            <Text style={s.h2}>Comparaison avant / après</Text>
+            <Text style={s.petit}>
+              Éléments dégradés ou manquants constatés à la sortie, avec les clichés pris à
+              l'entrée en regard. Cette comparaison fonde les retenues éventuelles sur le dépôt de
+              garantie.
+            </Text>
+            {comparaisons.map((c, i) => (
+              <View key={i} style={[s.carte, { marginTop: 8 }]} wrap={false}>
+                <Text style={s.gras}>
+                  {c.pieceNom} — {c.elementNom}
+                </Text>
+                <Text style={[s.petit, { marginBottom: 5 }]}>
+                  Entrée : {c.etatEntree ?? 'non renseigné'} {'>>'} Sortie : {c.etatSortie}
+                  {c.commentaireEntree ? ` · Entrée : ${c.commentaireEntree}` : ''}
+                  {c.commentaireSortie ? ` · Sortie : ${c.commentaireSortie}` : ''}
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <ColonnePhotos titre="À l'entrée" photos={c.photosEntree} />
+                  <ColonnePhotos titre="À la sortie" photos={c.photosSortie} />
+                </View>
+              </View>
+            ))}
+          </>
+        )}
 
         {edl.observationsGenerales && (
           <>
