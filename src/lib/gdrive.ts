@@ -59,6 +59,97 @@ export function derniereErreurGDrive(): string | undefined {
 let chargementGsi: Promise<void> | null = null;
 let jeton: { accessToken: string; expireA: number } | null = null;
 
+
+// ---------------------------------------------------------------------------
+// Connexion par redirection (PWA installée sur iOS)
+// ---------------------------------------------------------------------------
+
+/*
+ * En mode « standalone » (application ajoutée à l'écran d'accueil), iOS ouvre la
+ * fenêtre Google comme une vue secondaire qui ne reçoit jamais le focus clavier :
+ * la page s'affiche mais rien ne peut être saisi. On bascule donc sur un flux par
+ * redirection — l'utilisateur va sur Google dans la fenêtre principale, puis
+ * revient avec le jeton dans le fragment d'URL.
+ */
+
+const CLE_ETAT = 'bailiz.gdrive.state';
+const CLE_ROUTE = 'bailiz.gdrive.route';
+const CLE_RETOUR = 'bailiz.gdrive.retour';
+const CLE_CLIENT = 'bailiz.gdrive.clientId';
+
+/** Vrai si l'application tourne en PWA installée (pas dans un onglet Safari). */
+export function estApplicationInstallee(): boolean {
+  const iosStandalone = (window.navigator as { standalone?: boolean }).standalone === true;
+  return iosStandalone || window.matchMedia('(display-mode: standalone)').matches;
+}
+
+/** URI de retour : l'adresse de l'app sans fragment ni paramètres. */
+function uriRedirection(): string {
+  return window.location.origin + window.location.pathname;
+}
+
+/**
+ * Quitte l'application vers l'écran de connexion Google. Au retour, le jeton est
+ * récupéré par `recupererJetonRedirection()` et la route en cours est restaurée.
+ */
+export function lancerConnexionParRedirection(clientId = CLIENT_ID_GDRIVE): void {
+  const etat = crypto.randomUUID();
+  sessionStorage.setItem(CLE_ETAT, etat);
+  sessionStorage.setItem(CLE_ROUTE, window.location.hash || '#/parametres');
+  // Mémorisé pour la finalisation au retour : la configuration en base est
+  // relue de façon asynchrone et n'est pas encore disponible à ce moment-là.
+  sessionStorage.setItem(CLE_CLIENT, clientId.trim());
+  const params = new URLSearchParams({
+    client_id: clientId.trim(),
+    redirect_uri: uriRedirection(),
+    response_type: 'token',
+    scope: SCOPE,
+    state: etat,
+    include_granted_scopes: 'true',
+    prompt: 'consent',
+  });
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+/**
+ * Au démarrage : récupère le jeton renvoyé par Google dans le fragment d'URL.
+ * **Doit être appelée avant le montage du routeur** — l'application utilise un
+ * HashRouter, et la réponse de Google occupe précisément ce fragment.
+ * Le paramètre `state` est vérifié : une réponse non sollicitée est ignorée.
+ */
+export function recupererJetonRedirection(): boolean {
+  const brut = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+  if (!brut.includes('access_token=')) return false;
+
+  const params = new URLSearchParams(brut);
+  const token = params.get('access_token');
+  const etatRecu = params.get('state');
+  const etatAttendu = sessionStorage.getItem(CLE_ETAT);
+  const route = sessionStorage.getItem(CLE_ROUTE) ?? '#/parametres';
+  sessionStorage.removeItem(CLE_ETAT);
+  sessionStorage.removeItem(CLE_ROUTE);
+
+  // Restaure la route d'origine et efface le jeton de la barre d'adresse.
+  window.history.replaceState(null, '', window.location.pathname + route);
+
+  if (!token || !etatRecu || etatRecu !== etatAttendu) return false;
+  jeton = { accessToken: token, expireA: Date.now() + Number(params.get('expires_in') ?? 3600) * 1000 };
+  sessionStorage.setItem(CLE_RETOUR, '1');
+  return true;
+}
+
+/**
+ * À appeler une seule fois au montage : renvoie l'ID client utilisé pour la
+ * connexion si l'on revient d'une redirection Google, sinon `undefined`.
+ */
+export function consommerRetourRedirection(): string | undefined {
+  if (sessionStorage.getItem(CLE_RETOUR) !== '1') return undefined;
+  const clientId = sessionStorage.getItem(CLE_CLIENT) ?? CLIENT_ID_GDRIVE;
+  sessionStorage.removeItem(CLE_RETOUR);
+  sessionStorage.removeItem(CLE_CLIENT);
+  return clientId;
+}
+
 export async function getConfigGDrive(): Promise<ConfigGDrive | undefined> {
   return (await getParametres()).sauvegardeGDrive;
 }

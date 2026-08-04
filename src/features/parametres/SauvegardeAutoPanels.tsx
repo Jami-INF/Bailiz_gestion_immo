@@ -11,7 +11,19 @@ import {
   getConfigAutosave,
   pousserSiActive,
 } from '@/lib/autosave';
-import { CLIENT_ID_GDRIVE, connecterGDrive, demanderAutorisationGoogle, derniereErreurGDrive, desactiverGDrive, pousserSauvegardeGDrive, prechargerGsi } from '@/lib/gdrive';
+import {
+  CLIENT_ID_GDRIVE,
+  activerGDrive,
+  connecterGDrive,
+  consommerRetourRedirection,
+  demanderAutorisationGoogle,
+  derniereErreurGDrive,
+  desactiverGDrive,
+  estApplicationInstallee,
+  lancerConnexionParRedirection,
+  pousserSauvegardeGDrive,
+  prechargerGsi,
+} from '@/lib/gdrive';
 import { Button, Card, Field, Input, useToast } from '@/components/ui';
 
 /**
@@ -135,10 +147,37 @@ export function SauvegardeGDrivePanel() {
     prechargerGsi();
   }, []);
 
+  /*
+   * Retour de la connexion par redirection : le jeton est déjà en mémoire, il
+   * reste à activer la destination et à pousser la première sauvegarde.
+   */
+  useEffect(() => {
+    const idUtilise = consommerRetourRedirection();
+    if (!idUtilise) return;
+    setEnCours(true);
+    void (async () => {
+      try {
+        await activerGDrive(idUtilise);
+        const resultat = await pousserSauvegardeGDrive(true);
+        if (resultat === 'ok') toast('success', 'Google Drive connecté — sauvegarde envoyée.');
+        else if (resultat === 'base_vide') toast('warning', `Google Drive connecté. ${MSG_BASE_VIDE}`);
+        else toast('warning', "Google Drive connecté, mais l'envoi n'a pas abouti : réessayez.");
+      } finally {
+        setEnCours(false);
+      }
+    })();
+  }, [toast]);
+
   const connecter = async () => {
     const id = (clientId || config?.clientId || CLIENT_ID_GDRIVE).trim();
     if (!id.endsWith('.apps.googleusercontent.com')) {
       toast('error', "L'ID client doit se terminer par .apps.googleusercontent.com");
+      return;
+    }
+    // PWA installée : la fenêtre Google n'y reçoit pas le focus clavier sur iOS,
+    // on passe donc par une redirection de la fenêtre principale.
+    if (estApplicationInstallee()) {
+      lancerConnexionParRedirection(id);
       return;
     }
     setEnCours(true);
@@ -179,6 +218,10 @@ export function SauvegardeGDrivePanel() {
     // doit s'ouvrir dans l'activation du clic, sinon Safari/iOS la bloque
     // silencieusement (« fenêtre fermée » alors que rien ne s'est ouvert).
     const idClient = config?.clientId || CLIENT_ID_GDRIVE;
+    if (estApplicationInstallee()) {
+      lancerConnexionParRedirection(idClient);
+      return;
+    }
     const autorise = await demanderAutorisationGoogle(idClient);
     if (!autorise) {
       setEnCours(false);
