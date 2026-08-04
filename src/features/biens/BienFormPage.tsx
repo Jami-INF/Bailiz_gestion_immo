@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { AlertTriangle } from 'lucide-react';
-import type { Bien, ClasseDPE, PeriodeConstruction, TypeBien } from '@/types';
+import type { Bien, ClasseDPE, ConditionsLocation, PeriodeConstruction, TypeBien } from '@/types';
 import { PERIODE_CONSTRUCTION_LABELS } from '@/types';
-import { validerDecenceDPE } from '@/lib/calculs';
+import { formatEuros, validerDecenceDPE } from '@/lib/calculs';
 import { db } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import {
   Button,
   Card,
   Checkbox,
+  DateInput,
   Field,
   Input,
   PageHeader,
@@ -19,9 +20,10 @@ import {
   Textarea,
   useToast,
 } from '@/components/ui';
+import { PhotoBien } from './PhotoBien';
 import { PiecesEditeur } from './PiecesEditeur';
 
-const ETAPES = ['Identité', 'Surfaces & équipements', 'Dossier technique', 'Pièces'];
+const ETAPES = ['Identité', 'Surfaces & équipements', 'Dossier technique', 'Location & visite', 'Pièces'];
 
 const schemaIdentite = z.object({
   nom: z.string().min(1, 'Le nom du bien est requis'),
@@ -106,6 +108,9 @@ export function BienFormPage() {
   if (!charge) return null;
 
   const maj = (m: Partial<Bien>) => setBien((b) => ({ ...b, ...m }));
+  const cond = bien.conditionsLocation ?? {};
+  const majCond = (m: Partial<ConditionsLocation>) =>
+    setBien((b) => ({ ...b, conditionsLocation: { ...b.conditionsLocation, ...m } }));
 
   const validerEtape = (): boolean => {
     setErreurs({});
@@ -177,6 +182,16 @@ export function BienFormPage() {
                 value={bien.nom}
                 onChange={(e) => maj({ nom: e.target.value })}
                 placeholder="T2 Chamalières"
+              />
+            </Field>
+            <Field
+              label="Photo du logement"
+              hint="Une photo d'illustration : elle s'affiche sur la fiche du bien et en tête de la fiche de visite. Compressée automatiquement."
+            >
+              <PhotoBien
+                bienId={bien.id}
+                photoId={bien.photoId}
+                onChange={(photoId) => maj({ photoId })}
               />
             </Field>
             <Field label="Adresse" required error={erreurs.ligne1}>
@@ -505,6 +520,124 @@ export function BienFormPage() {
         )}
 
         {etape === 3 && (
+          <div className="space-y-4">
+            <p className="text-sm text-accent-600">
+              Ces conditions sont portées par le logement, pas par le bail : elles pré-remplissent
+              le formulaire de bail, alimentent la fiche de visite, et sont mises à jour à
+              l'enregistrement d'un bail. Tout est facultatif — un champ vide devient une zone à
+              compléter à la main sur la fiche de visite.
+            </p>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Field label="Loyer hors charges (€/mois)">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={cond.loyerHC ?? ''}
+                  onChange={(e) =>
+                    majCond({ loyerHC: e.target.value === '' ? undefined : Number(e.target.value) })
+                  }
+                  placeholder="520"
+                />
+              </Field>
+              <Field label="Charges">
+                <Select
+                  value={cond.charges?.mode ?? 'forfait'}
+                  onChange={(e) =>
+                    majCond({
+                      charges: {
+                        ...cond.charges,
+                        mode: e.target.value as 'forfait' | 'provisions',
+                      },
+                    })
+                  }
+                >
+                  <option value="forfait">Forfait de charges</option>
+                  <option value="provisions">Provisions sur charges</option>
+                </Select>
+              </Field>
+              <Field label="Montant des charges (€/mois)">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={cond.charges?.montant ?? ''}
+                  onChange={(e) =>
+                    majCond({
+                      charges: {
+                        mode: cond.charges?.mode ?? 'forfait',
+                        montant: e.target.value === '' ? undefined : Number(e.target.value),
+                      },
+                    })
+                  }
+                  placeholder="60"
+                />
+              </Field>
+              <Field label="Dépôt de garantie (€)">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={cond.depotGarantie ?? ''}
+                  onChange={(e) =>
+                    majCond({ depotGarantie: e.target.value === '' ? undefined : Number(e.target.value) })
+                  }
+                  placeholder="1040"
+                />
+              </Field>
+            </div>
+            <p className="text-sm text-accent-600">
+              Total charges comprises :{' '}
+              <span className="font-medium text-accent-800">
+                {cond.loyerHC === undefined
+                  ? '—'
+                  : formatEuros(cond.loyerHC + (cond.charges?.montant ?? 0))}
+              </span>
+              {cond.loyerHC && cond.depotGarantie && cond.depotGarantie > 2 * cond.loyerHC ? (
+                <span className="ml-2 text-amber-700">
+                  Le dépôt dépasse le maximum légal de 2 mois de loyer hors charges (
+                  {formatEuros(2 * cond.loyerHC)}).
+                </span>
+              ) : null}
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Disponible à partir du">
+                <DateInput
+                  value={cond.dateDisponibilite ?? ''}
+                  onChange={(iso) => majCond({ dateDisponibilite: iso || undefined })}
+                />
+              </Field>
+              <Field label="Ce que couvrent les charges">
+                <Input
+                  value={cond.chargesDetail ?? ''}
+                  onChange={(e) => majCond({ chargesDetail: e.target.value || undefined })}
+                  placeholder="Eau froide, ordures ménagères, entretien des parties communes"
+                />
+              </Field>
+            </div>
+            <Field
+              label="Accès et stationnement"
+              hint="Imprimé sur la fiche de visite : interphone, code, étage, ascenseur, où se garer, transports."
+            >
+              <Textarea
+                value={cond.acces ?? ''}
+                onChange={(e) => majCond({ acces: e.target.value || undefined })}
+                placeholder={'Interphone « Martin », 2e étage sans ascenseur\nStationnement gratuit rue de la Gare'}
+              />
+            </Field>
+            <Field
+              label="Conditions particulières"
+              hint="Animaux, non-fumeur, jardin partagé… Affiché au candidat sur la fiche de visite."
+            >
+              <Textarea
+                value={cond.conditionsParticulieres ?? ''}
+                onChange={(e) => majCond({ conditionsParticulieres: e.target.value || undefined })}
+              />
+            </Field>
+          </div>
+        )}
+
+        {etape === 4 && (
           <PiecesEditeur pieces={bien.piecesModele} onChange={(p) => maj({ piecesModele: p })} />
         )}
 

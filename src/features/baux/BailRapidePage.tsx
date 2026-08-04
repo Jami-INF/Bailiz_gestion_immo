@@ -15,7 +15,14 @@ import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
-import { bailVersSaisie, construireDocs, dureeParDefaut, saisieVide } from '@/lib/pdf/bailRapide';
+import {
+  appliquerConditionsBien,
+  bailVersSaisie,
+  conditionsDepuisBail,
+  construireDocs,
+  dureeParDefaut,
+  saisieVide,
+} from '@/lib/pdf/bailRapide';
 import { LocataireFormModal } from '@/features/locataires/LocataireFormModal';
 import { BienRapideModal } from '@/features/biens/BienRapideModal';
 import { SectionLocataires } from './SectionLocataires';
@@ -59,13 +66,20 @@ export function BailRapidePage() {
 
   // Amorce la saisie une seule fois : depuis un bail existant (édition) ou vierge (création).
   useEffect(() => {
-    if (!parametres || saisie) return;
+    if (!parametres || !biens || saisie) return;
     if (edition) {
       if (bailExistant) setSaisie(bailVersSaisie(bailExistant, parametres.bailleur));
     } else {
-      setSaisie(saisieVide(parametres.bailleur, location.state?.bienId));
+      // Arrivée depuis la fiche d'un bien : ses conditions de location pré-remplissent le bail.
+      const bienId = location.state?.bienId;
+      setSaisie(
+        appliquerConditionsBien(
+          saisieVide(parametres.bailleur, bienId),
+          bienId ? biens.find((b) => b.id === bienId) : undefined,
+        ),
+      );
     }
-  }, [parametres, saisie, edition, bailExistant, location.state]);
+  }, [parametres, biens, saisie, edition, bailExistant, location.state]);
 
   const resolveBien = useCallback((id: string) => biens?.find((b) => b.id === id), [biens]);
   const resolveLocataire = useCallback((id: string) => locatairesEnr?.find((l) => l.id === id), [locatairesEnr]);
@@ -118,6 +132,11 @@ export function BailRapidePage() {
     setSaisie((s) => ({ ...s!, bien: { ...s!.bien, ...m } }));
   const majAdresse = (m: Partial<SaisieBail['bien']['adresse']>) =>
     setSaisie((s) => ({ ...s!, bien: { ...s!.bien, adresse: { ...s!.bien.adresse, ...m } } }));
+  /** Choix d'un bien : ses conditions de location pré-remplissent les champs vides. */
+  const choisirBien = (bienId?: string) =>
+    setSaisie((s) =>
+      appliquerConditionsBien({ ...s!, bienId }, bienId ? biens.find((b) => b.id === bienId) : undefined),
+    );
   const majLoc = (i: number, m: Partial<SaisieBail['locataires'][number]>) =>
     setSaisie((s) => ({ ...s!, locataires: s!.locataires.map((l, idx) => (idx === i ? { ...l, ...m } : l)) }));
 
@@ -247,6 +266,14 @@ export function BailRapidePage() {
         etape = 'E3 (écriture en base)';
         await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
           if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
+          // Bien enregistré : ses conditions de location suivent le bail (loyer,
+          // charges, dépôt) — la fiche du bien et la fiche de visite restent justes.
+          else
+            await db.biens.put({
+              ...bien,
+              conditionsLocation: conditionsDepuisBail(bien, bailMaj),
+              updatedAt: nowISO(),
+            });
           await db.baux.put(bailMaj);
         });
         const nomsMaj = nomsPersonnes(locataires);
@@ -293,6 +320,12 @@ export function BailRapidePage() {
       etape = 'E5 (écriture en base)';
       await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
         if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
+        else
+          await db.biens.put({
+            ...bien,
+            conditionsLocation: conditionsDepuisBail(bien, bailFinal),
+            updatedAt: nowISO(),
+          });
         await db.baux.add(bailFinal);
       });
 
@@ -360,10 +393,10 @@ export function BailRapidePage() {
           <Section titre="Logement">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
-                <Field label="Bien" hint="Choisissez un bien enregistré (toutes ses infos seront utilisées), créez-le, ou saisissez-le ici sans l'enregistrer.">
+                <Field label="Bien" hint="Choisissez un bien enregistré (toutes ses infos sont utilisées, loyer et charges compris), créez-le, ou saisissez-le ici sans l'enregistrer.">
                   <Select
                     value={saisie.bienId ?? ''}
-                    onChange={(e) => maj({ bienId: e.target.value || undefined })}
+                    onChange={(e) => choisirBien(e.target.value || undefined)}
                   >
                     <option value="">— Saisir un logement ici —</option>
                     {biens.map((b) => (
@@ -606,7 +639,7 @@ export function BailRapidePage() {
       <BienRapideModal
         open={modaleBien}
         onClose={() => setModaleBien(false)}
-        onCree={(b) => maj({ bienId: b.id })}
+        onCree={(b) => choisirBien(b.id)}
       />
       <LocataireFormModal
         open={modaleLocataire !== null}

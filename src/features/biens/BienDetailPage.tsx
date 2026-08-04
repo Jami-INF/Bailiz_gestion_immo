@@ -2,33 +2,72 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Pencil, Trash2, FileText, Plus, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { Pencil, Trash2, FileText, Plus, ExternalLink, ClipboardList } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
 import { urlExterneSure } from '@/lib/liens';
 import { formatAdresse } from '@/lib/adresse';
+import { formatEuros } from '@/lib/calculs';
 import { Badge, Button, Card, ConfirmModal, PageHeader, useToast } from '@/components/ui';
 import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
+import { FicheVisiteModal } from './FicheVisiteModal';
 
 export function BienDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const [confirmSuppr, setConfirmSuppr] = useState(false);
+  const [modaleVisite, setModaleVisite] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const bien = useLiveQuery(() => (id ? db.biens.get(id) : undefined), [id]);
   const baux = useLiveQuery(() => (id ? db.baux.where('bienId').equals(id).toArray() : []), [id]);
+  const fichesVisite = useLiveQuery(
+    () => (id ? db.documents.where('bienId').equals(id).toArray() : []),
+    [id],
+  );
+
+  const photoId = bien?.photoId;
+  useEffect(() => {
+    let annule = false;
+    let cree: string | null = null;
+    void (async () => {
+      if (!photoId) {
+        setPhotoUrl(null);
+        return;
+      }
+      const photo = await db.photos.get(photoId);
+      if (!photo || annule) return;
+      cree = URL.createObjectURL(photo.blob);
+      setPhotoUrl(cree);
+    })();
+    return () => {
+      annule = true;
+      if (cree) URL.revokeObjectURL(cree);
+    };
+  }, [photoId]);
 
   if (!bien) return null;
 
   const bailEnCours = baux?.find((b) => ['signe', 'actif'].includes(b.statut));
   // Lien saisi librement : filtré avant d'être rendu cliquable (cf. QR code du bail).
   const lienDossierTechnique = urlExterneSure(bien.dossierTechniqueUrl);
+  const conditions = bien.conditionsLocation;
+  const totalCC =
+    conditions?.loyerHC !== undefined
+      ? conditions.loyerHC + (conditions.charges?.montant ?? 0)
+      : undefined;
+  const derniereFiche = (fichesVisite ?? [])
+    .filter((d) => d.type === 'fiche_visite')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 
   const supprimer = async () => {
     if (baux && baux.length > 0) {
       toast('error', 'Impossible de supprimer : des baux sont liés à ce bien.');
       return;
     }
+    // La photo d'illustration disparaît avec le bien (pas de Blob orphelin).
+    const photos = await db.photos.where('bienId').equals(bien.id).primaryKeys();
+    if (photos.length) await db.photos.bulkDelete(photos);
     await db.biens.delete(bien.id);
     toast('success', 'Bien supprimé.');
     navigate('/biens');
@@ -55,6 +94,13 @@ export function BienDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
+          {photoUrl && (
+            <img
+              src={photoUrl}
+              alt={`Photo — ${bien.nom}`}
+              className="mb-4 h-48 w-full rounded-lg object-cover"
+            />
+          )}
           <h2 className="mb-3 font-semibold text-accent-900">Caractéristiques</h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <dt className="text-accent-500">Type</dt>
@@ -127,6 +173,69 @@ export function BienDetailPage() {
 
         <Card>
           <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-accent-900">Conditions de location</h2>
+            <Link to={`/biens/${bien.id}/modifier`}>
+              <Button variant="ghost" size="sm">
+                <Pencil size={14} /> Modifier
+              </Button>
+            </Link>
+          </div>
+          {!conditions || conditions.loyerHC === undefined ? (
+            <p className="text-sm text-accent-500">
+              Aucun loyer renseigné. Il pré-remplira le formulaire de bail et s'imprimera sur la
+              fiche de visite — renseignez-le via « Modifier », étape « Location &amp; visite ».
+            </p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <dt className="text-accent-500">Loyer hors charges</dt>
+              <dd>{formatEuros(conditions.loyerHC)}</dd>
+              <dt className="text-accent-500">
+                Charges ({conditions.charges?.mode === 'provisions' ? 'provisions' : 'forfait'})
+              </dt>
+              <dd>{formatEuros(conditions.charges?.montant ?? 0)}</dd>
+              <dt className="text-accent-500">Total charges comprises</dt>
+              <dd className="font-medium">{totalCC !== undefined ? formatEuros(totalCC) : '—'}</dd>
+              <dt className="text-accent-500">Dépôt de garantie</dt>
+              <dd>{conditions.depotGarantie !== undefined ? formatEuros(conditions.depotGarantie) : '—'}</dd>
+              <dt className="text-accent-500">Disponible à partir du</dt>
+              <dd>
+                {conditions.dateDisponibilite
+                  ? format(new Date(conditions.dateDisponibilite), 'd MMMM yyyy', { locale: fr })
+                  : '—'}
+              </dd>
+            </dl>
+          )}
+          {conditions?.acces && (
+            <p className="mt-3 text-sm text-accent-600">
+              <span className="text-accent-500">Accès :</span> {conditions.acces}
+            </p>
+          )}
+        </Card>
+
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 font-semibold text-accent-900">
+              <ClipboardList size={18} /> Fiche de visite
+            </h2>
+            <Button size="sm" onClick={() => setModaleVisite(true)}>
+              <FileText size={14} /> Générer
+            </Button>
+          </div>
+          <p className="text-sm text-accent-600">
+            Document remis au candidat à la fin de la visite : récapitulatif du logement et de ses
+            conditions, informations pratiques, et liste des pièces du dossier à préparer (décret
+            n°2015-1437) en cases à cocher. Le contenu se modifie dans les Paramètres.
+          </p>
+          {derniereFiche && (
+            <p className="mt-2 text-xs text-accent-500">
+              Dernière fiche : {derniereFiche.reference} du{' '}
+              {format(new Date(derniereFiche.createdAt), 'd MMMM yyyy', { locale: fr })}
+            </p>
+          )}
+        </Card>
+
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold text-accent-900">Baux</h2>
             <Link to="/baux/nouveau" state={{ bienId: bien.id }}>
               <Button variant="secondary" size="sm">
@@ -185,6 +294,8 @@ export function BienDetailPage() {
           )}
         </Card>
       </div>
+
+      <FicheVisiteModal bien={bien} open={modaleVisite} onClose={() => setModaleVisite(false)} />
 
       <ConfirmModal
         open={confirmSuppr}

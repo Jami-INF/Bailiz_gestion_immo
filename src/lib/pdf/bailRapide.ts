@@ -28,6 +28,43 @@ export function saisieVide(bailleur: Parametres['bailleur'], bienId?: string): S
 }
 
 /**
+ * Pré-remplit la saisie avec les conditions de location portées par le bien
+ * (loyer, charges, dépôt). Une valeur **déjà saisie n'est jamais écrasée** :
+ * le bien propose, l'utilisateur dispose.
+ */
+export function appliquerConditionsBien(saisie: SaisieBail, bien?: Bien): SaisieBail {
+  const c = bien?.conditionsLocation;
+  if (!c) return saisie;
+  const montant = saisie.charges.montant ?? c.charges?.montant;
+  return {
+    ...saisie,
+    loyerHC: saisie.loyerHC ?? c.loyerHC,
+    charges: {
+      // Le mode ne suit le bien que si aucun montant n'a encore été saisi.
+      mode: saisie.charges.montant === undefined ? c.charges?.mode ?? saisie.charges.mode : saisie.charges.mode,
+      montant,
+    },
+    depotGarantie: saisie.depotGarantie ?? c.depotGarantie,
+  };
+}
+
+/**
+ * Conditions à réécrire sur le bien après l'enregistrement d'un bail : le loyer
+ * évoluant peu, la fiche du bien reste à jour sans saisie supplémentaire. Une
+ * valeur nulle du bail (dépôt d'un bail mobilité, loyer non renseigné) ne
+ * remplace pas celle déjà connue du bien.
+ */
+export function conditionsDepuisBail(bien: Bien, bail: Bail): Bien['conditionsLocation'] {
+  const c = bien.conditionsLocation;
+  return {
+    ...c,
+    loyerHC: bail.loyerHC || c?.loyerHC,
+    charges: { mode: bail.charges.mode, montant: bail.charges.montant || c?.charges?.montant },
+    depotGarantie: bail.depotGarantie || c?.depotGarantie,
+  };
+}
+
+/**
  * Reverse-adapter : repeuple la saisie du formulaire depuis un bail existant
  * (mode « Modifier »). Le bien et les locataires sont référencés par id.
  */

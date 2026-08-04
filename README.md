@@ -55,6 +55,26 @@ npm run build      # build de production + PWA
   est imprimé sur le bail, pour que le locataire consulte les diagnostics. L'URL est validée
   (`http(s)` uniquement) avant d'être rendue cliquable ou encodée.
 - Zone d'encadrement des loyers activable par bien (loyer de référence, référence majorée).
+- **Photo du logement** (compressée à l'import) affichée sur la fiche du bien et en tête de la
+  fiche de visite.
+- **Conditions de location portées par le logement** (loyer, charges, dépôt, disponibilité,
+  accès, conditions particulières) : elles pré-remplissent le formulaire de bail dès qu'on
+  choisit le bien, et sont mises à jour à l'enregistrement du bail — le loyer évoluant peu, la
+  fiche reste juste sans saisie en double.
+
+### Visites
+- **Fiche de visite** générée depuis la fiche du bien, à remettre au candidat : page 1, le
+  logement, ses conditions (total charges comprises calculé, dépôt, disponibilité) et les infos
+  pratiques (date, accès, contact) ; page 2 détachable, **les pièces du dossier de candidature en
+  cases à cocher**, conformes à la liste **limitative** du décret n°2015-1437. Le dossier
+  technique n'y figure pas : il est remis en annexe du bail, pas à la visite.
+- **Acte de cautionnement joint** à la fiche si le candidat se présente avec un garant personne
+  physique : pré-rempli (bailleur, adresse du logement, loyer, charges, montants en toutes
+  lettres), le reste en zones à compléter à la main.
+- Sections **conditionnelles** (garant physique, Visale, colocation, étudiant, indépendant) :
+  seules celles cochées à la génération sont imprimées.
+- **Modèle entièrement modifiable dans les Paramètres** : blocs imprimés, textes libres,
+  sections et pièces (ajout, réordonnancement, désactivation), aperçu PDF, remise à zéro.
 
 ### Locataires
 - CRUD avec garant : caution personne physique ou **garantie Visale** (numéro de visa ; le
@@ -141,7 +161,7 @@ src/
   components/ui/        design system (Button, Input, Select, Modal, Toast, Badge, Section…)
   components/           AppLayout (nav repliable, indicateurs hors-ligne), SignatureFlow
   features/
-    biens/              fiches, éditeur de pièces, création rapide
+    biens/              fiches, éditeur de pièces, création rapide, photo, fiche de visite
     locataires/         fiches + formulaire partagé (LocataireFormModal)
     baux/               formulaire unifié (+ aperçu), fiche bail, annexes
     edl/                mode terrain, signature, synthèse comparative
@@ -157,9 +177,10 @@ src/
     images.ts           compression photos
     backup.ts           export/import ZIP
     autosave.ts gdrive.ts  sauvegarde automatique (dossier local, Google Drive)
-    defauts.ts          mobilier décret 2015-981, bibliothèque de pièces, grille de vétusté
+    defauts.ts          mobilier décret 2015-981, bibliothèque de pièces, grille de vétusté,
+                        modèle de fiche de visite (décret 2015-1437), pièces interdites
     pdf/                bail, EDL, acte de cautionnement, grille de vétusté,
-                        lettre de restitution, courrier IRL, fiche d'aide
+                        lettre de restitution, courrier IRL, fiche d'aide, fiche de visite
   types.ts              modèle de données complet
 ```
 

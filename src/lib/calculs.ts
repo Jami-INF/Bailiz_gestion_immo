@@ -164,9 +164,14 @@ export function delaiRestitutionJours(retenues: boolean): number {
 }
 
 export function formatEuros(montant: number): string {
-  // Les espaces insécables (étroites) d'Intl ne sont pas couvertes par la police
-  // Helvetica des PDF : on les remplace par des espaces simples.
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+  // Deux contraintes de la police Helvetica des PDF (react-pdf) :
+  // - les espaces insécables (étroites) d'Intl n'y sont pas couvertes → espaces simples ;
+  // - l'espace qui suit le symbole « € » est avalée au calcul de la ligne, ce qui
+  //   colle le mot suivant au montant (« 520,00 €hors charges »). Une espace de
+  //   largeur nulle (U+200B) en fin de chaîne la préserve, tout en restant
+  //   invisible partout ailleurs (écran, copier-coller).
+  const formate = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
     .format(montant)
     .replace(/[\u202f\u00a0]/g, ' ');
+  return formate + '\u200b';
 }

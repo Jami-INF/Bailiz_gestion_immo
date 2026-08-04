@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Bail, Bien, Locataire, Parametres, SaisieBail } from '@/types';
 import {
+  appliquerConditionsBien,
   bailVersSaisie,
+  conditionsDepuisBail,
   construireBienInline,
   construireDocs,
   dureeParDefaut,
@@ -229,5 +231,73 @@ describe('bailVersSaisie', () => {
     expect(saisie.jourPaiement).toBe(5);
     expect(saisie.clausesParticulieres).toBe('Entretien annuel de la chaudière');
     expect(saisie.revisionIRL).toMatchObject({ revisable: true, valeurIndice: 145.47 });
+  });
+});
+
+describe('appliquerConditionsBien', () => {
+  const bienAvecConditions: Bien = {
+    ...bienEnregistre,
+    conditionsLocation: {
+      loyerHC: 520,
+      charges: { mode: 'provisions', montant: 60 },
+      depotGarantie: 1040,
+      acces: 'Interphone « Martin »',
+    },
+  };
+
+  it('pré-remplit les champs vides depuis le bien', () => {
+    const saisie = appliquerConditionsBien(saisieVide(bailleur, 'bien-1'), bienAvecConditions);
+    expect(saisie.loyerHC).toBe(520);
+    expect(saisie.charges).toEqual({ mode: 'provisions', montant: 60 });
+    expect(saisie.depotGarantie).toBe(1040);
+  });
+
+  it("n'écrase jamais une valeur déjà saisie", () => {
+    const dejaSaisi: SaisieBail = {
+      ...saisieVide(bailleur, 'bien-1'),
+      loyerHC: 600,
+      charges: { mode: 'forfait', montant: 50 },
+    };
+    const saisie = appliquerConditionsBien(dejaSaisi, bienAvecConditions);
+    expect(saisie.loyerHC).toBe(600);
+    expect(saisie.charges).toEqual({ mode: 'forfait', montant: 50 });
+    // Le dépôt, lui, était vide : il vient du bien.
+    expect(saisie.depotGarantie).toBe(1040);
+  });
+
+  it('laisse la saisie intacte si le bien n’a pas de conditions', () => {
+    const vierge = saisieVide(bailleur, 'bien-1');
+    expect(appliquerConditionsBien(vierge, bienEnregistre)).toEqual(vierge);
+    expect(appliquerConditionsBien(vierge, undefined)).toEqual(vierge);
+  });
+});
+
+describe('conditionsDepuisBail', () => {
+  const bail = (m: Partial<Bail>): Bail =>
+    ({
+      loyerHC: 700,
+      charges: { mode: 'forfait', montant: 80 },
+      depotGarantie: 1400,
+      ...m,
+    }) as Bail;
+
+  it('reporte le loyer, les charges et le dépôt sur le bien', () => {
+    const c = conditionsDepuisBail(bienEnregistre, bail({}));
+    expect(c).toMatchObject({
+      loyerHC: 700,
+      charges: { mode: 'forfait', montant: 80 },
+      depotGarantie: 1400,
+    });
+  });
+
+  it('conserve les textes libres et ne perd pas une valeur sur un dépôt nul (bail mobilité)', () => {
+    const bienConditionne: Bien = {
+      ...bienEnregistre,
+      conditionsLocation: { depotGarantie: 1040, acces: 'Interphone « Martin »', loyerHC: 520 },
+    };
+    const c = conditionsDepuisBail(bienConditionne, bail({ depotGarantie: 0 }));
+    expect(c?.depotGarantie).toBe(1040);
+    expect(c?.acces).toBe('Interphone « Martin »');
+    expect(c?.loyerHC).toBe(700);
   });
 });

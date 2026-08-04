@@ -23,6 +23,43 @@ describe('getParametres', () => {
     expect(second.bailleur.nom).toBe('Infante');
     expect(await db.parametres.count()).toBe(1);
   });
+
+  it('complète les champs apparus après la création (modèle de fiche de visite)', async () => {
+    // Paramètres tels qu'enregistrés avant la fonctionnalité (ou restaurés
+    // depuis une sauvegarde plus ancienne) : `ficheVisite` n'existe pas.
+    const anciens = await getParametres();
+    delete (anciens as { ficheVisite?: unknown }).ficheVisite;
+    await db.parametres.put(anciens);
+
+    const lus = await getParametres();
+    expect(lus.ficheVisite?.sections.length).toBeGreaterThan(0);
+  });
+
+  it('ne remplace pas un modèle de fiche de visite personnalisé', async () => {
+    const params = await getParametres();
+    await db.parametres.put({
+      ...params,
+      ficheVisite: { ...params.ficheVisite!, introDossier: 'Mon texte à moi', sections: [] },
+    });
+
+    const lus = await getParametres();
+    expect(lus.ficheVisite?.introDossier).toBe('Mon texte à moi');
+    expect(lus.ficheVisite?.sections).toEqual([]);
+  });
+
+  it('accepte une photo rattachée à un bien, sans état des lieux', async () => {
+    await db.photos.put({
+      id: 'photo-bien',
+      blob: new Blob(['x'], { type: 'image/jpeg' }),
+      dateCapture: '2026-08-04T00:00:00.000Z',
+      bienId: 'bien-1',
+    });
+    const parBien = await db.photos.where('bienId').equals('bien-1').toArray();
+    expect(parBien).toHaveLength(1);
+    // Les photos d'EDL restent requêtables sans être polluées par celle du bien.
+    expect(await db.photos.where('edlId').equals('edl-1').count()).toBe(0);
+    await db.photos.delete('photo-bien');
+  });
 });
 
 describe('prochaineReference', () => {

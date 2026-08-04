@@ -26,12 +26,15 @@ import {
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { usePersistanceStockage } from '@/hooks/useStatuts';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
+import { FicheVisitePanel } from './FicheVisitePanel';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
 
 export function ParametresPage() {
   const toast = useToast();
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  // Passe par `getParametres` : les champs apparus après la création des
+  // paramètres (modèle de fiche de visite…) sont complétés à la lecture.
+  const parametres = useLiveQuery(() => getParametres());
   const persiste = usePersistanceStockage();
   const [bailleur, setBailleur] = useState<Parametres['bailleur'] | null>(null);
   const fichierRef = useRef<HTMLInputElement>(null);
@@ -298,6 +301,8 @@ export function ParametresPage() {
             (art. 4 du décret n°2016-382 : elle doit être convenue dès la signature).
           </p>
         </Card>
+
+        <FicheVisitePanel />
 
         <Card>
           <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">

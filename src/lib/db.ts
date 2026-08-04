@@ -9,7 +9,7 @@ import type {
   Parametres,
   Photo,
 } from '@/types';
-import { GRILLE_VETUSTE_DEFAUT } from './defauts';
+import { GRILLE_VETUSTE_DEFAUT, MODELE_FICHE_VISITE_DEFAUT } from './defauts';
 
 /**
  * Configuration de la sauvegarde automatique : le handle du dossier choisi
@@ -53,6 +53,12 @@ class BailizDB extends Dexie {
     this.version(2).stores({
       sauvegardeAuto: 'id',
     });
+    // v3 : une photo peut illustrer un bien (fiche de visite) et non plus
+    // seulement un EDL. `edlId` reste indexé : les clés absentes ne figurent
+    // pas dans l'index, les requêtes existantes sont inchangées.
+    this.version(3).stores({
+      photos: 'id, edlId, bienId',
+    });
   }
 }
 
@@ -71,6 +77,7 @@ function parametresDefaut(): Parametres {
       qualite: 'personne_physique',
     },
     grilleVetuste: GRILLE_VETUSTE_DEFAUT,
+    ficheVisite: MODELE_FICHE_VISITE_DEFAUT,
     compteursSequence: {
       bail: 0,
       edl: 0,
@@ -81,9 +88,18 @@ function parametresDefaut(): Parametres {
   };
 }
 
+/**
+ * Complète les paramètres lus en base avec les valeurs par défaut des champs
+ * apparus après leur création (ou après une restauration de sauvegarde plus
+ * ancienne). Sans cela, chaque page devrait gérer l'absence du champ.
+ */
+function normaliser(p: Parametres): Parametres {
+  return { ...p, ficheVisite: p.ficheVisite ?? MODELE_FICHE_VISITE_DEFAUT };
+}
+
 export async function getParametres(): Promise<Parametres> {
   const existant = await db.parametres.get('singleton');
-  if (existant) return existant;
+  if (existant) return normaliser(existant);
   const defauts = parametresDefaut();
   await db.parametres.put(defauts);
   return defauts;

@@ -83,9 +83,35 @@ export interface Bien {
    * fois, ils pré-remplissent chaque état des lieux, seuls les relevés varient.
    */
   compteurs?: { type: TypeCompteur; numero?: string }[];
+  /**
+   * Photo d'illustration du logement (id dans `db.photos`) : affichée sur la
+   * fiche du bien et en tête de la fiche de visite. Une seule, remplaçable.
+   */
+  photoId?: string;
+  /**
+   * Conditions de location annoncées. Portées par le **bien** et non par le bail
+   * : elles évoluent peu et survivent aux locataires successifs. Elles
+   * pré-remplissent le formulaire de bail et sont mises à jour à son
+   * enregistrement ; la fiche de visite les lit directement.
+   */
+  conditionsLocation?: ConditionsLocation;
   piecesModele: PieceModele[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ConditionsLocation {
+  loyerHC?: number;
+  charges?: { mode: 'forfait' | 'provisions'; montant?: number };
+  /** Ce que couvrent les charges (eau froide, ordures ménagères, entretien…). */
+  chargesDetail?: string;
+  depotGarantie?: number;
+  dateDisponibilite?: string;
+  /** Accès, interphone, étage, stationnement — imprimé sur la fiche de visite. */
+  acces?: string;
+  conditionsParticulieres?: string;
+  /** Sections conditionnelles retenues à la dernière fiche de visite générée. */
+  situations?: ConditionSection[];
 }
 
 export interface Garant {
@@ -289,7 +315,10 @@ export interface Photo {
   blob: Blob;
   dateCapture: string;
   legende?: string;
-  edlId: string;
+  /** Photo d'état des lieux. Absent pour une photo d'illustration de bien. */
+  edlId?: string;
+  /** Photo d'illustration rattachée à un bien (fiche du bien, fiche de visite). */
+  bienId?: string;
 }
 
 export interface SignatureItem {
@@ -313,6 +342,54 @@ export interface LigneVetuste {
   abattementAnnuelPct: number;
 }
 
+/**
+ * Situation qui conditionne l'impression d'une section du dossier de
+ * candidature : inutile de lister les pièces du garant à un candidat couvert
+ * par Visale.
+ */
+export type ConditionSection =
+  | 'toujours'
+  | 'garant_physique'
+  | 'visale'
+  | 'colocation'
+  | 'etudiant'
+  | 'independant';
+
+export interface PieceDossier {
+  id: string;
+  libelle: string;
+  /** Ligne secondaire, en petit sous le libellé. */
+  precision?: string;
+  actif: boolean;
+}
+
+export interface SectionDossier {
+  id: string;
+  titre: string;
+  /** Note sous le titre : « une seule pièce parmi celles-ci ». */
+  note?: string;
+  condition: ConditionSection;
+  pieces: PieceDossier[];
+}
+
+/**
+ * Modèle de la fiche de visite : textes et liste des pièces du dossier de
+ * candidature, modifiables dans les Paramètres. La liste par défaut suit le
+ * décret n°2015-1437, qui fixe **limitativement** les pièces exigibles.
+ */
+export interface ModeleFicheVisite {
+  introDossier: string;
+  modalitesCandidature: string;
+  aApporter: string;
+  mentions: string;
+  sections: SectionDossier[];
+  blocs: {
+    conditionsFinancieres: boolean;
+    infosPratiques: boolean;
+    coordonneesBailleur: boolean;
+  };
+}
+
 export interface Parametres {
   id: 'singleton';
   bailleur: {
@@ -326,6 +403,8 @@ export interface Parametres {
     qualite: 'personne_physique';
   };
   grilleVetuste: LigneVetuste[]; // pré-remplie, modifiable
+  /** Modèle de la fiche de visite — pré-rempli, modifiable (cf. `getParametres`). */
+  ficheVisite?: ModeleFicheVisite;
   compteursSequence: { bail: number; edl: number; inventaire: number; document: number; annee: number };
   derniereSauvegarde?: string;
   disclaimerAccepte?: boolean;
@@ -405,7 +484,8 @@ export type TypeDocument =
   | 'lettre_restitution'
   | 'courrier_irl'
   | 'grille_vetuste'
-  | 'fiche_aide';
+  | 'fiche_aide'
+  | 'fiche_visite';
 
 export interface DocumentGenere {
   id: string;
@@ -481,6 +561,16 @@ export const TYPE_DOCUMENT_LABELS: Record<TypeDocument, string> = {
   courrier_irl: 'Courrier de révision IRL',
   grille_vetuste: 'Grille de vétusté (annexe)',
   fiche_aide: 'Fiche d’aide juridique',
+  fiche_visite: 'Fiche de visite',
+};
+
+export const CONDITION_SECTION_LABELS: Record<ConditionSection, string> = {
+  toujours: 'Toujours',
+  garant_physique: 'Garant (personne physique)',
+  visale: 'Garantie Visale',
+  colocation: 'Colocation',
+  etudiant: 'Étudiant',
+  independant: 'Indépendant / non salarié',
 };
 
 /** Types de logement proposés à la saisie (formulaire de bien et de bail). */
