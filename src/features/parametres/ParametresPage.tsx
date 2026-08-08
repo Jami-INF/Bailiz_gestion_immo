@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { db, getParametres } from '@/lib/db';
+import { db, getParametres, lireParametres } from '@/lib/db';
 import { genererEtArchiver } from '@/lib/pdf/generer';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
@@ -27,6 +27,8 @@ import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { usePersistanceStockage } from '@/hooks/useStatuts';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { FicheVisitePanel } from './FicheVisitePanel';
+import { SyncPanel } from './SyncPanel';
+import { ClausesBailPanel } from './ClausesBailPanel';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
 
@@ -34,7 +36,7 @@ export function ParametresPage() {
   const toast = useToast();
   // Passe par `getParametres` : les champs apparus après la création des
   // paramètres (modèle de fiche de visite…) sont complétés à la lecture.
-  const parametres = useLiveQuery(() => getParametres());
+  const parametres = useLiveQuery(() => lireParametres());
   const persiste = usePersistanceStockage();
   const [bailleur, setBailleur] = useState<Parametres['bailleur'] | null>(null);
   const fichierRef = useRef<HTMLInputElement>(null);
@@ -214,6 +216,8 @@ export function ParametresPage() {
 
         <SauvegardeGDrivePanel />
 
+        <SyncPanel />
+
 
         <Card>
           <h2 className="mb-2 font-semibold text-accent-900">Grille de vétusté</h2>
@@ -301,6 +305,8 @@ export function ParametresPage() {
             (art. 4 du décret n°2016-382 : elle doit être convenue dès la signature).
           </p>
         </Card>
+
+        <ClausesBailPanel />
 
         <FicheVisitePanel />
 

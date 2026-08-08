@@ -47,7 +47,9 @@ npm run build      # build de production + PWA
 ## Fonctionnalités
 
 ### Biens
-- CRUD avec formulaire multi-étapes : identité → surfaces/équipements → dossier technique → pièces.
+- CRUD avec formulaire multi-étapes : identité → surfaces/équipements → dossier technique →
+  location & visite → pièces. L'étape « dossier technique » recense les conditions qui
+  déterminent les diagnostics dus (âge des installations gaz/électricité, zonage ERP, bruit).
 - Éditeur de structure de pièces avec bibliothèque de modèles (séjour, chambre, cuisine, SDB,
   WC, entrée, cave, parking) : cette trame est réutilisée pour chaque état des lieux, et les
   éléments ajoutés depuis le terrain viennent l'enrichir automatiquement.
@@ -102,6 +104,30 @@ npm run build      # build de production + PWA
   technologies, zone tendue, IRL, charges forfait/provisions, assurance colocataires, rubrique
   travaux, dépôt de garantie en toutes lettres, **clause résolutoire**, dernier loyer de
   l'ancien locataire, honoraires « néant », SIRET LMNP…
+- **Conditions générales d'occupation** (partie X) : une vingtaine de clauses **licites et
+  favorables au bailleur** — droit de visite limité à 2 h par jour ouvrable, interdiction de
+  sous-louer et de louer en meublé de tourisme, réparations locatives du décret 87-712, entretien
+  annuel de la chaudière et ramonage avec justificatifs, prévention des désordres et déclaration
+  des sinistres, assurance et attestation annuelle, règlement de copropriété, animaux, sécurité.
+  Chaque clause porte sa base légale ; le pack se règle dans les Paramètres et s'ajuste bail par
+  bail. S'y ajoutent les notifications par courriel (hors congé, qui reste en LRAR ou par acte),
+  la nouvelle adresse à communiquer au départ, la ventilation mécanique, les abonnements
+  individuels et l'état des lieux par commissaire de justice en cas de désaccord. Les clauses réputées non écrites (pénalités, frais de relance, responsabilité automatique,
+  assurance imposée…) sont volontairement absentes — voir `docs/CDC-bail-clauses.md`.
+- **Clause résolutoire obligatoire** (loi du 27 juillet 2023) : impayés, dépôt de garantie,
+  assurance, troubles de voisinage, avec le délai de six semaines rappelé. Motif facultatif
+  supplémentaire si le logement est soumis à la servitude de résidence principale.
+- **Numérotation calculée** : retirer une partie (pas de colocation, aucune condition générale)
+  ou une sous-partie (pas d'annexe, pas de partie commune) ne laisse aucun trou — ni « IX puis
+  XI », ni « A, B, E » — et le sommaire est construit depuis la même liste que le corps.
+- **Loyer révisable par défaut** : sans clause d'indexation IRL au contrat, aucune augmentation
+  n'est possible en cours de bail, et l'oubli est irrattrapable une fois signé.
+- **Page de garde et sommaire** : photo du logement, récapitulatif (parties, logement, loyer CC,
+  dépôt, durée) et liste des parties ; paraphes en pied de chaque page tant que le bail n'est pas signé.
+- **Annexes générées selon le logement** : le dossier de diagnostic technique n'est pas le même
+  partout — CREP seulement avant 1949, états gaz et électricité seulement au-delà de 15 ans, ERP
+  selon la commune (daté de moins de 6 mois), diagnostic bruit en zone d'aérodrome. Tant qu'une
+  condition n'est pas renseignée sur la fiche du bien, la pièce reste listée avec sa condition.
 - **Checklist des pièces à remettre** par le locataire, imprimée en fin de bail et adaptée au
   dossier (garant physique, Visale, bail étudiant, mobilité).
 - Cycle de vie simplifié : généré → logement loué → terminé (déclenché par l'EDL de sortie
@@ -144,6 +170,25 @@ npm run build      # build de production + PWA
   `drive.file` limité aux fichiers de l'app, ID client OAuth **pré-rempli**). Déclencheurs :
   après chaque signature, à chaque modification (regroupées), à l'ouverture ; reprise au retour
   du réseau ; rotation des 10 dernières archives.
+- **Détection de divergence entre appareils** : chaque archive envoyée sur le Drive porte
+  l'identité de l'appareil d'origine. Avant tout envoi — et à l'ouverture — l'application
+  vérifie qu'un autre appareil n'a pas sauvegardé entre-temps. Si c'est le cas, **l'envoi est
+  suspendu** plutôt que de recouvrir la version la plus récente : les Paramètres proposent alors
+  de reprendre la sauvegarde du Drive ou d'envoyer quand même. Sans autorisation Google valide,
+  la vérification est simplement reportée, jamais signalée comme une erreur.
+- **Synchronisation entre appareils** (activable dans les Paramètres, désactivée par défaut) :
+  au lieu d'envoyer une archive complète, l'application échange **fiche par fiche** avec le
+  Drive. Les modifications faites en parallèle sur l'iPad et l'ordinateur se rejoignent au lieu
+  de s'écraser, les photos ne remontent **qu'une seule fois**, et les modifications faites
+  hors-ligne repartent au retour du réseau. Les suppressions se propagent — y compris
+  l'effacement définitif d'un locataire, qui ne revient jamais.
+  - En cas de conflit sur un même enregistrement : le plus récemment modifié l'emporte, jamais
+    de fusion à moitié. Deux garde-fous interrompent le cycle plutôt que d'agir à l'aveugle :
+    horloge de l'appareil trop décalée, et suppression d'une part inhabituelle des données.
+  - Deux baux créés hors-ligne avec la même référence sont **signalés**, jamais renumérotés
+    d'office : la référence figure peut-être sur un document déjà imprimé.
+  - Un **instantané ZIP hebdomadaire** (4 conservés) reste déposé à côté, jamais fusionné :
+    une version vivante qui se met à jour seule mérite un filet figé.
 - Persistance du stockage demandée au navigateur (`navigator.storage.persist()`).
 - **Diagnostic des pannes** : les échecs affichent un **code d'étape et la cause réelle**
   (stockage saturé, permission refusée…) plutôt qu'un message générique — indispensable sur
@@ -177,6 +222,9 @@ src/
     images.ts           compression photos
     backup.ts           export/import ZIP
     autosave.ts gdrive.ts  sauvegarde automatique (dossier local, Google Drive)
+    appareil.ts         identité de l'appareil (hors sauvegarde, par conception)
+    sync/               synchronisation par fichiers : protocole, journal, cycle,
+                        dépôt Drive, instantané hebdomadaire
     defauts.ts          mobilier décret 2015-981, bibliothèque de pièces, grille de vétusté,
                         modèle de fiche de visite (décret 2015-1437), pièces interdites
     pdf/                bail, EDL, acte de cautionnement, grille de vétusté,

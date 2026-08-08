@@ -12,7 +12,7 @@ import {
   Scale,
   ShieldQuestion,
 } from 'lucide-react';
-import { db, getParametres, prochaineReference } from '@/lib/db';
+import { db, getParametres, lireParametres, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import type { Bail, ElementEDL, EtatDesLieux } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
@@ -23,6 +23,7 @@ import {
   enregistrerDocument,
   genererEtArchiver,
   nomsPersonnes,
+  photoBienEnDataUrl,
   rendrePdf,
   telechargerDocument,
 } from '@/lib/pdf/generer';
@@ -47,7 +48,7 @@ export function BailDetailPage() {
     [bail?.locataireIds.join(',')],
   );
   const edls = useLiveQuery(() => (id ? db.edls.where('bailId').equals(id).toArray() : []), [id]);
-  const parametres = useLiveQuery(() => getParametres());
+  const parametres = useLiveQuery(() => lireParametres());
   const [modaleIrl, setModaleIrl] = useState(false);
   const [nouvelIndice, setNouvelIndice] = useState(0);
   const [nouveauTrimestre, setNouveauTrimestre] = useState('');
@@ -66,8 +67,16 @@ export function BailDetailPage() {
   // écart possible entre le bail affiché et le document téléchargé/imprimé.
   const telechargerPdf = async () => {
     const parametres = await getParametres();
+    const photoDataUrl = await photoBienEnDataUrl(bien.photoId);
     const blob = await rendrePdf(
-      <BailPdf bail={bail} bien={bien} locataires={locataires} parametres={parametres} brouillon />,
+      <BailPdf
+        bail={bail}
+        bien={bien}
+        locataires={locataires}
+        parametres={parametres}
+        photoDataUrl={photoDataUrl}
+        brouillon
+      />,
     );
     const titre = `Bail meublé — ${bien.nom} — ${nomsLocs}`;
     await enregistrerDocument({

@@ -196,13 +196,20 @@ export function EntetePdf({ reference, docTitre }: { reference: string; docTitre
   );
 }
 
-/** Pied de page : pagination x/y + empreinte SHA-256 (version signée). */
-export function PiedDePagePdf({ hash }: { hash?: string }) {
+/**
+ * Pied de page : pagination x/y + empreinte SHA-256 (version signée).
+ * `paraphes` ajoute les emplacements de paraphe attendus sur un contrat destiné
+ * à être signé à la main, page par page.
+ */
+export function PiedDePagePdf({ hash, paraphes }: { hash?: string; paraphes?: boolean }) {
   return (
     <View style={pdfStyles.piedDePage} fixed>
       <Text style={pdfStyles.petit}>
         {hash ? `Empreinte SHA-256 : ${formatHash(hash)}` : 'Document généré par Bailiz'}
       </Text>
+      {paraphes && (
+        <Text style={pdfStyles.petit}>Paraphes — bailleur : ......... locataire : .........</Text>
+      )}
       <Text
         style={pdfStyles.petit}
         render={({ pageNumber, totalPages }) => `${pageNumber}/${totalPages}`}

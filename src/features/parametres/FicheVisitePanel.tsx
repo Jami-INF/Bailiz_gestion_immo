@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowDown, ArrowUp, ClipboardList, Eye, Plus, Trash2 } from 'lucide-react';
 import type { Bien, ConditionSection, ModeleFicheVisite, SectionDossier } from '@/types';
 import { CONDITION_SECTION_LABELS } from '@/types';
-import { db, getParametres } from '@/lib/db';
+import { db, lireParametres } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import { MODELE_FICHE_VISITE_DEFAUT } from '@/lib/defauts';
 import { rendrePdf } from '@/lib/pdf/generer';
@@ -89,7 +89,7 @@ function bienExemple(): Bien {
  */
 export function FicheVisitePanel() {
   const toast = useToast();
-  const parametres = useLiveQuery(() => getParametres());
+  const parametres = useLiveQuery(() => lireParametres());
   const [confirmReset, setConfirmReset] = useState(false);
   // Les champs sont non contrôlés (écriture au `blur`, comme la grille de
   // vétusté) : après une réinitialisation, seul un remontage leur fait relire

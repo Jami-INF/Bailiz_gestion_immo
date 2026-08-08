@@ -61,3 +61,57 @@ describe('annexesParDefaut', () => {
     expect(new Set(items.map((i) => i.id)).size).toBe(items.length);
   });
 });
+
+describe('annexesParDefaut — dossier de diagnostic technique conditionnel', () => {
+  const avec = (m: Partial<Bien>) => annexesParDefaut({ ...bien('monopropriete'), ...m });
+  const libelles = (items: ReturnType<typeof annexesParDefaut>) => items.map((i) => i.libelle).join(' | ');
+
+  it("n'ajoute le CREP que pour un immeuble d'avant 1949", () => {
+    expect(libelles(avec({ periodeConstruction: 'avant_1949' }))).toMatch(/CREP/);
+    expect(libelles(avec({ periodeConstruction: '1949_1974' }))).not.toMatch(/CREP/);
+    expect(libelles(avec({ periodeConstruction: 'apres_2005' }))).not.toMatch(/CREP/);
+  });
+
+  it('liste le CREP sous condition tant que la période de construction est inconnue', () => {
+    const items = avec({ periodeConstruction: undefined });
+    const crep = items.find((i) => /CREP/.test(i.libelle));
+    expect(crep?.libelle).toMatch(/uniquement si/i);
+  });
+
+  it("n'exige les états gaz et électricité que pour les installations de plus de 15 ans", () => {
+    const sans = avec({
+      installationGazPlusDe15Ans: false,
+      installationElectriquePlusDe15Ans: false,
+    });
+    expect(libelles(sans)).not.toMatch(/installation intérieure/i);
+
+    const avecGaz = avec({ installationGazPlusDe15Ans: true, installationElectriquePlusDe15Ans: false });
+    expect(libelles(avecGaz)).toMatch(/installation intérieure de gaz — installation de plus de 15 ans/i);
+    expect(libelles(avecGaz)).not.toMatch(/électricité/i);
+  });
+
+  it("retire l'état des risques pour une commune non concernée, et le date à 6 mois sinon", () => {
+    expect(libelles(avec({ zoneRisquesERP: false }))).not.toMatch(/état des risques/i);
+    const erp = avec({ zoneRisquesERP: true }).find((i) => /état des risques/i.test(i.libelle));
+    expect(erp?.libelle).toMatch(/moins de 6 mois/);
+    expect(erp?.lien).toMatch(/georisques/);
+  });
+
+  it("n'ajoute le diagnostic bruit qu'en zone d'exposition aérodrome", () => {
+    expect(libelles(avec({ zoneBruitAerodrome: true }))).toMatch(/nuisances sonores aériennes/i);
+    expect(libelles(avec({}))).not.toMatch(/nuisances sonores/i);
+  });
+
+  it('conserve DPE et surface habitable dans tous les cas', () => {
+    const minimal = libelles(
+      avec({
+        periodeConstruction: 'apres_2005',
+        installationGazPlusDe15Ans: false,
+        installationElectriquePlusDe15Ans: false,
+        zoneRisquesERP: false,
+      }),
+    );
+    expect(minimal).toMatch(/DPE/);
+    expect(minimal).toMatch(/surface habitable/i);
+  });
+});

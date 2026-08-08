@@ -455,6 +455,19 @@ export function BienFormPage() {
             </div>
             <div className="rounded-lg bg-accent-50 p-4">
               <Checkbox
+                label="Le logement est soumis à une servitude de résidence principale"
+                checked={bien.servitudeResidencePrincipale ?? false}
+                onChange={(e) => maj({ servitudeResidencePrincipale: e.target.checked })}
+              />
+              <p className="mt-1 text-xs text-accent-500">
+                Secteur où le PLU impose l'usage exclusif de résidence principale (art. L.151-14-1
+                du code de l'urbanisme, loi du 19 novembre 2024 sur les meublés de tourisme). La
+                mention est alors portée au bail, et le non-respect de cette obligation peut être
+                ajouté aux motifs de résiliation de plein droit. À vérifier auprès de votre mairie.
+              </p>
+            </div>
+            <div className="rounded-lg bg-accent-50 p-4">
+              <Checkbox
                 label="Le bien est situé en zone d'encadrement des loyers"
                 checked={bien.zoneEncadrementLoyers}
                 onChange={(e) => maj({ zoneEncadrementLoyers: e.target.checked })}
@@ -500,6 +513,46 @@ export function BienFormPage() {
                 placeholder="https://drive.google.com/drive/folders/…"
               />
             </Field>
+            <div className="space-y-2 rounded-lg border border-accent-200 p-4">
+              <p className="text-sm font-medium text-accent-800">
+                Diagnostics dus pour ce logement
+              </p>
+              <p className="text-xs text-accent-500">
+                Ces réponses déterminent la liste des annexes imprimée à la fin du bail. Tant
+                qu'une case n'est pas renseignée, la pièce reste listée avec sa condition : mieux
+                vaut une ligne à vérifier qu'un diagnostic manquant.
+              </p>
+              <Checkbox
+                label="Installation intérieure de gaz de plus de 15 ans"
+                checked={bien.installationGazPlusDe15Ans ?? false}
+                onChange={(e) => maj({ installationGazPlusDe15Ans: e.target.checked })}
+              />
+              <Checkbox
+                label="Installation intérieure d'électricité de plus de 15 ans"
+                checked={bien.installationElectriquePlusDe15Ans ?? false}
+                onChange={(e) => maj({ installationElectriquePlusDe15Ans: e.target.checked })}
+              />
+              <Checkbox
+                label="Commune concernée par l'état des risques (ERP)"
+                checked={bien.zoneRisquesERP ?? true}
+                onChange={(e) => maj({ zoneRisquesERP: e.target.checked })}
+              />
+              <p className="pl-8 text-xs text-accent-500">
+                Plan de prévention des risques, sismicité 2 à 5, potentiel radon 3, secteur
+                d'information sur les sols, recul du trait de côte : la quasi-totalité des communes
+                est concernée par au moins un de ces motifs. À vérifier sur georisques.gouv.fr —
+                l'ERP doit dater de moins de 6 mois à la signature.
+              </p>
+              <Checkbox
+                label="Logement en zone d'exposition au bruit d'un aérodrome (PEB)"
+                checked={bien.zoneBruitAerodrome ?? false}
+                onChange={(e) => maj({ zoneBruitAerodrome: e.target.checked })}
+              />
+              <p className="pl-8 text-xs text-accent-500">
+                Le constat de risque d'exposition au plomb (CREP) est ajouté automatiquement si la
+                période de construction indiquée à l'étape précédente est « avant 1949 ».
+              </p>
+            </div>
             <div className="rounded-lg bg-accent-50 p-4 text-sm text-accent-700">
               <p className="font-medium text-accent-800">Que mettre dans le dossier technique ?</p>
               <p className="mt-1">

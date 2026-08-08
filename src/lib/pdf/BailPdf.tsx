@@ -1,6 +1,8 @@
-import { Document, Page, Text, View } from '@react-pdf/renderer';
+import { Document, Image, Page, Text, View } from '@react-pdf/renderer';
 import type { Bail, Bien, Locataire, Parametres } from '@/types';
-import { PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
+import { FAMILLE_CLAUSE_LABELS, PERIODE_CONSTRUCTION_LABELS, TYPE_BAIL_LABELS } from '@/types';
+
+import { planDuContrat } from './bailPlan';
 import { formatEuros } from '@/lib/calculs';
 import { montantEnLettres } from '@/lib/lettres';
 import { urlExterneSure } from '@/lib/liens';
@@ -17,6 +19,16 @@ import {
   pdfStyles as s,
 } from './commun';
 
+/** Ligne « intitulé …… valeur » de l'encadré récapitulatif de la page de garde. */
+function LigneGarde({ label, valeur }: { label: string; valeur: string }) {
+  return (
+    <View style={{ flexDirection: 'row', marginBottom: 3 }}>
+      <Text style={{ width: '38%', color: '#475569' }}>{label}</Text>
+      <Text style={[s.gras, { flex: 1 }]}>{valeur}</Text>
+    </View>
+  );
+}
+
 interface Props {
   bail: Bail;
   bien: Bien;
@@ -25,6 +37,8 @@ interface Props {
   hash?: string;
   /** Bail rapide : les champs vides s'affichent en zones à compléter à la main. */
   brouillon?: boolean;
+  /** Photo du logement en data-URL, illustrant la page de garde (cf. `photoBienEnDataUrl`). */
+  photoDataUrl?: string;
 }
 
 /**
@@ -35,7 +49,15 @@ interface Props {
  * performance énergétique avec rappel des critères de décence
  * (loi Climat et résilience).
  */
-export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }: Props) {
+export function BailPdf({
+  bail,
+  bien,
+  locataires,
+  parametres,
+  hash,
+  brouillon,
+  photoDataUrl,
+}: Props) {
   const b = parametres.bailleur;
   const chargesLabel =
     bail.charges.mode === 'forfait'
@@ -55,6 +77,13 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
 
   // Le QR code est scanné par un tiers : seule une URL http(s) valide est encodée.
   const lienDossierTechnique = urlExterneSure(bien.dossierTechniqueUrl);
+
+  // Numérotation et regroupement des clauses : calculés à part, donc testables.
+  const { num, sommaire, sousObjet, sousFinances, clausesParFamille } = planDuContrat({
+    bail,
+    bien,
+    locataires,
+  });
 
   // Aide-mémoire des pièces que le locataire doit remettre (adapté au dossier).
   const garants = locataires.filter((l) => l.garant);
@@ -85,11 +114,17 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
     'Inventaire et état détaillé du mobilier signé',
   ];
 
+  const nomsLocataires = locataires
+    .map((l) => `${l.prenom} ${l.nom}`.trim())
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <Document title={`${bail.reference} — Bail meublé`} language="fr">
+      {/* ------------------------- Page de garde ------------------------- */}
       <Page size="A4" style={s.page}>
         <EntetePdf reference={bail.reference} docTitre="Contrat de location meublée" />
-        <View style={s.titreBloc}>
+        <View style={[s.titreBloc, { marginTop: photoDataUrl ? 12 : 40 }]}>
           <Text style={s.titre}>Contrat de location de logement meublé</Text>
           <Text style={s.sousTitre}>
             Résidence principale — {TYPE_BAIL_LABELS[bail.typeBail]}. Soumis au titre Ier bis de la
@@ -98,8 +133,61 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
           </Text>
         </View>
 
+        {photoDataUrl ? (
+          <Image
+            src={photoDataUrl}
+            style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 4, marginBottom: 10 }}
+          />
+        ) : null}
+
+        <View style={s.carte}>
+          <LigneGarde label="Bailleur" valeur={`${b.prenom} ${b.nom}`.trim() || '—'} />
+          <LigneGarde label="Locataire(s)" valeur={nomsLocataires || '—'} />
+          <LigneGarde label="Logement" valeur={adresseComplete || '—'} />
+          <LigneGarde
+            label="Durée"
+            valeur={`${bail.dureeMois} mois à compter du ${formatDateFr(bail.dateEffet)}`}
+          />
+          <LigneGarde label="Loyer hors charges (par mois)" valeur={formatEuros(bail.loyerHC)} />
+          <LigneGarde
+            label={
+              bail.charges.mode === 'forfait'
+                ? 'Forfait de charges (par mois)'
+                : 'Provisions sur charges (par mois)'
+            }
+            valeur={formatEuros(bail.charges.montant)}
+          />
+          <LigneGarde
+            label="Total mensuel charges comprises"
+            valeur={formatEuros(totalMensuel)}
+          />
+          <LigneGarde
+            label="Dépôt de garantie"
+            valeur={
+              bail.typeBail === 'mobilite' ? 'aucun (bail mobilité)' : formatEuros(bail.depotGarantie)
+            }
+          />
+        </View>
+
+        <Text style={s.h2}>Sommaire</Text>
+        {sommaire.map((titre) => (
+          <Text key={titre} style={s.tiersLigne}>
+            {titre}
+          </Text>
+        ))}
+        <Text style={[s.petit, { marginTop: 6 }]}>
+          Le contrat est établi en autant d'exemplaires originaux que de parties,
+          chacune en conservant un exemplaire accompagné de ses annexes.
+        </Text>
+
+        <PiedDePagePdf hash={hash} paraphes={!bail.signatures} />
+      </Page>
+
+      <Page size="A4" style={s.page}>
+        <EntetePdf reference={bail.reference} docTitre="Contrat de location meublée" />
+
         {/* ============================ I ============================ */}
-        <Text style={s.h2}>I. Désignation des parties</Text>
+        <Text style={s.h2}>{num('parties')}. Désignation des parties</Text>
         <Text style={s.h3}>Le bailleur</Text>
         <View style={s.tiers}>
           <Text style={s.p}>
@@ -165,8 +253,8 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         )}
 
         {/* ============================ II ============================ */}
-        <Text style={s.h2}>II. Objet du contrat</Text>
-        <Text style={s.h3}>A. Consistance du logement</Text>
+        <Text style={s.h2}>{num('objet')}. Objet du contrat</Text>
+        <Text style={s.h3}>{sousObjet.consistance}. Consistance du logement</Text>
         <Text style={s.p}>
           Adresse : <Rempl v={adresseComplete} brouillon={brouillon} taille={55} />.{' '}
           {bail.typeBail !== 'mobilite' && (
@@ -214,15 +302,25 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
             <Text style={s.p}>{bien.equipementsPrivatifs.join(' ; ')}.</Text>
           </>
         )}
-        <Text style={s.h3}>B. Destination des locaux</Text>
+        <Text style={s.h3}>{sousObjet.destination}. Destination des locaux</Text>
         <Text style={s.p}>
           Usage d'habitation exclusivement, à titre de résidence principale du locataire. Le
           logement est loué meublé ; l'inventaire et l'état détaillé du mobilier sont annexés au
           présent contrat.
         </Text>
+        {bien.servitudeResidencePrincipale && (
+          <Text style={s.p}>
+            <Text style={s.gras}>Servitude de résidence principale</Text> : le logement objet du
+            présent contrat est soumis à l'obligation prévue à l'article L.151-14-1 du code de
+            l'urbanisme ; il est à usage exclusif de résidence principale, au sens de l'article 2
+            de la loi du 6 juillet 1989.
+          </Text>
+        )}
         {bien.annexes.length > 0 && (
           <>
-            <Text style={s.h3}>C. Locaux et équipements accessoires à usage privatif</Text>
+            <Text style={s.h3}>
+              {sousObjet.accessoires}. Locaux et équipements accessoires à usage privatif
+            </Text>
             <Text style={s.p}>
               {bien.annexes.map((a) => `${a.type} : ${a.description}`).join(' ; ')}.
             </Text>
@@ -230,18 +328,22 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         )}
         {bien.partiesCommunes.length > 0 && (
           <>
-            <Text style={s.h3}>D. Parties, équipements et accessoires à usage commun</Text>
+            <Text style={s.h3}>
+              {sousObjet.communs}. Parties, équipements et accessoires à usage commun
+            </Text>
             <Text style={s.p}>{bien.partiesCommunes.join(' ; ')}.</Text>
           </>
         )}
-        <Text style={s.h3}>E. Accès aux technologies de l'information et de la communication</Text>
+        <Text style={s.h3}>
+          {sousObjet.tic}. Accès aux technologies de l'information et de la communication
+        </Text>
         <Text style={s.p}>
           {bien.equipementsTIC ??
             'Non renseigné (modalités de réception de la télévision et de raccordement internet à préciser).'}
         </Text>
 
         {/* ============================ III ============================ */}
-        <Text style={s.h2}>III. Date de prise d'effet et durée du contrat</Text>
+        <Text style={s.h2}>{num('duree')}. Date de prise d'effet et durée du contrat</Text>
         <Text style={s.p}>
           Le contrat prend effet le {formatDateFr(bail.dateEffet)} pour une durée de{' '}
           {bail.dureeMois} mois.
@@ -273,8 +375,8 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         )}
 
         {/* ============================ IV ============================ */}
-        <Text style={s.h2}>IV. Conditions financières</Text>
-        <Text style={s.h3}>A. Loyer</Text>
+        <Text style={s.h2}>{num('finances')}. Conditions financières</Text>
+        <Text style={s.h3}>{sousFinances.loyer}. Loyer</Text>
         <Text style={s.p}>
           Loyer mensuel hors charges :{' '}
           <Rempl v={bail.loyerHC ? formatEuros(bail.loyerHC) : undefined} brouillon={brouillon} taille={12} />.
@@ -304,19 +406,40 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
           </Text>
         )}
         <Text style={s.h3}>Révision du loyer</Text>
-        <Text style={s.p}>
-          {bail.revisionIRL.revisable && bail.typeBail !== 'mobilite'
-            ? `Le loyer est révisé chaque année à la date anniversaire de la prise d'effet du contrat, en fonction de la variation de l'indice de référence des loyers (IRL) publié par l'INSEE. Trimestre de référence : ${bail.revisionIRL.trimestreReference}, valeur de l'indice : ${bail.revisionIRL.valeurIndice}.`
-            : "Le loyer n'est pas révisable pendant la durée du contrat."}
-        </Text>
-        <Text style={s.h3}>B. Charges récupérables</Text>
+        {bail.revisionIRL.revisable && bail.typeBail !== 'mobilite' ? (
+          <>
+            <Text style={s.p}>
+              Le loyer est révisé de plein droit chaque année à la date anniversaire de la prise
+              d'effet du contrat, en fonction de la variation de l'indice de référence des loyers
+              (IRL) publié par l'INSEE, sans que cette révision puisse excéder cette variation.
+              Trimestre de référence :{' '}
+              <Rempl v={bail.revisionIRL.trimestreReference || undefined} brouillon={brouillon} taille={22} />
+              , valeur de l'indice :{' '}
+              <Rempl v={bail.revisionIRL.valeurIndice || undefined} brouillon={brouillon} taille={10} />.
+            </Text>
+            <Text style={s.petit}>
+              La révision doit être demandée dans l'année qui suit la date à laquelle elle est
+              exigible ; à défaut, elle est perdue pour l'année écoulée et ne prend effet qu'à la
+              date de la demande, sans rétroactivité.
+            </Text>
+          </>
+        ) : (
+          <Text style={s.p}>
+            {bail.typeBail === 'mobilite'
+              ? "Le loyer n'est pas révisable : le bail mobilité n'est ni renouvelable ni reconductible."
+              : "Le loyer n'est pas révisable pendant la durée du contrat, faute de clause d'indexation."}
+          </Text>
+        )}
+        <Text style={s.h3}>{sousFinances.charges}. Charges récupérables</Text>
         <Text style={s.p}>
           {bail.charges.mode === 'forfait' ? 'Forfait de charges' : 'Provisions sur charges'} :{' '}
           {formatEuros(bail.charges.montant)} par mois ({chargesLabel}).
         </Text>
         {bail.assuranceColocataires && (
           <>
-            <Text style={s.h3}>C. Assurance pour le compte des colocataires</Text>
+            <Text style={s.h3}>
+              {sousFinances.assurance}. Assurance pour le compte des colocataires
+            </Text>
             <Text style={s.p}>
               Le bailleur a souscrit une assurance pour le compte des colocataires (art. 8-1 de
               la loi du 6 juillet 1989). Montant annuel récupérable :{' '}
@@ -326,7 +449,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
             </Text>
           </>
         )}
-        <Text style={s.h3}>D. Modalités de paiement</Text>
+        <Text style={s.h3}>{sousFinances.paiement}. Modalités de paiement</Text>
         <Text style={s.p}>
           Le loyer est payé mensuellement, à échoir, avant le {bail.jourPaiement} de chaque
           mois. Mode de paiement : {bail.modePaiement || 'virement bancaire'}. Montant total dû
@@ -336,7 +459,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         </Text>
 
         {/* ============================ V ============================ */}
-        <Text style={s.h2}>V. Travaux</Text>
+        <Text style={s.h2}>{num('travaux')}. Travaux</Text>
         <Text style={s.p}>
           A. Travaux d'amélioration ou de mise en conformité avec les caractéristiques de
           décence effectués depuis la fin du dernier contrat :{' '}
@@ -352,7 +475,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         </Text>
 
         {/* ============================ VI ============================ */}
-        <Text style={s.h2}>VI. Garanties</Text>
+        <Text style={s.h2}>{num('garanties')}. Garanties</Text>
         <Text style={s.p}>
           {bail.typeBail === 'mobilite'
             ? 'Aucun dépôt de garantie ne peut être exigé (bail mobilité).'
@@ -380,45 +503,62 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         )}
 
         {/* ============================ VII ============================ */}
-        <Text style={s.h2}>VII. Clause de solidarité</Text>
-        <Text style={s.p}>
-          {locataires.length > 1
-            ? bail.clauseSolidarite
-              ? "Pour l'exécution de toutes les obligations du présent contrat, il y aura solidarité et indivisibilité entre les locataires, ainsi qu'entre eux et leurs cautions. La solidarité d'un colocataire ayant donné congé s'éteint à la date d'effet de son congé si un nouveau colocataire le remplace, et au plus tard six mois après cette date (art. 8-1 de la loi du 6 juillet 1989)."
-              : 'Les locataires ne sont pas tenus solidairement.'
-            : 'Sans objet (locataire unique).'}
-        </Text>
-
-        {/* ============================ VIII ============================ */}
-        <Text style={s.h2}>VIII. Clause résolutoire</Text>
-        {bail.clauseResolutoire !== false ? (
+        {/* Locataire unique : la partie entière est omise plutôt que de porter
+            une mention « sans objet » qui décale la numérotation pour rien. */}
+        {locataires.length > 1 && (
           <>
+            <Text style={s.h2}>{num('solidarite')}. Clause de solidarité</Text>
             <Text style={s.p}>
-              Le présent contrat sera résilié de plein droit, après délivrance d'un commandement
-              demeuré infructueux dans les conditions des articles 24 de la loi du 6 juillet
-              1989 et 1225 du Code civil :
-            </Text>
-            <Text style={s.p}>
-              – en cas de défaut de paiement du loyer, des charges (forfait, provisions ou
-              régularisation annuelle) aux termes convenus ;
-            </Text>
-            <Text style={s.p}>– en cas de non-versement du dépôt de garantie ;</Text>
-            <Text style={s.p}>
-              – en cas de défaut d'assurance des risques locatifs par le locataire (sauf
-              assurance souscrite par le bailleur pour son compte) — le locataire justifie de
-              cette assurance à la remise des clés puis chaque année à la demande du bailleur ;
-            </Text>
-            <Text style={s.p}>
-              – en cas de troubles de voisinage constatés par une décision de justice passée en
-              force de chose jugée.
+              {bail.clauseSolidarite
+                ? "Pour l'exécution de toutes les obligations du présent contrat, il y aura solidarité et indivisibilité entre les locataires, ainsi qu'entre eux et leurs cautions. La solidarité d'un colocataire ayant donné congé s'éteint à la date d'effet de son congé si un nouveau colocataire le remplace, et au plus tard six mois après cette date (art. 8-1 de la loi du 6 juillet 1989)."
+                : 'Les locataires ne sont pas tenus solidairement.'}
             </Text>
           </>
-        ) : (
-          <Text style={s.p}>Les parties n'ont pas prévu de clause résolutoire.</Text>
         )}
 
+        {/* ============================ VIII ============================ */}
+        <Text style={s.h2}>{num('resolutoire')}. Clause résolutoire</Text>
+        <Text style={s.p}>
+          Le présent contrat sera résilié de plein droit, après délivrance d'un commandement de
+          payer ou d'un commandement demeuré infructueux, dans les conditions des articles 24 de
+          la loi du 6 juillet 1989 et 1225 du code civil :
+        </Text>
+        <View style={s.carte}>
+          <Text style={s.p}>
+            – en cas de <Text style={s.gras}>défaut de paiement du loyer ou des charges</Text>{' '}
+            (forfait, provisions ou régularisation annuelle) aux termes convenus ;
+          </Text>
+          <Text style={s.p}>
+            – en cas de <Text style={s.gras}>non-versement du dépôt de garantie</Text> ;
+          </Text>
+          <Text style={s.p}>
+            – en cas de <Text style={s.gras}>défaut d'assurance</Text> des risques locatifs par le
+            locataire (sauf assurance souscrite par le bailleur pour son compte) — le locataire
+            justifie de cette assurance à la remise des clés puis chaque année à la demande du
+            bailleur ;
+          </Text>
+          <Text style={s.p}>
+            – en cas de <Text style={s.gras}>troubles de voisinage</Text> constatés par une
+            décision de justice passée en force de chose jugée
+            {bien.servitudeResidencePrincipale && bail.resiliationResidencePrincipale ? ' ;' : '.'}
+          </Text>
+          {bien.servitudeResidencePrincipale && bail.resiliationResidencePrincipale && (
+            <Text style={s.p}>
+              – en cas de <Text style={s.gras}>non-respect de l'obligation de résidence
+              principale</Text> prévue à l'article L.151-14-1 du code de l'urbanisme.
+            </Text>
+          )}
+        </View>
+        <Text style={s.petit}>
+          Les deux premiers motifs sont obligatoires (loi n°2023-668 du 27 juillet 2023). La
+          clause ne produit effet que six semaines après un commandement de payer demeuré
+          infructueux, délai porté à deux mois pour les contrats conclus avant le 29 juillet 2023.
+          Le juge peut accorder des délais de paiement au locataire, qui suspendent les effets de
+          la clause.
+        </Text>
+
         {/* ============================ IX ============================ */}
-        <Text style={s.h2}>IX. Honoraires de location</Text>
+        <Text style={s.h2}>{num('honoraires')}. Honoraires de location</Text>
         <Text style={s.p}>
           Néant : la location est conclue directement entre le bailleur et le locataire, sans le
           concours d'une personne mandatée et rémunérée à cette fin (art. 5-I de la loi du 6
@@ -426,7 +566,37 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
         </Text>
 
         {/* ============================ X ============================ */}
-        <Text style={s.h2}>X. Autres conditions particulières</Text>
+        {clausesParFamille.length > 0 && (
+          <>
+            <Text style={s.h2}>{num('clauses')}. Conditions générales d'occupation</Text>
+            <Text style={s.petit}>
+              Les stipulations qui suivent complètent les obligations légales des parties. Aucune
+              ne déroge aux dispositions d'ordre public de la loi du 6 juillet 1989.
+            </Text>
+            {clausesParFamille.map(([famille, clauses], iFamille) => (
+              <View key={famille}>
+                <Text style={s.h3}>
+                  {`${num('clauses')}.${String.fromCharCode(65 + iFamille)}. `}
+                  {FAMILLE_CLAUSE_LABELS[famille]}
+                </Text>
+                {clauses.map((clause, i) => (
+                  <View key={clause.id} wrap={false} style={{ marginBottom: 6 }}>
+                    <Text style={s.p}>
+                      <Text style={s.gras}>
+                        {`${num('clauses')}.${String.fromCharCode(65 + iFamille)}.${i + 1} — ${clause.titre}. `}
+                      </Text>
+                      {clause.texte}
+                    </Text>
+                    {clause.baseLegale && <Text style={s.petit}>({clause.baseLegale})</Text>}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* ============================ XI ============================ */}
+        <Text style={s.h2}>{num('particulieres')}. Autres conditions particulières</Text>
         {bail.clausesParticulieres.length === 0 ? (
           <Text style={s.p}>Néant.</Text>
         ) : (
@@ -437,8 +607,8 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
           ))
         )}
 
-        {/* ============================ XI ============================ */}
-        <Text style={s.h2}>XI. Annexes</Text>
+        {/* ============================ XII ============================ */}
+        <Text style={s.h2}>{num('annexes')}. Annexes</Text>
         <Text style={s.p}>Sont annexées et jointes au contrat les pièces suivantes :</Text>
         {bail.annexesChecklist.map((a) => (
           <CaseACocher key={a.id} cochee={a.jointe}>
@@ -489,7 +659,7 @@ export function BailPdf({ bail, bien, locataires, parametres, hash, brouillon }:
             ))}
           </View>
         </View>
-        <PiedDePagePdf hash={hash} />
+        <PiedDePagePdf hash={hash} paraphes={!bail.signatures} />
       </Page>
     </Document>
   );

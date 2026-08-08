@@ -26,6 +26,8 @@ import {
   pousserSiActive,
   SEUIL_PUSH_OUVERTURE_MS,
 } from '@/lib/autosave';
+import { verifierArchiveDistante } from '@/lib/gdrive';
+import { syncActive } from '@/lib/sync';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
 import { Button, Modal, useToast } from '@/components/ui';
 
@@ -63,6 +65,12 @@ function SauvegardeStatut() {
     const resultat = await pousserSiActive(true);
     setEnCours(false);
     if (resultat === 'ok') toast('success', 'Sauvegarde poussée vers la destination configurée.');
+    else if (resultat === 'conflit')
+      toast(
+        'warning',
+        'Envoi vers le Drive suspendu : une sauvegarde plus récente y existe, faite depuis un autre appareil. Ouvrez les Paramètres pour la restaurer ou passer outre.',
+      );
+    else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', 'Autorisation à renouveler dans les Paramètres (dossier ou Google Drive).');
     else if (resultat === 'hors_ligne')
@@ -142,6 +150,26 @@ export function AppLayout() {
       await pousserSiActive(false); // sans geste utilisateur : n'insiste pas si permission à renouveler
     })();
   }, []);
+
+  /*
+   * Vérification du Drive à l'ouverture : mieux vaut apprendre qu'un autre
+   * appareil a sauvegardé depuis **avant** de commencer à travailler sur des
+   * données périmées. Silencieuse par nature : sans autorisation Google valide
+   * — le cas courant sur Safari/iPad — la vérification est simplement reportée
+   * au prochain envoi, sans message d'erreur.
+   */
+  useEffect(() => {
+    void (async () => {
+      // Sans objet dès que la synchronisation fusionne : plus de version concurrente.
+      if (await syncActive()) return;
+      const etat = await verifierArchiveDistante(false);
+      if (etat.etat !== 'divergence') return;
+      toast(
+        'warning',
+        `Une sauvegarde plus récente existe sur le Drive (depuis « ${etat.archive.appareilNom ?? 'un autre appareil'} », le ${format(new Date(etat.archive.createdTime), "dd/MM 'à' HH'h'mm")}). La sauvegarde automatique est suspendue : ouvrez les Paramètres pour choisir.`,
+      );
+    })();
+  }, [toast]);
   const location = useLocation();
 
   /**

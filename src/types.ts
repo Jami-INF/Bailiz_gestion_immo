@@ -78,6 +78,24 @@ export interface Bien {
   /** Lien vers le dossier technique en ligne (Drive, cloud…) regroupant le DDT : un QR code vers cette URL est ajouté au bail. */
   dossierTechniqueUrl?: string;
   /**
+   * Logement situé dans un secteur où le PLU impose l'usage exclusif de
+   * résidence principale (art. L.151-14-1 du code de l'urbanisme, créé par la
+   * loi n°2024-1039). Mention à porter au bail et motif facultatif de clause
+   * résolutoire depuis le décret n°2026-596.
+   */
+  servitudeResidencePrincipale?: boolean;
+  /**
+   * Conditions qui déterminent le contenu du dossier de diagnostic technique
+   * annexé au bail. `undefined` = information non renseignée : la pièce reste
+   * listée avec sa condition, pour ne pas l'oublier (cf. `annexesParDefaut`).
+   */
+  installationGazPlusDe15Ans?: boolean;
+  installationElectriquePlusDe15Ans?: boolean;
+  /** Commune ou secteur concerné par un PPR, un zonage sismique, radon, un SIS… */
+  zoneRisquesERP?: boolean;
+  /** Logement situé dans une zone d'exposition au bruit d'un aérodrome (PEB). */
+  zoneBruitAerodrome?: boolean;
+  /**
    * Compteurs du logement et leurs numéros (PDL / PCE / n° de série). Ils sont
    * propres au logement et ne changent pas d'un locataire à l'autre : saisis une
    * fois, ils pré-remplissent chaque état des lieux, seuls les relevés varient.
@@ -165,8 +183,26 @@ export interface Bail {
   revisionIRL: { trimestreReference: string; valeurIndice: number; revisable: boolean };
   complementLoyer?: { montant: number; justification: string };
   dernierLoyerAncienLocataire?: number;
-  /** Clause résolutoire (résiliation de plein droit : impayés, dépôt, assurance, troubles). Défaut : true. */
+  /**
+   * @deprecated La clause résolutoire pour défaut de paiement est **obligatoire**
+   * depuis la loi n°2023-668 du 27 juillet 2023 : elle est désormais toujours
+   * imprimée. Champ conservé pour relire les baux enregistrés auparavant.
+   */
   clauseResolutoire?: boolean;
+  /**
+   * Motif facultatif de résiliation de plein droit ouvert par le décret
+   * n°2026-596 : non-respect de l'obligation de résidence principale, lorsque le
+   * logement est soumis à la servitude de l'art. L.151-14-1 du code de l'urbanisme.
+   */
+  resiliationResidencePrincipale?: boolean;
+  /**
+   * Conditions générales d'occupation retenues pour ce bail, **copiées** depuis
+   * le modèle des Paramètres à l'enregistrement. La copie (et non une simple
+   * référence) garantit qu'un bail imprimé et signé se régénère à l'identique,
+   * même si le modèle évolue ensuite. Absent = bail antérieur à cette
+   * fonctionnalité : aucune condition générale n'est imprimée.
+   */
+  clauses?: ClauseBail[];
   /** Colocation : assurance pour le compte des colocataires souscrite par le bailleur (récupérable par douzième). */
   assuranceColocataires?: { montantAnnuel: number };
   /** Rubrique V du bail type — laisser vide pour « néant ». */
@@ -390,6 +426,45 @@ export interface ModeleFicheVisite {
   };
 }
 
+/** Regroupement des conditions générales d'occupation dans le bail. */
+export type FamilleClause = 'occupation' | 'entretien' | 'assurance' | 'immeuble';
+
+/**
+ * Clause du bail issue du catalogue. Chaque clause porte sa base légale : le
+ * bail ne doit contenir aucune stipulation réputée non écrite par l'article 4
+ * de la loi du 6 juillet 1989.
+ */
+export interface ClauseBail {
+  id: string;
+  famille: FamilleClause;
+  titre: string;
+  texte: string;
+  /** Référence imprimée en petit sous la clause. */
+  baseLegale?: string;
+  /** Retenue par défaut à la création d'un bail. */
+  active: boolean;
+  /** Imprimée seulement si le logement remplit la condition. */
+  condition?: 'copropriete' | 'servitude_residence_principale';
+}
+
+export const FAMILLE_CLAUSE_LABELS: Record<FamilleClause, string> = {
+  occupation: 'Occupation, destination et visites',
+  entretien: 'Entretien, réparations et restitution',
+  assurance: 'Assurance, sinistres et information',
+  immeuble: "Vie de l'immeuble et troubles",
+};
+
+/** Archive de sauvegarde présente sur le Drive, telle que décrite par l'API. */
+export interface ArchiveDrive {
+  id: string;
+  nom: string;
+  /** Date de création côté serveur (RFC 3339, UTC) : seule référence fiable entre appareils. */
+  createdTime: string;
+  /** Identifiant de l'appareil qui l'a poussée — absent pour les archives antérieures. */
+  appareil?: string;
+  appareilNom?: string;
+}
+
 export interface Parametres {
   id: 'singleton';
   bailleur: {
@@ -405,6 +480,8 @@ export interface Parametres {
   grilleVetuste: LigneVetuste[]; // pré-remplie, modifiable
   /** Modèle de la fiche de visite — pré-rempli, modifiable (cf. `getParametres`). */
   ficheVisite?: ModeleFicheVisite;
+  /** Conditions générales d'occupation proposées à chaque nouveau bail. */
+  clausesBail?: ClauseBail[];
   compteursSequence: { bail: number; edl: number; inventaire: number; document: number; annee: number };
   derniereSauvegarde?: string;
   disclaimerAccepte?: boolean;
@@ -418,6 +495,21 @@ export interface Parametres {
     actif: boolean;
     dossierId?: string; // dossier « Bailiz » créé à la racine du Drive
     dernierPush?: string;
+    /**
+     * Dernière archive du Drive connue de cet appareil : sert à détecter qu'un
+     * autre appareil a poussé depuis (cf. `lib/gdrive.ts`). Mise à jour après
+     * un push, une restauration, ou un passage en force.
+     */
+    derniereArchiveVue?: ArchiveDrive;
+    /**
+     * Synchronisation par fichiers (lot B) : activation et heure **serveur** du
+     * dernier cycle réussi. Comparer des dates serveur à une heure locale
+     * ferait manquer des fichiers à chaque cycle, d'où le stockage tel quel.
+     */
+    syncActive?: boolean;
+    derniereSync?: string;
+    /** Date du dernier instantané ZIP hebdomadaire (filet de sécurité, jamais fusionné). */
+    dernierInstantane?: string;
   };
 }
 
@@ -473,6 +565,10 @@ export interface SaisieBail {
   travauxDepuis?: string;
   travauxMajoration?: string;
   travauxDiminution?: string;
+  /** Conditions générales retenues ; copiées dans le bail à l'enregistrement. */
+  clauses?: ClauseBail[];
+  /** Motif facultatif de clause résolutoire (servitude de résidence principale). */
+  resiliationResidencePrincipale?: boolean;
 }
 
 export type TypeDocument =

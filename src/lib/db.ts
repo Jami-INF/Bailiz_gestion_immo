@@ -9,7 +9,7 @@ import type {
   Parametres,
   Photo,
 } from '@/types';
-import { GRILLE_VETUSTE_DEFAUT, MODELE_FICHE_VISITE_DEFAUT } from './defauts';
+import { CLAUSES_BAIL_DEFAUT, GRILLE_VETUSTE_DEFAUT, MODELE_FICHE_VISITE_DEFAUT } from './defauts';
 
 /**
  * Configuration de la sauvegarde automatique : le handle du dossier choisi
@@ -23,6 +23,42 @@ export interface ConfigSauvegardeAuto {
   dernierPush?: string;
 }
 
+/**
+ * Journal des modifications locales : suivi des changements **et** file
+ * d'attente hors-ligne. Une entrée n'est retirée qu'après confirmation de son
+ * envoi sur le Drive (cf. `docs/CDC-sync-drive.md` §4.2).
+ */
+export interface Changement {
+  id?: number;
+  table: string;
+  cle: string;
+  type: 'maj' | 'suppr';
+  horodatage: string;
+}
+
+/** Lien entre un enregistrement local et le fichier qui le porte sur le Drive. */
+export interface SyncEtat {
+  table: string;
+  cle: string;
+  /** Fichier portant les métadonnées (espace `donnees`). */
+  driveId: string;
+  /**
+   * Fichier portant le contenu binaire (photo, PDF), distinct des métadonnées.
+   * Sa présence signifie « déjà envoyé » : un blob étant immuable, il ne repart
+   * jamais une seconde fois.
+   */
+  blobDriveId?: string;
+  /** Horodatage de la version poussée ou reçue, pour éviter les renvois inutiles. */
+  modifieLe: string;
+  /**
+   * Contenu exact de la dernière version synchronisée. Utilisé pour le seul
+   * singleton `parametres`, qui n'a pas de date de modification : comparer à
+   * cette empreinte est le seul moyen de savoir qui, du local ou du distant, a
+   * réellement changé.
+   */
+  empreinte?: string;
+}
+
 class BailizDB extends Dexie {
   biens!: EntityTable<Bien, 'id'>;
   locataires!: EntityTable<Locataire, 'id'>;
@@ -34,6 +70,8 @@ class BailizDB extends Dexie {
   documents!: EntityTable<DocumentGenere, 'id'>;
   parametres!: EntityTable<Parametres, 'id'>;
   sauvegardeAuto!: EntityTable<ConfigSauvegardeAuto, 'id'>;
+  changements!: EntityTable<Changement, 'id'>;
+  syncEtat!: Dexie.Table<SyncEtat, [string, string]>;
 
   constructor() {
     super('bailiz');
@@ -59,12 +97,20 @@ class BailizDB extends Dexie {
     this.version(3).stores({
       photos: 'id, edlId, bienId',
     });
+    // v4 : synchronisation par fichiers. `changements` est à la fois le suivi
+    // des modifications et la file d'attente hors-ligne ; `syncEtat` fait le
+    // lien entre un enregistrement local et son fichier sur le Drive.
+    this.version(4).stores({
+      changements: '++id, [table+cle], horodatage',
+      syncEtat: '[table+cle], driveId',
+    });
   }
 }
 
 export const db = new BailizDB();
 
-function parametresDefaut(): Parametres {
+/** Paramètres d'un appareil neuf : sert aussi de référence « jamais configuré ». */
+export function parametresDefaut(): Parametres {
   return {
     id: 'singleton',
     bailleur: {
@@ -78,6 +124,7 @@ function parametresDefaut(): Parametres {
     },
     grilleVetuste: GRILLE_VETUSTE_DEFAUT,
     ficheVisite: MODELE_FICHE_VISITE_DEFAUT,
+    clausesBail: CLAUSES_BAIL_DEFAUT,
     compteursSequence: {
       bail: 0,
       edl: 0,
@@ -94,9 +141,25 @@ function parametresDefaut(): Parametres {
  * ancienne). Sans cela, chaque page devrait gérer l'absence du champ.
  */
 function normaliser(p: Parametres): Parametres {
-  return { ...p, ficheVisite: p.ficheVisite ?? MODELE_FICHE_VISITE_DEFAUT };
+  return {
+    ...p,
+    ficheVisite: p.ficheVisite ?? MODELE_FICHE_VISITE_DEFAUT,
+    clausesBail: p.clausesBail ?? CLAUSES_BAIL_DEFAUT,
+  };
 }
 
+/**
+ * Lecture **sans écriture** des paramètres : la seule forme utilisable dans un
+ * `useLiveQuery`. Dexie exécute un `liveQuery` dans une transaction en lecture
+ * seule ; y créer la ligne par défaut lève une `ReadOnlyError` et fait planter
+ * la page — écran blanc pour qui ouvre l'application sur une base neuve.
+ */
+export async function lireParametres(): Promise<Parametres> {
+  const existant = await db.parametres.get('singleton');
+  return existant ? normaliser(existant) : parametresDefaut();
+}
+
+/** Lecture des paramètres, en créant la ligne par défaut si elle manque. */
 export async function getParametres(): Promise<Parametres> {
   const existant = await db.parametres.get('singleton');
   if (existant) return normaliser(existant);

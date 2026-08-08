@@ -1,4 +1,10 @@
-import type { CategorieElement, LigneVetuste, ModeleFicheVisite, PieceDossier } from '@/types';
+import type {
+  CategorieElement,
+  ClauseBail,
+  LigneVetuste,
+  ModeleFicheVisite,
+  PieceDossier,
+} from '@/types';
 
 /**
  * Les 11 éléments de mobilier obligatoires en location meublée
@@ -131,6 +137,255 @@ export const LIEN_NOTICE_INFORMATION =
   'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000030649868';
 
 export const LIEN_DOSSIER_FACILE = 'https://www.dossierfacile.logement.gouv.fr';
+
+/** Portail officiel des risques : sert à établir l'ERP et à vérifier s'il est dû. */
+export const LIEN_GEORISQUES = 'https://www.georisques.gouv.fr';
+
+const LOI_1989 = 'loi n°89-462 du 6 juillet 1989';
+
+/**
+ * Conditions générales d'occupation proposées par défaut. Toutes sont
+ * **licites** : chacune porte son fondement, et aucune ne figure dans la liste
+ * des clauses réputées non écrites de l'article 4 de la loi du 6 juillet 1989
+ * (version en vigueur depuis le 21 novembre 2024). Les clauses souvent
+ * réclamées mais interdites — pénalités de retard, frais de relance,
+ * responsabilité automatique pour dégradations, assurance imposée, interdiction
+ * d'animaux familiers… — sont volontairement absentes : voir
+ * `docs/CDC-bail-clauses.md` §4.3.
+ */
+export const CLAUSES_BAIL_DEFAUT: ClauseBail[] = [
+  // ---------------------------- Occupation ----------------------------
+  {
+    id: 'occ-destination',
+    famille: 'occupation',
+    titre: 'Destination et occupation personnelle',
+    texte:
+      "Le logement est loué à usage exclusif d'habitation principale. Il est occupé personnellement et paisiblement par le locataire, qui ne peut y exercer aucune activité professionnelle, commerciale ou artisanale, ni y domicilier une entreprise ou une association, sans l'accord écrit préalable du bailleur.",
+    baseLegale: `art. 7 b) et h) de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'occ-sous-location',
+    famille: 'occupation',
+    titre: 'Sous-location',
+    texte:
+      "La sous-location, même partielle ou consentie à titre gratuit, est interdite sans l'accord écrit du bailleur portant également sur le prix. Le prix au mètre carré de surface habitable de la sous-location ne peut excéder celui du loyer principal. Le locataire transmet au sous-locataire l'autorisation écrite du bailleur ainsi qu'une copie du présent contrat.",
+    baseLegale: `art. 8 de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'occ-tourisme',
+    famille: 'occupation',
+    titre: 'Location de courte durée et meublés de tourisme',
+    texte:
+      "Le locataire ne peut proposer le logement à la location de courte durée ou en meublé de tourisme, même ponctuellement et notamment par l'intermédiaire d'une plateforme en ligne, ni le déclarer en mairie à ce titre, sans l'accord écrit du bailleur. Le logement étant loué à titre de résidence principale du locataire, une telle mise en location constitue une sous-location irrégulière.",
+    baseLegale: `art. 8 de la ${LOI_1989} ; art. L.324-1-1 du code du tourisme ; loi n°2024-1039 du 19 novembre 2024`,
+    active: true,
+  },
+  {
+    id: 'occ-visites',
+    famille: 'occupation',
+    titre: 'Visites en vue de la vente ou de la relocation',
+    texte:
+      "En cas de congé donné ou reçu, ainsi qu'en cas de mise en vente du logement, le locataire laisse visiter les lieux deux heures par jour ouvrable, aux jours et heures convenus entre les parties et, à défaut d'accord, de 17 heures à 19 heures. Aucune visite ne peut être imposée les dimanches et jours fériés. Le locataire facilite l'accès du logement et le maintient en état de présentation.",
+    baseLegale: `art. 4 a) de la ${LOI_1989} — la limite de deux heures est d'ordre public`,
+    active: true,
+  },
+  {
+    id: 'occ-acces-travaux',
+    famille: 'occupation',
+    titre: 'Accès pour travaux, entretien et diagnostics',
+    texte:
+      "Le locataire laisse exécuter, après notification écrite du bailleur, les travaux d'amélioration des parties communes ou privatives, les travaux nécessaires au maintien en état et à l'entretien normal du logement, ceux d'amélioration de la performance énergétique, ceux nécessaires au respect des critères de décence, ainsi que la réalisation des diagnostics obligatoires. Si ces travaux durent plus de vingt et un jours, le loyer est diminué à proportion du temps et de la partie du logement dont le locataire est privé.",
+    baseLegale: `art. 7 e) de la ${LOI_1989} ; art. 1724 du code civil`,
+    active: true,
+  },
+  {
+    id: 'occ-notifications',
+    famille: 'occupation',
+    titre: 'Notifications et élection de domicile',
+    texte:
+      "Le locataire élit domicile dans le logement loué pour toute la durée du contrat. Les parties conviennent que leurs échanges courants — demandes de justificatifs, régularisation des charges, prise de rendez-vous, information sur les travaux — peuvent être adressés valablement par courrier électronique aux adresses figurant au présent contrat. Sont exclus de cette convention et demeurent soumis aux formes légales : le congé, le commandement de payer et toute mise en demeure préalable à la résiliation, qui se font par lettre recommandée avec avis de réception, par acte de commissaire de justice ou par remise en main propre contre récépissé.",
+    baseLegale: `art. 15 de la ${LOI_1989} ; art. 1366 du code civil`,
+    active: true,
+  },
+  {
+    id: 'occ-adresse-sortie',
+    famille: 'occupation',
+    titre: 'Nouvelle adresse au départ',
+    texte:
+      "Lors de la remise des clés, le locataire indique au bailleur l'adresse de son nouveau domicile. Le délai de restitution du dépôt de garantie court à compter de cette remise ; à défaut d'adresse communiquée, le bailleur adresse le décompte et le solde à la dernière adresse connue.",
+    baseLegale: `art. 22 de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'occ-residence-principale',
+    famille: 'occupation',
+    titre: 'Servitude de résidence principale',
+    texte:
+      "Le logement objet du présent contrat est soumis à l'obligation prévue à l'article L.151-14-1 du code de l'urbanisme : il est à usage exclusif de résidence principale, au sens de l'article 2 de la loi du 6 juillet 1989.",
+    baseLegale: "art. L.151-14-1 du code de l'urbanisme ; décret n°2026-596 du 6 juillet 2026",
+    active: true,
+    condition: 'servitude_residence_principale',
+  },
+  // ---------------------------- Entretien -----------------------------
+  {
+    id: 'ent-reparations',
+    famille: 'entretien',
+    titre: 'Entretien courant et réparations locatives',
+    texte:
+      "Le locataire prend à sa charge l'entretien courant du logement et des équipements mentionnés au contrat, les menues réparations, ainsi que l'ensemble des réparations locatives énumérées par le décret n°87-712 du 26 août 1987. Demeurent à la charge du bailleur les réparations rendues nécessaires par la vétusté, une malfaçon, un vice de construction, un cas fortuit ou la force majeure.",
+    baseLegale: `art. 7 d) de la ${LOI_1989} ; décret n°87-712 du 26 août 1987`,
+    active: true,
+  },
+  {
+    id: 'ent-equipements',
+    famille: 'entretien',
+    titre: 'Entretien des équipements',
+    texte:
+      "Le locataire fait procéder à ses frais, par un professionnel qualifié, à l'entretien annuel de la chaudière ou du chauffe-eau individuel, au ramonage des conduits de fumée selon la périodicité fixée par le règlement sanitaire départemental, ainsi qu'à l'entretien des bouches et grilles de ventilation. Il conserve les justificatifs correspondants et les présente à la demande du bailleur, au plus tard lors de l'état des lieux de sortie.",
+    baseLegale: `art. 7 d) de la ${LOI_1989} ; décret n°87-712 ; décret n°2009-649 du 9 juin 2009`,
+    active: true,
+  },
+  {
+    id: 'ent-prevention',
+    famille: 'entretien',
+    titre: 'Prévention des désordres',
+    texte:
+      "Le locataire aère quotidiennement le logement et le chauffe suffisamment pour prévenir l'humidité et les moisissures ; il n'obstrue ni les grilles ni les bouches de ventilation. En cas d'absence prolongée pendant la période de gel, il coupe l'arrivée d'eau et purge les canalisations. Il informe le bailleur sans délai de tout sinistre, fuite, infiltration ou désordre affectant le logement, et répond de l'aggravation des dommages résultant d'un défaut d'information.",
+    baseLegale: `art. 7 b), c) et d) de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'ent-detecteur',
+    famille: 'entretien',
+    titre: 'Détecteur de fumée',
+    texte:
+      "Le logement est équipé d'un détecteur avertisseur autonome de fumée normalisé, installé et fourni par le bailleur. Le locataire en assure l'entretien et le bon fonctionnement pendant toute la durée du contrat, notamment le remplacement des piles, et notifie son installation à son assureur.",
+    baseLegale: 'art. L.142-2 et R.142-2 et suivants du code de la construction et de l’habitation',
+    active: true,
+  },
+  {
+    id: 'ent-ventilation',
+    famille: 'entretien',
+    titre: 'Ventilation du logement',
+    texte:
+      "Le logement est équipé d'un dispositif de ventilation mécanique porté à l'inventaire. Il fonctionne en marche continue : le locataire ne peut ni l'arrêter, ni le débrancher, ni obstruer les bouches d'extraction et les entrées d'air, y compris pour des travaux de décoration. Il en assure le nettoyage régulier et signale sans délai tout dysfonctionnement au bailleur, à qui il appartient de le réparer ou de le remplacer.",
+    baseLegale: `art. 7 b) et d) de la ${LOI_1989} ; art. 3 du décret n°2002-120 (aération)`,
+    active: true,
+  },
+  {
+    id: 'ent-edl-commissaire',
+    famille: 'entretien',
+    titre: 'État des lieux en cas de désaccord',
+    texte:
+      "L'état des lieux d'entrée et celui de sortie sont établis contradictoirement et amiablement entre les parties. À défaut d'accord, il est établi par un commissaire de justice, à l'initiative de la partie la plus diligente ; son coût, fixé par décret en Conseil d'État, est alors partagé par moitié entre le bailleur et le locataire. Les parties sont convoquées au moins sept jours à l'avance par lettre recommandée avec avis de réception.",
+    baseLegale: `art. 3-2 de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'ent-restitution',
+    famille: 'entretien',
+    titre: 'Restitution du logement',
+    texte:
+      "Au terme du contrat, le logement et son mobilier sont restitués en bon état d'entretien et de réparations locatives, propres et débarrassés de tout objet personnel, avec la totalité des clés, badges et télécommandes remis à l'entrée. Les dégradations constatées à l'état des lieux de sortie et non imputables à la vétusté ou à l'usage normal sont à la charge du locataire, après application de la grille de vétusté annexée au contrat et sur présentation de devis ou de factures.",
+    baseLegale: `art. 7 c) et d) et art. 22 de la ${LOI_1989} ; décret n°2016-382 du 30 mars 2016`,
+    active: true,
+  },
+  {
+    id: 'ent-mobilier',
+    famille: 'entretien',
+    titre: 'Mobilier et équipements du logement meublé',
+    texte:
+      "L'inventaire et l'état détaillé du mobilier annexés au contrat font foi entre les parties. Le locataire répond des éléments manquants ou détériorés de son fait. Il peut remplacer un élément par un équipement neuf de nature et de qualité équivalentes, avec l'accord écrit du bailleur ; l'élément remplacé reste la propriété du bailleur.",
+    baseLegale: `art. 25-5 de la ${LOI_1989} ; décret n°2015-981 du 31 juillet 2015`,
+    active: true,
+  },
+  // ---------------------------- Assurance -----------------------------
+  {
+    id: 'ass-obligation',
+    famille: 'assurance',
+    titre: 'Assurance des risques locatifs',
+    texte:
+      "Le locataire s'assure contre les risques dont il doit répondre en sa qualité de locataire et en justifie lors de la remise des clés, puis chaque année à la demande du bailleur. À défaut, et après une mise en demeure demeurée infructueuse pendant un mois, le bailleur peut souscrire une assurance pour le compte du locataire — la prime étant alors récupérable par douzièmes, majorée au plus de 10 % — ou se prévaloir de la clause résolutoire.",
+    baseLegale: `art. 7 g) de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'ass-sinistres',
+    famille: 'assurance',
+    titre: 'Déclaration des sinistres',
+    texte:
+      "Le locataire déclare tout sinistre à son assureur dans les délais prévus par son contrat — cinq jours ouvrés, et deux jours ouvrés en cas de vol — et en informe le bailleur sans délai, en lui transmettant copie de la déclaration ainsi que les coordonnées de l'expert désigné.",
+    baseLegale: 'art. L.113-2 du code des assurances',
+    active: true,
+  },
+  {
+    id: 'ass-abonnements',
+    famille: 'assurance',
+    titre: 'Abonnements individuels',
+    texte:
+      "Le locataire souscrit en son nom propre, dès la remise des clés et pour toute la durée du contrat, les abonnements individuels correspondant aux fournitures qui ne sont pas comprises dans les charges : électricité, gaz le cas échéant, eau lorsque le compteur est individuel, et communications électroniques. Il en supporte les consommations et les frais de mise en service, et fournit les justificatifs de résiliation ou de transfert lors de son départ. Le choix des fournisseurs lui appartient.",
+    baseLegale: `art. 7 a) de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'ass-coordonnees',
+    famille: 'assurance',
+    titre: 'Coordonnées des parties',
+    texte:
+      "Chaque partie informe l'autre de tout changement d'adresse postale, de numéro de téléphone ou d'adresse électronique. À défaut, les notifications sont valablement adressées aux dernières coordonnées communiquées.",
+    baseLegale: 'décret n°2026-596 du 6 juillet 2026 (mention du téléphone portable des parties)',
+    active: true,
+  },
+  // ----------------------------- Immeuble -----------------------------
+  {
+    id: 'imm-reglement',
+    famille: 'immeuble',
+    titre: 'Règlement de copropriété',
+    texte:
+      "Le locataire respecte le règlement de copropriété de l'immeuble, dont les extraits relatifs à la destination de l'immeuble, à la jouissance et à l'usage des parties privatives et communes lui sont remis en annexe du présent contrat.",
+    baseLegale: `art. 3 de la ${LOI_1989}`,
+    active: true,
+    condition: 'copropriete',
+  },
+  {
+    id: 'imm-tranquillite',
+    famille: 'immeuble',
+    titre: 'Jouissance paisible et troubles de voisinage',
+    texte:
+      "Le locataire use paisiblement du logement et veille à ne pas troubler la tranquillité du voisinage, de jour comme de nuit, y compris du fait des personnes qu'il héberge ou reçoit. Les troubles de voisinage constatés par une décision de justice passée en force de chose jugée constituent un motif de résiliation de plein droit du contrat.",
+    baseLegale: `art. 7 b) et art. 24 de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'imm-animaux',
+    famille: 'immeuble',
+    titre: 'Animaux familiers',
+    texte:
+      "La détention d'un animal familier ne peut être interdite au locataire. Celui-ci répond des dégradations et des nuisances que son animal occasionne au logement, à l'immeuble ou au voisinage. La détention de chiens d'attaque de première catégorie est interdite par la loi ; les chiens de deuxième catégorie doivent être déclarés, tenus en laisse et muselés dans les parties communes.",
+    baseLegale: 'loi n°70-598 du 9 juillet 1970 ; loi n°99-5 du 6 janvier 1999',
+    active: true,
+  },
+  {
+    id: 'imm-transformation',
+    famille: 'immeuble',
+    titre: 'Transformation des lieux',
+    texte:
+      "Le locataire ne peut transformer les locaux et équipements loués sans l'accord écrit du bailleur. À défaut d'accord, le bailleur peut exiger la remise en état des lieux au départ du locataire, ou conserver les transformations sans indemnisation. Sont réservés les travaux d'adaptation du logement au handicap ou à la perte d'autonomie et les travaux de rénovation énergétique relevant du régime d'accord tacite.",
+    baseLegale: `art. 7 f) de la ${LOI_1989}`,
+    active: true,
+  },
+  {
+    id: 'imm-securite',
+    famille: 'immeuble',
+    titre: 'Sécurité',
+    texte:
+      "Le locataire n'entrepose dans le logement, la cave ou les annexes aucun produit dangereux ni matière inflammable en quantité anormale. Il n'utilise pas d'appareil de chauffage d'appoint non conforme, ne surcharge pas l'installation électrique et respecte les consignes de sécurité applicables à l'immeuble.",
+    baseLegale: `art. 7 b) de la ${LOI_1989}`,
+    active: true,
+  },
+];
 
 
 /** Fabrique une pièce active du dossier (identifiants stables et lisibles). */

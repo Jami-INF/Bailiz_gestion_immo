@@ -5,6 +5,8 @@ import { nowISO } from './ids';
 import { fichiersASupprimer } from './rotation';
 import { decrireErreur } from './erreurs';
 import { getConfigGDrive, pousserSauvegardeGDrive } from './gdrive';
+import { noterChangement } from './sync/journal';
+import { lancerCycle, syncActive, type ResultatSync } from './sync';
 
 export { fichiersASupprimer } from './rotation';
 
@@ -28,6 +30,10 @@ export type ResultatPush =
   | 'non_supporte'
   /** Rien à sauvegarder : on n'écrase pas les archives existantes avec du vide. */
   | 'base_vide'
+  /** Le Drive contient une archive plus récente venue d'un autre appareil. */
+  | 'conflit'
+  /** Un garde-fou de la synchronisation a interrompu le cycle (horloge, suppressions). */
+  | 'bloque'
   | 'erreur';
 
 /** Délai de regroupement des modifications avant push (anti-rafale). */
@@ -134,25 +140,68 @@ async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPu
  * Drive). `gesteUtilisateur` autorise les demandes de permission/connexion
  * (sinon échec silencieux avec l'état correspondant).
  *
- * Agrégation : `ok` si au moins une destination a réussi ; sinon l'état le
- * plus actionnable (permission_requise > hors_ligne > erreur > inactif).
+ * Agrégation : `conflit` d'abord — le seul état à la fois dangereux et
+ * actionnable, qu'un succès sur l'autre destination ne doit pas masquer ;
+ * puis `ok` si au moins une destination a réussi ; sinon l'état le plus
+ * actionnable (permission_requise > hors_ligne > erreur > inactif).
  */
-export async function pousserSiActive(gesteUtilisateur: boolean): Promise<ResultatPush> {
+export async function pousserSiActive(
+  gesteUtilisateur: boolean,
+  options?: { forcerGDrive?: boolean },
+): Promise<ResultatPush> {
   if (pushEnCours) return 'ok';
   pushEnCours = true;
   try {
     const resultats: ResultatPush[] = [];
     resultats.push(await pousserVersDossier(gesteUtilisateur));
-    resultats.push(await pousserSauvegardeGDrive(gesteUtilisateur));
-
-    if (resultats.includes('ok')) return 'ok';
-    for (const etat of ['permission_requise', 'hors_ligne', 'erreur'] as const) {
-      if (resultats.includes(etat)) return etat;
-    }
-    return 'inactif';
+    /*
+     * Synchronisation par fichiers active : le cycle remplace l'envoi de
+     * l'archive ZIP vers le Drive — et rend sans objet le garde-fou de
+     * divergence, puisqu'il n'y a plus de version concurrente à recouvrir.
+     */
+    resultats.push(
+      (await syncActive())
+        ? traduireResultatCycle(await lancerCycle(gesteUtilisateur))
+        : await pousserSauvegardeGDrive(gesteUtilisateur, { forcer: options?.forcerGDrive }),
+    );
+    return agregerResultats(resultats);
   } finally {
     pushEnCours = false;
   }
+}
+
+/**
+ * Traduit le résultat d'un cycle de synchronisation dans le vocabulaire commun
+ * des destinations de sauvegarde. `indisponible` devient
+ * `permission_requise` : c'est la cause de très loin la plus fréquente
+ * (autorisation Google expirée) et la seule sur laquelle l'utilisateur peut agir.
+ */
+function traduireResultatCycle(resultat: ResultatSync): ResultatPush {
+  switch (resultat.etat) {
+    case 'ok':
+      return 'ok';
+    case 'bloque':
+      return 'bloque';
+    case 'erreur':
+      return 'erreur';
+    default:
+      return 'permission_requise';
+  }
+}
+
+/**
+ * Résultat d'ensemble de plusieurs destinations. `conflit` passe **avant**
+ * `ok` : le dossier local a pu être écrit alors que le Drive est en attente, et
+ * c'est précisément ce cas qu'il ne faut pas taire. Fonction pure, testée.
+ */
+export function agregerResultats(resultats: ResultatPush[]): ResultatPush {
+  if (resultats.includes('conflit')) return 'conflit';
+  if (resultats.includes('bloque')) return 'bloque';
+  if (resultats.includes('ok')) return 'ok';
+  for (const etat of ['permission_requise', 'hors_ligne', 'erreur'] as const) {
+    if (resultats.includes(etat)) return etat;
+  }
+  return 'inactif';
 }
 
 /** Vrai si au moins une destination de sauvegarde automatique est configurée. */
@@ -169,7 +218,15 @@ let observateurInitialise = false;
 let timerDebounce: ReturnType<typeof setTimeout> | undefined;
 /** Évite de répéter l'avertissement de reconnexion à chaque modification. */
 let reconnexionSignalee = false;
+/** Une divergence persiste tant qu'elle n'est pas résolue : on n'alerte qu'une fois. */
+let conflitSignale = false;
 let notifier: ((type: 'success' | 'warning', message: string) => void) | undefined;
+
+/** Réarme les avertissements ponctuels (après résolution d'un conflit). */
+export function reinitialiserAvertissements(): void {
+  conflitSignale = false;
+  reconnexionSignalee = false;
+}
 
 function planifierPush(): void {
   // Les écritures provoquées par le push lui-même (parametres.derniereSauvegarde)
@@ -180,7 +237,22 @@ function planifierPush(): void {
     void pousserSiActive(false).then((resultat) => {
       if (resultat === 'ok') {
         reconnexionSignalee = false;
+        conflitSignale = false;
         notifier?.('success', 'Sauvegarde automatique effectuée.');
+        return;
+      }
+      /*
+       * Divergence : une archive plus récente venue d'un autre appareil existe
+       * sur le Drive. On ne pousse pas — cela reviendrait à travailler à deux
+       * sur des données différentes sans le savoir — et on le dit une fois,
+       * sans quoi le message reviendrait à chaque modification.
+       */
+      if (resultat === 'conflit' && !conflitSignale) {
+        conflitSignale = true;
+        notifier?.(
+          'warning',
+          'Sauvegarde Drive suspendue : une sauvegarde plus récente, faite depuis un autre appareil, existe déjà. Ouvrez les Paramètres pour la restaurer ou passer outre.',
+        );
         return;
       }
       /*
@@ -215,11 +287,35 @@ export function initAutosaveSurModifications(
   notifier = toast;
   if (observateurInitialise) return;
   observateurInitialise = true;
-  const tables = [db.biens, db.locataires, db.baux, db.inventaires, db.edls, db.photos, db.documents];
-  for (const table of tables) {
-    table.hook('creating', () => planifierPush());
-    table.hook('updating', () => planifierPush());
-    table.hook('deleting', () => planifierPush());
+  const tables = {
+    biens: db.biens,
+    locataires: db.locataires,
+    baux: db.baux,
+    inventaires: db.inventaires,
+    edls: db.edls,
+    photos: db.photos,
+    documents: db.documents,
+  };
+  for (const [nom, table] of Object.entries(tables)) {
+    /*
+     * Chaque écriture est notée pour la synchronisation par fichiers. Les hooks
+     * s'exécutent dans la transaction de la table modifiée : `noterChangement`
+     * se contente d'accumuler en mémoire et écrit juste après, hors transaction.
+     * Les suppressions surtout comptent — elles ne laissent aucune trace qu'un
+     * rattrapage pourrait retrouver.
+     */
+    table.hook('creating', (cle) => {
+      noterChangement(nom, String(cle), 'maj');
+      planifierPush();
+    });
+    table.hook('updating', (_modifications, cle) => {
+      noterChangement(nom, String(cle), 'maj');
+      planifierPush();
+    });
+    table.hook('deleting', (cle) => {
+      noterChangement(nom, String(cle), 'suppr');
+      planifierPush();
+    });
   }
   // Reprise automatique : un push (Drive) resté en échec hors-ligne — EDL signé
   // à la cave, par exemple — repart au retour du réseau.

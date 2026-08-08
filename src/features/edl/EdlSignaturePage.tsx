@@ -94,6 +94,13 @@ export function EdlSignaturePage() {
       // Push ZIP automatique vers le dossier synchronisé (si configuré).
       void pousserSiActive(true).then((r) => {
         if (r === 'ok') toast('success', 'Sauvegarde automatique poussée dans le dossier synchronisé.');
+        else if (r === 'conflit')
+          toast(
+            'warning',
+            "Document signé, mais l'envoi vers le Drive est suspendu : une sauvegarde plus récente y existe (autre appareil). À régler dans les Paramètres.",
+          );
+        else if (r === 'bloque')
+          toast('warning', "Document signé. Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
         else if (r === 'permission_requise' || r === 'erreur')
           toast('warning', 'Sauvegarde automatique impossible — pensez à exporter depuis les Paramètres.');
       });

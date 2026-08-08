@@ -196,6 +196,14 @@ structured-cloneables, donc persistables dans IndexedDB). Cette table est **volo
 exclue de l'export ZIP** : un handle est propre à l'appareil et n'aurait aucun sens restauré
 ailleurs.
 
+### 4.3 ter Schémas v3 et v4
+
+- **v3** : `photos: 'id, edlId, bienId'` — une photo peut illustrer un bien (fiche de visite)
+  et plus seulement un EDL ; `Photo.edlId` devient donc optionnel.
+- **v4** : `changements: '++id, [table+cle], horodatage'` (journal de synchronisation) et
+  `syncEtat: '[table+cle], driveId'` (lien enregistrement ↔ fichier Drive). Aucune donnée
+  existante n'est transformée.
+
 ### 4.4 Sauvegarde ZIP (`lib/backup.ts`)
 
 Format de l'archive :
@@ -275,6 +283,78 @@ System Access :
 - Les types de l'API sont déclarés dans `src/types/fs-access.d.ts` (absents de lib.dom).
 - Astuce de test : un handle OPFS (`navigator.storage.getDirectory()`) expose la même
   interface qu'un dossier réel et permet de tester le push sans dialogue natif.
+
+### 4.7 Détection de divergence entre appareils (lot A)
+
+Deux appareils poussant dans le même dossier ne se regardaient pas : le plus en retard
+recouvrait l'autre en silence. Correctif :
+
+- **Identité d'appareil** (`lib/appareil.ts`) : uuid + nom lisible dans `localStorage`,
+  **jamais dans `Parametres`** — sinon l'export ZIP la transporterait, et un appareil restauré
+  hériterait de l'identité de l'autre : la détection ne fonctionnerait plus jamais.
+- Chaque archive poussée porte `appProperties: { appareil, appareilNom, exporteLe }`.
+- `comparerArchives` (pure, testée) confronte la dernière archive du Drive à
+  `derniereArchiveVue`. Divergence → `pousserSauvegardeGDrive` renvoie `'conflit'` **sans rien
+  envoyer**. Les comparaisons utilisent `createdTime` (heure serveur, UTC) : les noms de
+  fichiers sont en heure locale et diffèrent d'un fuseau à l'autre.
+- Archives antérieures à la fonctionnalité (sans marquage) : adoptées silencieusement au
+  premier contact, signalées si elles apparaissent **après** une référence connue.
+- `'conflit'` est prioritaire sur `'ok'` dans `agregerResultats` : le dossier local a pu
+  réussir, l'utilisateur doit quand même être averti de l'état du Drive.
+
+### 4.8 Synchronisation par fichiers (lot B, `lib/sync/`)
+
+Remplace le push ZIP vers le Drive **quand elle est activée** (`sauvegardeGDrive.syncActive`,
+désactivée par défaut). Les deux appareils convergent au lieu de s'écraser.
+
+| Module | Rôle |
+|---|---|
+| `protocole.ts` | Format des fichiers et **règles de convergence**. Pur : ni réseau, ni base. |
+| `journal.ts` | Journal des modifications = suivi des changements **et** file d'attente hors-ligne. |
+| `depot.ts` | Contrat `DepotDistant` : le cycle ne connaît pas Google Drive. |
+| `drive.ts` | Implémentation Drive du contrat (sous-dossiers, listage incrémental, pagination). |
+| `depotMemoire.ts` | Dépôt en mémoire : rejoue un cycle complet sans réseau (tests). |
+| `cycle.ts` | Pull puis push, garde-fous. |
+| `instantane.ts` | Filet ZIP hebdomadaire. |
+| `index.ts` | Point d'entrée : jeton, rattrapage, cycle, instantané. |
+
+**Disposition Drive** : `donnees/<table>__<id>.json`, `photos/<id>.jpg`, `documents/<id>.pdf`,
+`tombstones/<table>__<id>.json`, `archives/*.zip`. Dossiers plats : une requête
+`'<dossier>' in parents and modifiedTime > '<date>'` suffit à obtenir l'incrément.
+
+**Convergence** : dernier écrivain gagne, enregistrement par enregistrement, sur `updatedAt`
+(ou `createdAt` / `dateCapture` pour les immuables). À égalité, le distant l'emporte — la
+convergence doit être déterministe des deux côtés. Jamais de fusion champ à champ : un EDL à
+moitié de chaque appareil n'aurait aucun sens juridique.
+
+**Suppressions** : un tombstone est déposé et le fichier retiré. Sans ce mécanisme, une fusion
+naïve **ressusciterait** les enregistrements supprimés — dont les suppressions RGPD. Le
+tombstone ne contient qu'une clé technique, aucune donnée personnelle.
+
+**Pièges rencontrés, à ne pas réintroduire :**
+
+- Un hook Dexie s'exécute **dans** la transaction de la table modifiée : y écrire dans
+  `changements` échoue silencieusement. D'où l'accumulation en mémoire, le vidage par minuteur,
+  et surtout `Dexie.ignoreTransaction`. **Les tests Node ne reproduisent pas** cette
+  propagation de zone : le défaut n'a été vu qu'en exécutant l'application.
+- `getParametres()` **écrit** si la ligne manque : interdit dans un `useLiveQuery`
+  (`ReadOnlyError` → page blanche au premier lancement). Utiliser `lireParametres()`.
+- Le singleton `parametres` ne passe **pas** par la boucle générique : compteurs fusionnés au
+  maximum, `sauvegardeGDrive` jamais repris du distant. N'ayant aucune date de modification, il
+  est arbitré par **empreinte** de la dernière version synchronisée.
+- Les tables à blob (`photos`, `documents`) portent métadonnées et contenu dans deux fichiers
+  distincts (`driveId` / `blobDriveId`) : écrire l'enveloppe sans préserver le blob local le
+  détruirait.
+- Rotation des instantanés **par identifiant**, pas par nom : deux archives créées dans la même
+  seconde partagent leur nom.
+
+**Garde-fous** (`cycle.ts`) : écart d'horloge supérieur à 2 minutes, et suppression de plus de
+la moitié de la base (avec un plancher de 5 — sinon supprimer l'unique locataire d'une base
+d'un enregistrement serait bloqué). Tous deux interrompent le cycle sans rien appliquer.
+
+**Rattrapage** (`rattraperChangements`) : compare la base à `syncEtat` et journalise ce qui
+manque — indispensable à la première activation sur une base déjà remplie. Les suppressions
+échappent à ce filet (rien à comparer) : elles dépendent entièrement des hooks.
 
 ## 5. Fonctionnalités : implémentation et points d'attention
 

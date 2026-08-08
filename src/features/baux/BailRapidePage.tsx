@@ -5,13 +5,18 @@ import { format } from 'date-fns';
 import { AlertTriangle, Building2, Pencil, Plus } from 'lucide-react';
 import type { Bail, ClasseDPE, Locataire, Parametres, SaisieBail, TypeBien } from '@/types';
 import { CLASSES_DPE, TYPES_BIEN, TYPE_BAIL_LABELS } from '@/types';
-import { db, getParametres, prochaineReference } from '@/lib/db';
+import { db, getParametres, lireParametres, prochaineReference } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import { formatEuros } from '@/lib/calculs';
 import { decrireErreur } from '@/lib/erreurs';
 import { ouvrirBlob, telechargerBlob } from '@/lib/backup';
 import { formatAdresse } from '@/lib/adresse';
-import { rendrePdf, enregistrerDocument, nomsPersonnes } from '@/lib/pdf/generer';
+import {
+  rendrePdf,
+  enregistrerDocument,
+  nomsPersonnes,
+  photoBienEnDataUrl,
+} from '@/lib/pdf/generer';
 import { BailPdf } from '@/lib/pdf/BailPdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
@@ -27,6 +32,7 @@ import { LocataireFormModal } from '@/features/locataires/LocataireFormModal';
 import { BienRapideModal } from '@/features/biens/BienRapideModal';
 import { SectionLocataires } from './SectionLocataires';
 import { ApercuBailPanel } from './ApercuBailPanel';
+import { ClausesSelecteur } from './ClausesSelecteur';
 import {
   Button,
   Checkbox,
@@ -46,7 +52,7 @@ export function BailRapidePage() {
   const location = useLocation() as { state?: { bienId?: string } };
   const { id: bailId } = useParams();
   const edition = Boolean(bailId);
-  const parametres = useLiveQuery(() => getParametres());
+  const parametres = useLiveQuery(() => lireParametres());
   const biens = useLiveQuery(() => db.biens.orderBy('nom').toArray());
   const locatairesEnr = useLiveQuery(() => db.locataires.orderBy('nom').toArray());
   const bailExistant = useLiveQuery(() => (bailId ? db.baux.get(bailId) : undefined), [bailId]);
@@ -74,7 +80,7 @@ export function BailRapidePage() {
       const bienId = location.state?.bienId;
       setSaisie(
         appliquerConditionsBien(
-          saisieVide(parametres.bailleur, bienId),
+          saisieVide(parametres.bailleur, bienId, parametres.clausesBail),
           bienId ? biens.find((b) => b.id === bienId) : undefined,
         ),
       );
@@ -93,8 +99,16 @@ export function BailRapidePage() {
     try {
       const { bail, bien, locataires } = construireDocs(saisie, 'à compléter', resolveBien, resolveLocataire);
       const params: Parametres = { ...parametres, bailleur: saisie.bailleur };
+      const photoDataUrl = await photoBienEnDataUrl(bien.photoId);
       const blob = await rendrePdf(
-        <BailPdf bail={bail} bien={bien} locataires={locataires} parametres={params} brouillon />,
+        <BailPdf
+          bail={bail}
+          bien={bien}
+          locataires={locataires}
+          parametres={params}
+          photoDataUrl={photoDataUrl}
+          brouillon
+        />,
       );
       const url = URL.createObjectURL(blob);
       setApercu((prev) => {
@@ -260,6 +274,8 @@ export function BailRapidePage() {
           assuranceColocataires: brut.assuranceColocataires,
           travaux: brut.travaux,
           clausesParticulieres: brut.clausesParticulieres,
+          clauses: brut.clauses,
+          resiliationResidencePrincipale: brut.resiliationResidencePrincipale,
           annexesChecklist: brut.annexesChecklist,
           updatedAt: nowISO(),
         };
@@ -279,7 +295,14 @@ export function BailRapidePage() {
         const nomsMaj = nomsPersonnes(locataires);
         etape = 'E4 (génération du PDF)';
         const blob = await rendrePdf(
-          <BailPdf bail={bailMaj} bien={bien} locataires={locataires} parametres={paramsPdf} brouillon />,
+          <BailPdf
+            bail={bailMaj}
+            bien={bien}
+            locataires={locataires}
+            parametres={paramsPdf}
+            photoDataUrl={await photoBienEnDataUrl(bien.photoId)}
+            brouillon
+          />,
         );
         etape = 'E5 (enregistrement du PDF)';
         await enregistrerDocument({
@@ -311,7 +334,14 @@ export function BailRapidePage() {
 
       etape = 'E4 (génération des PDF)';
       const blobBail = await rendrePdf(
-        <BailPdf bail={bailFinal} bien={bien} locataires={locataires} parametres={paramsPdf} brouillon />,
+        <BailPdf
+          bail={bailFinal}
+          bien={bien}
+          locataires={locataires}
+          parametres={paramsPdf}
+          photoDataUrl={await photoBienEnDataUrl(bien.photoId)}
+          brouillon
+        />,
       );
       const blobGrille = await rendrePdf(
         <GrilleVetustePdf reference={refGrille} grille={params.grilleVetuste} bailReference={reference} />,
@@ -574,12 +604,42 @@ export function BailRapidePage() {
             )}
           </Section>
 
-          <Section titre="Clauses & travaux">
-            <Checkbox
-              label="Insérer la clause résolutoire (recommandé — protège le bailleur)"
-              checked={saisie.clauseResolutoire}
-              onChange={(e) => maj({ clauseResolutoire: e.target.checked })}
+          <Section
+            titre="Conditions générales d'occupation"
+            description="Partie X du bail : visites, entretien, assurance, vie de l'immeuble."
+          >
+            <ClausesSelecteur
+              catalogue={parametres?.clausesBail ?? []}
+              retenues={saisie.clauses ?? []}
+              bien={bienChoisi}
+              onChange={(clauses) => maj({ clauses })}
+              onReprendreModele={
+                edition
+                  ? () =>
+                      maj({
+                        clauses: (parametres?.clausesBail ?? [])
+                          .filter((c) => c.active)
+                          .map((c) => ({ ...c })),
+                      })
+                  : undefined
+              }
             />
+            {bienChoisi?.servitudeResidencePrincipale && (
+              <Checkbox
+                label="Ajouter le non-respect de la résidence principale aux motifs de résiliation de plein droit"
+                checked={saisie.resiliationResidencePrincipale ?? false}
+                onChange={(e) => maj({ resiliationResidencePrincipale: e.target.checked })}
+              />
+            )}
+          </Section>
+
+          <Section titre="Clauses & travaux">
+            <p className="rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
+              La <span className="font-medium">clause résolutoire</span> pour défaut de paiement du
+              loyer, des charges ou du dépôt de garantie est obligatoire depuis la loi du 27
+              juillet 2023 : elle est systématiquement insérée, avec les motifs « défaut
+              d'assurance » et « troubles de voisinage ».
+            </p>
             <Field label="Dernier loyer acquitté par le précédent locataire (€)" hint="Obligatoire si le précédent locataire est parti depuis moins de 18 mois. Laisser vide sinon.">
               <Input type="number" step="0.01" min="0" value={saisie.dernierLoyerAncienLocataire ?? ''} onChange={(e) => maj({ dernierLoyerAncienLocataire: e.target.value === '' ? undefined : Number(e.target.value) })} />
             </Field>

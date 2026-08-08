@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import type { Bail, Bien, Locataire, Parametres, SaisieBail } from '@/types';
+import type { Bail, Bien, ClauseBail, Locataire, Parametres, SaisieBail } from '@/types';
 import { uid, nowISO } from '@/lib/ids';
 import { annexesParDefaut } from '@/features/baux/annexes';
 
@@ -9,10 +9,16 @@ export function dureeParDefaut(type: SaisieBail['typeBail']): number {
 }
 
 /** Saisie vierge, bailleur pré-rempli depuis les Paramètres si disponible. */
-export function saisieVide(bailleur: Parametres['bailleur'], bienId?: string): SaisieBail {
+export function saisieVide(
+  bailleur: Parametres['bailleur'],
+  bienId?: string,
+  clauses?: ClauseBail[],
+): SaisieBail {
   return {
     bailleur,
     bienId,
+    // Le pack des Paramètres arrive pré-coché ; chaque bail peut en retirer.
+    clauses: clauses?.filter((c) => c.active).map((c) => ({ ...c })),
     bien: { adresse: { ligne1: '', codePostal: '', ville: '' } },
     locataires: [{}],
     typeBail: 'meuble_1an',
@@ -21,7 +27,10 @@ export function saisieVide(bailleur: Parametres['bailleur'], bienId?: string): S
     charges: { mode: 'forfait' },
     jourPaiement: 5,
     modePaiement: 'Virement bancaire',
-    revisionIRL: { revisable: false },
+    // Révisable par défaut : sans clause d'indexation au contrat, le loyer ne
+    // peut pas être augmenté en cours de bail (art. 17-1). L'oubli est
+    // irrattrapable une fois le bail signé.
+    revisionIRL: { revisable: true },
     clauseSolidarite: true,
     clauseResolutoire: true,
   };
@@ -72,6 +81,9 @@ export function bailVersSaisie(bail: Bail, bailleur: Parametres['bailleur']): Sa
   return {
     bailleur,
     bienId: bail.bienId,
+    // Les clauses affichées sont celles du bail, pas celles du modèle courant.
+    clauses: bail.clauses?.map((c) => ({ ...c })),
+    resiliationResidencePrincipale: bail.resiliationResidencePrincipale,
     bien: { adresse: { ligne1: '', codePostal: '', ville: '' } },
     locataires: bail.locataireIds.map((id) => ({ id })),
     typeBail: bail.typeBail,
@@ -190,6 +202,10 @@ function construireBail(
       .split('\n')
       .map((c) => c.trim())
       .filter(Boolean),
+    // Copie (et non référence) : un bail imprimé et signé doit se régénérer à
+    // l'identique, même si le modèle des Paramètres évolue ensuite.
+    clauses: saisie.clauses ? saisie.clauses.map((c) => ({ ...c })) : undefined,
+    resiliationResidencePrincipale: saisie.resiliationResidencePrincipale,
     annexesChecklist: annexesParDefaut(bien),
     statut: 'brouillon',
     createdAt: nowISO(),

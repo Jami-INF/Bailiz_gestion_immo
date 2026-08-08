@@ -3,7 +3,7 @@ import { createElement, type ReactElement } from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
 import type { DocumentProps } from '@react-pdf/renderer';
 import type { Bail, Bien, Locataire, Parametres } from '@/types';
-import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
+import { CLAUSES_BAIL_DEFAUT, GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { BailPdf } from './BailPdf';
 
 const bien: Bien = {
@@ -91,5 +91,46 @@ describe('BailPdf', () => {
     );
     expect(buffer.length).toBeGreaterThan(2000);
     expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
+  });
+});
+
+describe('BailPdf — conditions générales d’occupation', () => {
+  const clausesActives = CLAUSES_BAIL_DEFAUT.filter((c) => c.active);
+  const compterPages = (buffer: Buffer) =>
+    (buffer.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+  const rendre = (b: Bail, bienUtilise: Bien = bien) =>
+    renderToBuffer(
+      createElement(BailPdf, {
+        bail: b,
+        bien: bienUtilise,
+        locataires,
+        parametres,
+      }) as ReactElement<DocumentProps>,
+    );
+
+  it('imprime les clauses retenues et allonge le contrat', async () => {
+    const avec = await rendre({ ...bail, clauses: clausesActives });
+    const sans = await rendre(bail);
+    expect(compterPages(avec)).toBeGreaterThan(compterPages(sans));
+  });
+
+  it('omet la partie X pour un bail antérieur à la fonctionnalité', async () => {
+    // `clauses` absent = bail enregistré avant : le PDF doit rester celui signé.
+    const buffer = await rendre(bail);
+    expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('écarte les clauses conditionnelles que le logement ne justifie pas', async () => {
+    const monopropriete: Bien = {
+      ...bien,
+      regimeJuridique: 'monopropriete',
+      servitudeResidencePrincipale: false,
+    };
+    const restreint = await rendre({ ...bail, clauses: clausesActives }, monopropriete);
+    const complet = await rendre(
+      { ...bail, clauses: clausesActives },
+      { ...bien, servitudeResidencePrincipale: true },
+    );
+    expect(restreint.length).toBeLessThan(complet.length);
   });
 });

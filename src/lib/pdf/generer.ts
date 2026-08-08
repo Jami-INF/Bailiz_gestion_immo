@@ -7,12 +7,24 @@ import { db, prochaineReference } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import type { DocumentGenere, TypeDocument } from '@/types';
 import { ouvrirBlob } from '@/lib/backup';
+import { blobVersDataUrl } from '@/lib/images';
 
 type DocElement = ReactElement<DocumentProps>;
 
 /** Rend un document React-PDF en Blob. */
 export async function rendrePdf(document: DocElement): Promise<Blob> {
   return pdf(document).toBlob();
+}
+
+/**
+ * Photo d'un bien convertie en data-URL : react-pdf ne sait pas rendre un Blob.
+ * Renvoie `undefined` si le bien n'a pas de photo, ou si elle a disparu de la
+ * base (restauration partielle) — un document ne doit pas échouer pour autant.
+ */
+export async function photoBienEnDataUrl(photoId?: string): Promise<string | undefined> {
+  if (!photoId) return undefined;
+  const photo = await db.photos.get(photoId);
+  return photo ? blobVersDataUrl(photo.blob) : undefined;
 }
 
 /**

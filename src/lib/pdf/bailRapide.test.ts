@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bail, Bien, Locataire, Parametres, SaisieBail } from '@/types';
+import { CLAUSES_BAIL_DEFAUT } from '@/lib/defauts';
 import {
   appliquerConditionsBien,
   bailVersSaisie,
@@ -299,5 +300,38 @@ describe('conditionsDepuisBail', () => {
     expect(c?.depotGarantie).toBe(1040);
     expect(c?.acces).toBe('Interphone « Martin »');
     expect(c?.loyerHC).toBe(700);
+  });
+});
+
+describe('clauses du bail', () => {
+  const clauses = CLAUSES_BAIL_DEFAUT.filter((c) => c.active).slice(0, 3);
+
+  it('copie les clauses retenues dans le bail (et non une référence)', () => {
+    const { bail } = construireDocs(
+      { ...saisieDeBase(), clauses },
+      'BAIL-2026-0003',
+      resolveBien,
+      resolveLocataire,
+    );
+    expect(bail.clauses).toHaveLength(3);
+    // Modifier le modèle après coup ne doit pas toucher le bail enregistré.
+    clauses[0].texte = 'TEXTE MODIFIÉ DANS LE MODÈLE';
+    expect(bail.clauses![0].texte).not.toBe('TEXTE MODIFIÉ DANS LE MODÈLE');
+  });
+
+  it('recharge les clauses du bail en édition, pas celles du modèle courant', () => {
+    const { bail } = construireDocs(
+      { ...saisieDeBase(), clauses: CLAUSES_BAIL_DEFAUT.filter((c) => c.active).slice(0, 2) },
+      'BAIL-2026-0004',
+      resolveBien,
+      resolveLocataire,
+    );
+    const saisie = bailVersSaisie(bail as Bail, bailleur);
+    expect(saisie.clauses?.map((c) => c.id)).toEqual(bail.clauses!.map((c) => c.id));
+  });
+
+  it("laisse un bail sans clauses pour une saisie qui n'en porte pas", () => {
+    const { bail } = construireDocs(saisieDeBase(), 'BAIL-2026-0005', resolveBien, resolveLocataire);
+    expect(bail.clauses).toBeUndefined();
   });
 });

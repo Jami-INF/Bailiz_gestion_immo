@@ -2,8 +2,10 @@ import { format } from 'date-fns';
 import { db, getParametres } from './db';
 import { baseSansDonnees, exporterSauvegarde } from './backup';
 import { uid, nowISO } from './ids';
-import { fichiersASupprimer } from './rotation';
+import { estArchiveBailiz, fichiersASupprimer } from './rotation';
 import { decrireErreur } from './erreurs';
+import { identifiantAppareil, nomAppareil } from './appareil';
+import type { ArchiveDrive } from '@/types';
 
 /**
  * Sauvegarde vers Google Drive, 100 % côté client :
@@ -40,6 +42,8 @@ export type ResultatGDrive =
   | 'hors_ligne'
   /** Rien à sauvegarder : on n'écrase pas les archives existantes avec du vide. */
   | 'base_vide'
+  /** Une archive plus récente, poussée par un autre appareil, existe sur le Drive. */
+  | 'conflit'
   | 'erreur';
 
 export interface ConfigGDrive {
@@ -47,6 +51,54 @@ export interface ConfigGDrive {
   actif: boolean;
   dossierId?: string;
   dernierPush?: string;
+  derniereArchiveVue?: ArchiveDrive;
+  syncActive?: boolean;
+  derniereSync?: string;
+  dernierInstantane?: string;
+}
+
+/**
+ * État du Drive vis-à-vis de cet appareil. `indisponible` n'est pas une erreur :
+ * sans autorisation valide ou sans réseau, la vérification est simplement
+ * reportée (le jeton Google n'est jamais persisté).
+ */
+export type EtatDrive =
+  | { etat: 'a_jour'; archive?: ArchiveDrive }
+  | { etat: 'aucune' }
+  | { etat: 'divergence'; archive: ArchiveDrive }
+  | { etat: 'indisponible' };
+
+/**
+ * Décide, à partir de la dernière archive du Drive et de celle que cet appareil
+ * connaît, s'il y a divergence. Fonction pure, testée : c'est elle qui décide
+ * si un push est autorisé.
+ *
+ * `adopter` signale une archive à enregistrer comme référence sans alerter :
+ * soit elle vient de cet appareil, soit elle est antérieure à cette
+ * fonctionnalité (aucun marquage) et le premier contact ne peut rien prouver.
+ */
+export function comparerArchives(
+  distante: ArchiveDrive | undefined,
+  vue: ArchiveDrive | undefined,
+  idAppareil: string,
+): EtatDrive & { adopter?: boolean } {
+  if (!distante) return { etat: 'aucune' };
+  // Poussée par cet appareil : rien à signaler, on rafraîchit la référence.
+  if (distante.appareil && distante.appareil === idAppareil) {
+    return { etat: 'a_jour', archive: distante, adopter: true };
+  }
+  if (!vue) {
+    // Premier contact. Une archive marquée par un autre appareil est une vraie
+    // divergence ; une archive non marquée date d'avant la fonctionnalité.
+    return distante.appareil
+      ? { etat: 'divergence', archive: distante }
+      : { etat: 'a_jour', archive: distante, adopter: true };
+  }
+  if (distante.id === vue.id) return { etat: 'a_jour', archive: distante };
+  const plusRecente = Date.parse(distante.createdTime) > Date.parse(vue.createdTime);
+  return plusRecente
+    ? { etat: 'divergence', archive: distante }
+    : { etat: 'a_jour', archive: vue };
 }
 
 /** Dernière cause d'échec d'envoi vers Drive (voir `derniereErreurSauvegarde`). */
@@ -281,6 +333,26 @@ function demanderJeton(clientId: string, interactif: boolean): Promise<string | 
 
 class ErreurJetonExpire extends Error {}
 
+/**
+ * Jeton et dossier « Bailiz » prêts à l'emploi, pour la synchronisation par
+ * fichiers (`lib/sync/`). `null` si l'autorisation n'est pas disponible : la
+ * synchronisation est alors reportée, ce n'est pas une erreur.
+ */
+export async function contexteDrive(
+  interactif: boolean,
+): Promise<{ token: string; dossierId: string } | null> {
+  const config = await getConfigGDrive();
+  if (!config?.actif || !config.clientId) return null;
+  if (!navigator.onLine) return null;
+  const token = await obtenirJeton(config.clientId, interactif);
+  if (!token) return null;
+  const dossierId = await assurerDossier(token, config.dossierId);
+  if (dossierId !== config.dossierId) await majConfigGDrive({ dossierId });
+  return { token, dossierId };
+}
+
+export { appelDrive as appelApiDrive };
+
 async function appelDrive(token: string, url: string, init?: RequestInit): Promise<Response> {
   const reponse = await fetch(url, {
     ...init,
@@ -296,8 +368,8 @@ async function appelDrive(token: string, url: string, init?: RequestInit): Promi
   return reponse;
 }
 
-/** Retrouve (ou crée) le dossier « Bailiz » à la racine du Drive. */
-async function assurerDossier(token: string, dossierIdConnu?: string): Promise<string> {
+/** Retrouve le dossier « Bailiz » sans le créer (`undefined` s'il n'existe pas). */
+async function trouverDossier(token: string, dossierIdConnu?: string): Promise<string | undefined> {
   if (dossierIdConnu) {
     const verif = await fetch(`${API}/files/${dossierIdConnu}?fields=id,trashed`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -312,14 +384,54 @@ async function assurerDossier(token: string, dossierIdConnu?: string): Promise<s
   );
   const recherche = await appelDrive(token, `${API}/files?q=${q}&fields=files(id)`);
   const { files } = (await recherche.json()) as { files: { id: string }[] };
-  if (files.length > 0) return files[0].id;
+  return files[0]?.id;
+}
 
+/** Retrouve (ou crée) le dossier « Bailiz » à la racine du Drive. */
+async function assurerDossier(token: string, dossierIdConnu?: string): Promise<string> {
+  const existant = await trouverDossier(token, dossierIdConnu);
+  if (existant) return existant;
   const creation = await appelDrive(token, `${API}/files`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: NOM_DOSSIER, mimeType: 'application/vnd.google-apps.folder' }),
   });
   return ((await creation.json()) as { id: string }).id;
+}
+
+/** Métadonnées Drive d'un fichier, converties en `ArchiveDrive`. */
+function versArchive(f: {
+  id: string;
+  name: string;
+  createdTime?: string;
+  appProperties?: Record<string, string>;
+}): ArchiveDrive {
+  return {
+    id: f.id,
+    nom: f.name,
+    createdTime: f.createdTime ?? new Date(0).toISOString(),
+    appareil: f.appProperties?.appareil,
+    appareilNom: f.appProperties?.appareilNom,
+  };
+}
+
+/** Archive la plus récente du dossier, `undefined` si le dossier n'en contient aucune. */
+async function derniereArchiveDistante(
+  token: string,
+  dossierId: string,
+): Promise<ArchiveDrive | undefined> {
+  const q = encodeURIComponent(`'${dossierId}' in parents and trashed=false`);
+  const reponse = await appelDrive(
+    token,
+    `${API}/files?q=${q}&orderBy=createdTime desc&pageSize=10&fields=files(id,name,createdTime,appProperties)`,
+  );
+  const { files } = (await reponse.json()) as {
+    files: { id: string; name: string; createdTime?: string; appProperties?: Record<string, string> }[];
+  };
+  // Le dossier peut contenir autre chose que nos archives : on ne compare que
+  // les fichiers que l'application a elle-même produits.
+  const archive = files.find((f) => estArchiveBailiz(f.name));
+  return archive ? versArchive(archive) : undefined;
 }
 
 /**
@@ -341,17 +453,46 @@ export function construireCorpsMultipart(
   return { corps, contentType: `multipart/related; boundary=${frontiere}` };
 }
 
-async function uploaderArchive(token: string, dossierId: string, archive: Blob): Promise<void> {
+/**
+ * Envoie l'archive en la marquant de l'identité de cet appareil : c'est ce
+ * marquage qui permet à l'autre appareil de reconnaître une archive étrangère.
+ * Renvoie les métadonnées créées, qui deviennent la nouvelle référence locale.
+ */
+async function uploaderArchive(
+  token: string,
+  dossierId: string,
+  archive: Blob,
+): Promise<ArchiveDrive> {
   const nom = `bailiz-sauvegarde-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.zip`;
   const { corps, contentType } = construireCorpsMultipart(
-    { name: nom, parents: [dossierId] },
+    {
+      name: nom,
+      parents: [dossierId],
+      appProperties: {
+        appareil: identifiantAppareil(),
+        appareilNom: nomAppareil(),
+        exporteLe: nowISO(),
+      },
+    },
     archive,
   );
-  await appelDrive(token, `${API_UPLOAD}/files?uploadType=multipart&fields=id`, {
-    method: 'POST',
-    headers: { 'Content-Type': contentType },
-    body: corps,
-  });
+  const reponse = await appelDrive(
+    token,
+    `${API_UPLOAD}/files?uploadType=multipart&fields=id,name,createdTime,appProperties`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': contentType },
+      body: corps,
+    },
+  );
+  return versArchive(
+    (await reponse.json()) as {
+      id: string;
+      name: string;
+      createdTime?: string;
+      appProperties?: Record<string, string>;
+    },
+  );
 }
 
 async function faireRotation(token: string, dossierId: string): Promise<void> {
@@ -372,8 +513,61 @@ async function faireRotation(token: string, dossierId: string): Promise<void> {
   }
 }
 
-/** Push complet vers Google Drive si la sauvegarde Drive est activée. */
-export async function pousserSauvegardeGDrive(interactif: boolean): Promise<ResultatGDrive> {
+/**
+ * Compare le Drive à ce que cet appareil connaît. Ne modifie rien, sauf pour
+ * adopter silencieusement une archive qui vient de cet appareil ou qui est
+ * antérieure au marquage (cf. CDC §4.3).
+ *
+ * `indisponible` couvre tous les cas où la question ne peut pas être posée
+ * (Drive inactif, hors-ligne, autorisation Google expirée) : ce n'est pas une
+ * erreur, seulement un report.
+ */
+export async function verifierArchiveDistante(interactif: boolean): Promise<EtatDrive> {
+  const config = await getConfigGDrive();
+  if (!config?.actif || !config.clientId) return { etat: 'indisponible' };
+  if (!navigator.onLine) return { etat: 'indisponible' };
+  try {
+    const token = await obtenirJeton(config.clientId, interactif);
+    if (!token) return { etat: 'indisponible' };
+    const dossierId = await trouverDossier(token, config.dossierId);
+    if (!dossierId) return { etat: 'aucune' };
+    const distante = await derniereArchiveDistante(token, dossierId);
+    const resultat = comparerArchives(distante, config.derniereArchiveVue, identifiantAppareil());
+    if (resultat.adopter && resultat.etat === 'a_jour' && resultat.archive) {
+      await majConfigGDrive({ dossierId, derniereArchiveVue: resultat.archive });
+    }
+    return resultat;
+  } catch (e) {
+    console.warn('Vérification du Drive impossible :', e);
+    return { etat: 'indisponible' };
+  }
+}
+
+/** Télécharge une archive du Drive (restauration depuis un autre appareil). */
+export async function telechargerArchiveGDrive(archive: ArchiveDrive): Promise<Blob> {
+  const config = await getConfigGDrive();
+  if (!config?.clientId) throw new Error('Google Drive n’est pas configuré.');
+  const token = await obtenirJeton(config.clientId, true);
+  if (!token) throw new Error('Autorisation Google requise pour télécharger la sauvegarde.');
+  const reponse = await appelDrive(token, `${API}/files/${archive.id}?alt=media`);
+  return reponse.blob();
+}
+
+/** Enregistre l'archive distante comme connue : l'avertissement cesse. */
+export async function marquerArchiveVue(archive: ArchiveDrive): Promise<void> {
+  await majConfigGDrive({ derniereArchiveVue: archive });
+}
+
+/**
+ * Push complet vers Google Drive si la sauvegarde Drive est activée.
+ *
+ * `forcer` passe outre une divergence détectée : à ne déclencher que sur un
+ * choix explicite de l'utilisateur, jamais automatiquement.
+ */
+export async function pousserSauvegardeGDrive(
+  interactif: boolean,
+  options?: { forcer?: boolean },
+): Promise<ResultatGDrive> {
   const config = await getConfigGDrive();
   if (!config?.actif || !config.clientId) return 'inactif';
   // Vérifié avant l'état du réseau : un appareil neuf ne doit jamais pousser
@@ -385,24 +579,39 @@ export async function pousserSauvegardeGDrive(interactif: boolean): Promise<Resu
     let token = await obtenirJeton(config.clientId, interactif);
     if (!token) return 'permission_requise';
 
-    const executer = async (t: string) => {
+    const executer = async (t: string): Promise<ResultatGDrive> => {
       const dossierId = await assurerDossier(t, config.dossierId);
+
+      // Garde-fou : ne jamais recouvrir une archive plus récente venue d'un
+      // autre appareil. Vérifié avant de construire le ZIP, qui est coûteux.
+      if (!options?.forcer) {
+        const distante = await derniereArchiveDistante(t, dossierId);
+        const etat = comparerArchives(distante, config.derniereArchiveVue, identifiantAppareil());
+        if (etat.etat === 'divergence') {
+          await majConfigGDrive({ dossierId });
+          return 'conflit';
+        }
+        if (etat.adopter && etat.etat === 'a_jour' && etat.archive) {
+          await majConfigGDrive({ dossierId, derniereArchiveVue: etat.archive });
+        }
+      }
+
       const archive = await exporterSauvegarde();
-      await uploaderArchive(t, dossierId, archive);
+      const poussee = await uploaderArchive(t, dossierId, archive);
       await faireRotation(t, dossierId);
-      await majConfigGDrive({ dossierId, dernierPush: nowISO() });
+      await majConfigGDrive({ dossierId, dernierPush: nowISO(), derniereArchiveVue: poussee });
+      return 'ok';
     };
 
     try {
-      await executer(token);
+      return await executer(token);
     } catch (e) {
       if (!(e instanceof ErreurJetonExpire)) throw e;
       // Jeton expiré en cours de route : une seule nouvelle tentative.
       token = await obtenirJeton(config.clientId, interactif);
       if (!token) return 'permission_requise';
-      await executer(token);
+      return await executer(token);
     }
-    return 'ok';
   } catch (e) {
     console.error('Sauvegarde Google Drive impossible :', e);
     derniereErreurDrive = decrireErreur(e);
