@@ -65,7 +65,7 @@ async function reinitialiser() {
   const params = await getParametres();
   await db.parametres.put({
     ...params,
-    sauvegardeGDrive: { clientId: 'test', actif: true, syncActive: true },
+    sauvegardeGDrive: { clientId: 'test', actif: true },
   });
 }
 
@@ -287,7 +287,7 @@ describe('cycle de synchronisation', () => {
     const params = await getParametres();
     await db.parametres.put({
       ...params,
-      sauvegardeGDrive: { clientId: 'propre-a-cet-appareil', actif: true, syncActive: true },
+      sauvegardeGDrive: { clientId: 'propre-a-cet-appareil', actif: true },
     });
     depot.avancer(1);
     await synchroniser(depot);
@@ -637,5 +637,161 @@ describe('références attribuées deux fois hors-ligne', () => {
     const resultat = await synchroniser(depot);
 
     expect(resultat.etat === 'ok' && resultat.doublons).toEqual([]);
+  });
+});
+
+/**
+ * Les défauts corrigés après l'audit du 9 août 2026 : chacun de ces scénarios
+ * faisait perdre, dupliquer ou renvoyer indéfiniment des données en usage à
+ * deux appareils. Ils sont rejoués ici pour qu'ils ne reviennent pas.
+ */
+describe('robustesse du cycle', () => {
+  beforeEach(reinitialiser);
+
+  it('ne se renvoie pas à lui-même ce qu’il vient de déposer', async () => {
+    /*
+     * Le listage incrémental part de l'heure serveur relevée au **début** du
+     * cycle, alors que l'envoi date d'après : tout ce qu'un cycle pousse
+     * ressort donc au suivant. Sans filtre, chaque échange retéléchargeait et
+     * réécrivait l'intégralité de la base, en l'annonçant comme « reçue ».
+     */
+    const depot = new DepotMemoire();
+    await db.biens.put(bien());
+    await journaliser('biens', 'bien-1', 'maj');
+    const premier = await synchroniser(depot);
+    expect(premier.etat === 'ok' && premier.envoyes).toBe(1);
+
+    depot.avancer(60);
+    const second = await synchroniser(depot);
+    expect(second.etat === 'ok' && second.recus).toBe(0);
+    expect(second.etat === 'ok' && second.envoyes).toBe(0);
+  });
+
+  it('vide le journal des modifications répétées d’une même fiche', async () => {
+    // Une visite d'EDL enregistre dix fois la même fiche. Le compactage n'en
+    // envoie qu'une, mais les neuf autres entrées doivent partir aussi : sinon
+    // le journal ne se vide jamais et la fiche repart à chaque cycle.
+    const depot = new DepotMemoire();
+    await db.biens.put(bien());
+    for (let i = 0; i < 10; i++) await journaliser('biens', 'bien-1', 'maj');
+
+    await synchroniser(depot);
+    expect(await db.changements.count()).toBe(0);
+
+    depot.avancer(60);
+    const second = await synchroniser(depot);
+    expect(second.etat === 'ok' && second.envoyes).toBe(0);
+  });
+
+  it('ne crée pas de second fichier quand l’envoi d’une photo a été coupé', async () => {
+    /*
+     * Métadonnées écrites, coupure avant le blob : l'identifiant du fichier
+     * n'était pas mémorisé, et le cycle suivant en créait un homonyme. Deux
+     * fichiers du même nom, c'est l'autre appareil qui lit une version au
+     * hasard du listage.
+     */
+    const depot = new DepotMemoire();
+    await db.photos.put({
+      id: 'photo-1',
+      edlId: 'edl-1',
+      blob: new Blob(['image']),
+      dateCapture: '2026-08-01T10:00:00.000Z',
+    } as never);
+    await journaliser('photos', 'photo-1', 'maj');
+
+    depot.couperApres = 1; // les métadonnées passent, le blob non
+    await expect(synchroniser(depot)).rejects.toThrow('Coupure réseau simulée');
+
+    depot.couperApres = 0;
+    depot.avancer(60);
+    const reprise = await synchroniser(depot);
+
+    expect(reprise.etat).toBe('ok');
+    expect(depot.compter('donnees')).toBe(2); // la photo + le singleton parametres
+    expect(depot.compter('photos')).toBe(1);
+    expect(await db.changements.count()).toBe(0);
+  });
+
+  it('efface aussi les fichiers orphelins quand la fiche est supprimée', async () => {
+    // Exigence RGPD : la photo d'un locataire supprimé ne doit rien laisser sur
+    // le Drive, y compris l'homonyme qu'une coupure antérieure y aurait laissé.
+    const depot = new DepotMemoire();
+    await db.photos.put({
+      id: 'photo-1',
+      edlId: 'edl-1',
+      blob: new Blob(['image']),
+      dateCapture: '2026-08-01T10:00:00.000Z',
+    } as never);
+    await journaliser('photos', 'photo-1', 'maj');
+    await synchroniser(depot);
+
+    // Doublon laissé par un envoi interrompu d'un autre appareil.
+    await depot.ecrire('donnees', 'photos__photo-1.json', '{"orphelin":true}');
+
+    await db.photos.delete('photo-1');
+    await journaliser('photos', 'photo-1', 'suppr');
+    depot.avancer(60);
+    await synchroniser(depot);
+
+    expect(await depot.lister('donnees', { nom: 'photos__photo-1.json' })).toEqual([]);
+    expect(depot.compter('photos')).toBe(0);
+  });
+
+  it('reprend un fichier disparu du dépôt au lieu d’interrompre le cycle', async () => {
+    // L'autre appareil a supprimé la fiche pendant qu'on la modifiait ici :
+    // abandonner bloquerait toute la file d'attente pour un cas normal.
+    const depot = new DepotMemoire();
+    await db.biens.put(bien());
+    await journaliser('biens', 'bien-1', 'maj');
+    await synchroniser(depot);
+
+    const [fichier] = await depot.lister('donnees', { nom: 'biens__bien-1.json' });
+    await depot.supprimer(fichier.id);
+
+    await db.biens.put(bien({ nom: 'Renommé', updatedAt: '2026-08-02T10:00:00.000Z' }));
+    await journaliser('biens', 'bien-1', 'maj');
+    depot.avancer(60);
+    const resultat = await synchroniser(depot);
+
+    expect(resultat.etat).toBe('ok');
+    const repose = await depot.lister('donnees', { nom: 'biens__bien-1.json' });
+    expect(repose).toHaveLength(1);
+  });
+});
+
+describe('coût réseau d’un cycle', () => {
+  beforeEach(reinitialiser);
+
+  it('ne fait pas une requête par fiche lors d’une suppression de masse', async () => {
+    /*
+     * Une suppression RGPD efface d'un coup toutes les photos d'un locataire.
+     * Chercher les orphelins fiche par fiche saturerait le quota Drive : les
+     * index par nom sont construits une fois par espace et par cycle.
+     */
+    const depot = new DepotMemoire();
+    for (let i = 0; i < 12; i++) {
+      await db.photos.put({
+        id: `photo-${i}`,
+        edlId: 'edl-1',
+        blob: new Blob([`image-${i}`]),
+        dateCapture: '2026-08-01T10:00:00.000Z',
+      } as never);
+      await journaliser('photos', `photo-${i}`, 'maj');
+    }
+    await synchroniser(depot);
+
+    for (let i = 0; i < 12; i++) {
+      await db.photos.delete(`photo-${i}`);
+      await journaliser('photos', `photo-${i}`, 'suppr');
+    }
+    depot.avancer(60);
+    depot.listages = 0;
+    await synchroniser(depot);
+
+    // 4 listages incrémentaux du pull + un index complet par espace consulté
+    // (donnees, photos, tombstones) + la recherche du singleton `parametres`.
+    expect(depot.listages).toBeLessThanOrEqual(10);
+    expect(depot.compter('photos')).toBe(0);
+    expect(await db.changements.count()).toBe(0);
   });
 });

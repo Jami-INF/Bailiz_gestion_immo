@@ -108,6 +108,23 @@ describe('journal', () => {
     expect(restant[0].cle).toBe('x2');
   });
 
+  it('retire aussi les entrées absorbées par le compactage', async () => {
+    /*
+     * Une visite d'EDL enregistre dix fois la même fiche. Le compactage n'en
+     * envoie qu'une — mais si les neuf autres restent, le journal ne se vide
+     * jamais : le compteur « en attente d'envoi » ment, et la fiche repart à
+     * chaque cycle jusqu'à épuisement des entrées.
+     */
+    for (let i = 0; i < 10; i++) await journaliser('edls', 'e1', 'maj');
+    const aEnvoyer = await changementsEnAttente();
+    expect(aEnvoyer).toHaveLength(1);
+
+    await confirmerEnvoi(aEnvoyer);
+
+    expect(await compterEnAttente()).toBe(0);
+    expect(await changementsEnAttente()).toEqual([]);
+  });
+
   it('supporte une confirmation vide sans rien effacer', async () => {
     await journaliser('biens', 'x1', 'maj');
     await confirmerEnvoi([]);

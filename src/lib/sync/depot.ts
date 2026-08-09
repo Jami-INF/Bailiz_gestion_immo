@@ -17,12 +17,30 @@ export interface FichierDistant {
   modifieLe: string;
 }
 
+/** Critères de listage, cumulables. Sans filtre : tout l'espace. */
+export interface FiltreListe {
+  /** Ne renvoyer que les fichiers modifiés après cette date (heure **serveur**). */
+  depuis?: string;
+  /**
+   * Ne renvoyer que les fichiers portant exactement ce nom. Le dépôt n'impose
+   * pas l'unicité des noms : retrouver un fichier par son nom est le seul moyen
+   * de reprendre la main sur celui qu'un envoi interrompu a laissé derrière lui.
+   */
+  nom?: string;
+}
+
 export interface DepotDistant {
-  /** Fichiers d'un espace modifiés après `depuis` (toutes les entrées si absent). */
-  lister(espace: Espace, depuis?: string): Promise<FichierDistant[]>;
+  lister(espace: Espace, filtre?: FiltreListe): Promise<FichierDistant[]>;
   lireTexte(id: string): Promise<string>;
   lireBlob(id: string): Promise<Blob>;
-  /** Crée ou remplace un fichier ; renvoie sa description à jour. */
+  /**
+   * Crée ou remplace un fichier ; renvoie sa description à jour.
+   *
+   * `idExistant` désigne le fichier à mettre à jour. S'il a disparu du dépôt
+   * (supprimé depuis un autre appareil), le contenu est **recréé** plutôt que
+   * de faire échouer le cycle : l'identifiant renvoyé peut donc différer de
+   * celui passé, et c'est celui-là qu'il faut mémoriser.
+   */
   ecrire(
     espace: Espace,
     nom: string,

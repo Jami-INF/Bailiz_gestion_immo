@@ -107,37 +107,60 @@ export async function viderFileJournalisation(): Promise<void> {
 }
 
 /**
+ * Une opération compactée, et la liste des entrées de journal qu'elle résume.
+ *
+ * `idsResumes` est ce qui permet de vider réellement le journal : envoyer une
+ * fiche modifiée dix fois doit retirer les dix entrées, pas seulement la
+ * dernière.
+ */
+export interface ChangementCompacte extends Changement {
+  idsResumes: number[];
+}
+
+/**
  * Compacte le journal : une seule opération par enregistrement, la dernière.
  * Dix modifications d'un même EDL pendant une visite ne doivent produire qu'un
  * seul envoi, et une suppression annule les modifications qui la précèdent.
  *
  * Fonction pure : c'est elle qui détermine ce qui part sur le réseau.
  */
-export function compacter(changements: Changement[]): Changement[] {
-  const parCle = new Map<string, Changement>();
+export function compacter(changements: Changement[]): ChangementCompacte[] {
+  const parCle = new Map<string, ChangementCompacte>();
   for (const c of changements) {
     const cle = `${c.table}__${c.cle}`;
     const existant = parCle.get(cle);
+    const idsResumes = [...(existant?.idsResumes ?? [])];
+    if (c.id !== undefined) idsResumes.push(c.id);
     // Le journal est lu dans l'ordre d'insertion : la dernière opération vue
-    // est la plus récente, elle remplace la précédente.
-    if (!existant || c.horodatage >= existant.horodatage) parCle.set(cle, c);
+    // est la plus récente, elle remplace la précédente. Les entrées absorbées
+    // restent recensées — sans quoi elles resteraient dans le journal à jamais.
+    const retenu = !existant || c.horodatage >= existant.horodatage ? c : existant;
+    parCle.set(cle, { ...retenu, idsResumes });
   }
   return [...parCle.values()];
 }
 
 /** Modifications en attente d'envoi, compactées. */
-export async function changementsEnAttente(): Promise<Changement[]> {
+export async function changementsEnAttente(): Promise<ChangementCompacte[]> {
   const brut = await db.changements.orderBy('id').toArray();
   return compacter(brut);
 }
 
 /**
- * Retire du journal les entrées effectivement envoyées. On supprime par
- * identifiant, et non par clé d'enregistrement : une modification survenue
- * *pendant* l'envoi doit rester en attente pour le cycle suivant.
+ * Retire du journal les entrées effectivement envoyées — y compris celles que
+ * le compactage a absorbées.
+ *
+ * On supprime par identifiant, et jamais par clé d'enregistrement : les
+ * identifiants ont été relevés au moment du compactage, donc une modification
+ * survenue *pendant* l'envoi n'en fait pas partie et reste en attente pour le
+ * cycle suivant.
  */
-export async function confirmerEnvoi(changements: Changement[]): Promise<void> {
-  const ids = changements.map((c) => c.id).filter((id): id is number => id !== undefined);
+export async function confirmerEnvoi(
+  changements: (Changement | ChangementCompacte)[],
+): Promise<void> {
+  const ids = changements.flatMap((c) =>
+    'idsResumes' in c ? c.idsResumes : c.id !== undefined ? [c.id] : [],
+  );
   if (ids.length) await db.changements.bulkDelete(ids);
 }
 

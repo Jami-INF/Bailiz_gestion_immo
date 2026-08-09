@@ -4,9 +4,9 @@ import { baseSansDonnees, exporterSauvegarde } from './backup';
 import { nowISO } from './ids';
 import { fichiersASupprimer } from './rotation';
 import { decrireErreur } from './erreurs';
-import { getConfigGDrive, pousserSauvegardeGDrive } from './gdrive';
+import { getConfigGDrive } from './gdrive';
 import { noterChangement } from './sync/journal';
-import { lancerCycle, syncActive, type ResultatSync } from './sync';
+import { lancerCycle, type ResultatSync } from './sync';
 
 export { fichiersASupprimer } from './rotation';
 
@@ -30,8 +30,6 @@ export type ResultatPush =
   | 'non_supporte'
   /** Rien à sauvegarder : on n'écrase pas les archives existantes avec du vide. */
   | 'base_vide'
-  /** Le Drive contient une archive plus récente venue d'un autre appareil. */
-  | 'conflit'
   /** Un garde-fou de la synchronisation a interrompu le cycle (horloge, suppressions). */
   | 'bloque'
   | 'erreur';
@@ -136,34 +134,27 @@ async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPu
 }
 
 /**
- * Push vers toutes les destinations configurées (dossier local et/ou Google
- * Drive). `gesteUtilisateur` autorise les demandes de permission/connexion
- * (sinon échec silencieux avec l'état correspondant).
+ * Met les données à l'abri sur toutes les destinations configurées : le dossier
+ * local reçoit une archive ZIP, le Drive un cycle de synchronisation.
  *
- * Agrégation : `conflit` d'abord — le seul état à la fois dangereux et
- * actionnable, qu'un succès sur l'autre destination ne doit pas masquer ;
- * puis `ok` si au moins une destination a réussi ; sinon l'état le plus
- * actionnable (permission_requise > hors_ligne > erreur > inactif).
+ * `gesteUtilisateur` autorise les demandes de permission/connexion (sinon échec
+ * silencieux avec l'état correspondant). Agrégation : `ok` si au moins une
+ * destination a réussi ; sinon l'état le plus actionnable
+ * (permission_requise > hors_ligne > erreur > inactif).
  */
 export async function pousserSiActive(
   gesteUtilisateur: boolean,
-  options?: { forcerGDrive?: boolean },
+  options?: { apresSignature?: boolean },
 ): Promise<ResultatPush> {
   if (pushEnCours) return 'ok';
   pushEnCours = true;
   try {
-    const resultats: ResultatPush[] = [];
-    resultats.push(await pousserVersDossier(gesteUtilisateur));
-    /*
-     * Synchronisation par fichiers active : le cycle remplace l'envoi de
-     * l'archive ZIP vers le Drive — et rend sans objet le garde-fou de
-     * divergence, puisqu'il n'y a plus de version concurrente à recouvrir.
-     */
-    resultats.push(
-      (await syncActive())
-        ? traduireResultatCycle(await lancerCycle(gesteUtilisateur))
-        : await pousserSauvegardeGDrive(gesteUtilisateur, { forcer: options?.forcerGDrive }),
-    );
+    const resultats: ResultatPush[] = [
+      await pousserVersDossier(gesteUtilisateur),
+      traduireResultatCycle(
+        await lancerCycle(gesteUtilisateur, { apresSignature: options?.apresSignature }),
+      ),
+    ];
     return agregerResultats(resultats);
   } finally {
     pushEnCours = false;
@@ -172,9 +163,13 @@ export async function pousserSiActive(
 
 /**
  * Traduit le résultat d'un cycle de synchronisation dans le vocabulaire commun
- * des destinations de sauvegarde. `indisponible` devient
- * `permission_requise` : c'est la cause de très loin la plus fréquente
- * (autorisation Google expirée) et la seule sur laquelle l'utilisateur peut agir.
+ * des destinations de sauvegarde.
+ *
+ * `indisponible` devient `permission_requise` : c'est la cause de très loin la
+ * plus fréquente (autorisation Google expirée) et la seule sur laquelle
+ * l'utilisateur peut agir. `ignore` devient `inactif` et reste muet — un cycle
+ * croisé par un autre n'est pas un incident, et l'annoncer comme une
+ * autorisation expirée enverrait reconnecter un Drive qui fonctionne.
  */
 function traduireResultatCycle(resultat: ResultatSync): ResultatPush {
   switch (resultat.etat) {
@@ -184,18 +179,19 @@ function traduireResultatCycle(resultat: ResultatSync): ResultatPush {
       return 'bloque';
     case 'erreur':
       return 'erreur';
+    case 'ignore':
+      return 'inactif';
     default:
       return 'permission_requise';
   }
 }
 
 /**
- * Résultat d'ensemble de plusieurs destinations. `conflit` passe **avant**
- * `ok` : le dossier local a pu être écrit alors que le Drive est en attente, et
- * c'est précisément ce cas qu'il ne faut pas taire. Fonction pure, testée.
+ * Résultat d'ensemble de plusieurs destinations. `bloque` passe **avant** `ok` :
+ * le dossier local a pu être écrit alors qu'un garde-fou a interrompu le cycle,
+ * et c'est précisément ce cas qu'il ne faut pas taire. Fonction pure, testée.
  */
 export function agregerResultats(resultats: ResultatPush[]): ResultatPush {
-  if (resultats.includes('conflit')) return 'conflit';
   if (resultats.includes('bloque')) return 'bloque';
   if (resultats.includes('ok')) return 'ok';
   for (const etat of ['permission_requise', 'hors_ligne', 'erreur'] as const) {
@@ -218,13 +214,10 @@ let observateurInitialise = false;
 let timerDebounce: ReturnType<typeof setTimeout> | undefined;
 /** Évite de répéter l'avertissement de reconnexion à chaque modification. */
 let reconnexionSignalee = false;
-/** Une divergence persiste tant qu'elle n'est pas résolue : on n'alerte qu'une fois. */
-let conflitSignale = false;
 let notifier: ((type: 'success' | 'warning', message: string) => void) | undefined;
 
-/** Réarme les avertissements ponctuels (après résolution d'un conflit). */
+/** Réarme les avertissements ponctuels (après une reconnexion réussie). */
 export function reinitialiserAvertissements(): void {
-  conflitSignale = false;
   reconnexionSignalee = false;
 }
 
@@ -237,22 +230,7 @@ function planifierPush(): void {
     void pousserSiActive(false).then((resultat) => {
       if (resultat === 'ok') {
         reconnexionSignalee = false;
-        conflitSignale = false;
         notifier?.('success', 'Sauvegarde automatique effectuée.');
-        return;
-      }
-      /*
-       * Divergence : une archive plus récente venue d'un autre appareil existe
-       * sur le Drive. On ne pousse pas — cela reviendrait à travailler à deux
-       * sur des données différentes sans le savoir — et on le dit une fois,
-       * sans quoi le message reviendrait à chaque modification.
-       */
-      if (resultat === 'conflit' && !conflitSignale) {
-        conflitSignale = true;
-        notifier?.(
-          'warning',
-          'Sauvegarde Drive suspendue : une sauvegarde plus récente, faite depuis un autre appareil, existe déjà. Ouvrez les Paramètres pour la restaurer ou passer outre.',
-        );
         return;
       }
       /*

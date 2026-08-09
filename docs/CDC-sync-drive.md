@@ -191,16 +191,29 @@ C'est ce qui réconcilie « une seule à jour » et « garante des données ».
   enregistrements locaux, il s'arrête et demande confirmation. Un tombstone erroné ne doit pas
   pouvoir vider la base en silence.
 
-### 4.10 Déploiement progressif
+### 4.10 Un seul mode
 
-La synchronisation est **derrière un interrupteur** dans les Paramètres, désactivée par défaut.
-Tant qu'elle est inactive, le fonctionnement actuel est inchangé (push ZIP + garde-fou du lot A).
-Une fois activée :
+Brancher le Drive, **c'est** synchroniser. Il n'y a plus d'interrupteur, plus de mode « archive
+complète » vers Drive, et plus de garde-fou de divergence : pour ne pas synchroniser, on
+déconnecte le Drive. Le dossier local synchronisé (File System Access) continue de recevoir des
+ZIP, inchangé.
 
-- le push ZIP vers Drive est remplacé par le cycle de synchronisation ;
-- le garde-fou de divergence du lot A devient sans objet (il n'y a plus de version concurrente) et
-  n'est plus évalué ;
-- le dossier local synchronisé (File System Access) continue de recevoir des ZIP, inchangé.
+> Deux révisions successives, le 9 août 2026. La version initiale prévoyait un déploiement
+> progressif, interrupteur désactivé par défaut. Il a d'abord été inversé (activé par défaut),
+> puis retiré : les deux modes ne coexistaient qu'en apparence, et **chaque couture entre eux
+> avait produit un défaut** — date de sauvegarde partagée qui réduisait la synchro d'ouverture à
+> une fois par semaine, vocabulaires de résultat mélangés, garde-fou de divergence devenu sans
+> objet mais toujours évalué à la connexion, où il accueillait un second appareil par un faux
+> avertissement de conflit.
+
+Ce que la suppression emporte : `pousserSauvegardeGDrive`, `verifierArchiveDistante`,
+`comparerArchives`, `marquerArchiveVue`, `telechargerArchiveGDrive`, le type `ArchiveDrive`, les
+champs `syncActive` / `derniereArchiveVue` / `dernierPush`, l'état `conflit`, et le panneau
+`SyncPanel` — fondu dans le panneau Drive.
+
+La restauration, elle, est **conservée et améliorée** : elle ne vise plus l'archive concurrente
+détectée par le garde-fou, mais la liste des instantanés de `archives/` (§4.9), présentée dans le
+panneau Drive.
 
 ### 4.11 Fichiers touchés
 

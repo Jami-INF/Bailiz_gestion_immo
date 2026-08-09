@@ -91,14 +91,13 @@ export function EdlSignaturePage() {
         await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
       }
       setResultat({ hash, blob });
-      // Push ZIP automatique vers le dossier synchronisé (si configuré).
-      void pousserSiActive(true).then((r) => {
+      /*
+       * Mise à l'abri immédiate. `apresSignature` abaisse le seuil de
+       * l'instantané à vingt-quatre heures : un état des lieux signé ne se
+       * ressaisit pas, il ne doit pas attendre le filet hebdomadaire.
+       */
+      void pousserSiActive(true, { apresSignature: true }).then((r) => {
         if (r === 'ok') toast('success', 'Sauvegarde automatique poussée dans le dossier synchronisé.');
-        else if (r === 'conflit')
-          toast(
-            'warning',
-            "Document signé, mais l'envoi vers le Drive est suspendu : une sauvegarde plus récente y existe (autre appareil). À régler dans les Paramètres.",
-          );
         else if (r === 'bloque')
           toast('warning', "Document signé. Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
         else if (r === 'permission_requise' || r === 'erreur')

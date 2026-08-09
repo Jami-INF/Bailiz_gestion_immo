@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -15,6 +15,8 @@ import {
   ShieldAlert,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
 import { format, isToday } from 'date-fns';
@@ -24,10 +26,24 @@ import {
   getConfigAutosave,
   initAutosaveSurModifications,
   pousserSiActive,
+  reinitialiserAvertissements,
   SEUIL_PUSH_OUVERTURE_MS,
 } from '@/lib/autosave';
-import { verifierArchiveDistante } from '@/lib/gdrive';
-import { syncActive } from '@/lib/sync';
+import {
+  abonnerEtatSync,
+  etatSync,
+  INTERVALLE_SYNC_MS,
+  lancerCycle,
+  oublierSaisiesRemplacees,
+  purgerJournalSiInactif,
+  saisiesRemplacees,
+} from '@/lib/sync';
+import {
+  CLIENT_ID_GDRIVE,
+  demanderAutorisationGoogle,
+  estApplicationInstallee,
+  lancerConnexionParRedirection,
+} from '@/lib/gdrive';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
 import { Button, Modal, useToast } from '@/components/ui';
 
@@ -42,34 +58,60 @@ const nav = [
 ];
 
 /**
- * « Dernière sauvegarde à XXh » + bouton « Sauvegarder » (si un dossier de
- * sauvegarde automatique est lié). La date affichée est celle du dernier
- * export réussi, manuel ou automatique (parametres.derniereSauvegarde).
+ * État de la mise à l'abri des données + bouton « Sauvegarder ».
+ *
+ * Deux régimes, et il faut afficher le bon : sous synchronisation, la date qui
+ * compte est celle du dernier **échange** avec le Drive. `derniereSauvegarde`
+ * n'y est plus rafraîchie que par l'instantané hebdomadaire — annoncer une
+ * sauvegarde vieille de six jours alors qu'un cycle vient de réussir ferait
+ * croire à une panne, et pousserait à exporter à la main pour rien.
  */
 function SauvegardeStatut() {
   const toast = useToast();
   const parametres = useLiveQuery(() => db.parametres.get('singleton'));
   const configDossier = useLiveQuery(() => getConfigAutosave());
   const [enCours, setEnCours] = useState(false);
-  const destination = Boolean(configDossier) || Boolean(parametres?.sauvegardeGDrive?.actif);
+  const config = parametres?.sauvegardeGDrive;
+  const destination = Boolean(configDossier) || Boolean(config?.actif);
+  const synchronise = Boolean(config?.actif);
+  // Découvert par le battement de synchronisation, hors de l'arbre React : d'où
+  // l'abonnement plutôt qu'un état local.
+  const aReconnecter = useSyncExternalStore(abonnerEtatSync, etatSync).etat === 'reconnexion';
 
-  const date = parametres?.derniereSauvegarde ? new Date(parametres.derniereSauvegarde) : null;
+  const quand = synchronise ? config?.derniereSync : parametres?.derniereSauvegarde;
+  const date = quand ? new Date(quand) : null;
+  const quoi = synchronise ? 'Synchronisé' : 'Dernière sauvegarde';
   const libelle = date
     ? isToday(date)
-      ? `Dernière sauvegarde à ${format(date, "HH'h'mm")}`
-      : `Dernière sauvegarde le ${format(date, "dd/MM 'à' HH'h'mm")}`
-    : 'Aucune sauvegarde';
+      ? `${quoi} à ${format(date, "HH'h'mm")}`
+      : `${quoi} le ${format(date, "dd/MM 'à' HH'h'mm")}`
+    : synchronise
+      ? 'Pas encore synchronisé'
+      : 'Aucune sauvegarde';
 
   const sauvegarder = async () => {
-    setEnCours(true);
+    /*
+     * Même contrainte que ci-dessus : `pousserSiActive` traverse le dossier
+     * local — deux lectures IndexedDB — avant d'arriver au jeton Google. Sur
+     * iPad la fenêtre serait alors bloquée. On demande donc l'autorisation ici,
+     * dans le geste, avant tout le reste. Sans Drive connecté, il n'y a rien à
+     * autoriser et on enchaîne directement.
+     */
+    if (synchronise) {
+      const idClient = config?.clientId || CLIENT_ID_GDRIVE;
+      if (estApplicationInstallee()) {
+        lancerConnexionParRedirection(idClient);
+        return;
+      }
+      const promesse = demanderAutorisationGoogle(idClient);
+      setEnCours(true);
+      await promesse;
+    } else {
+      setEnCours(true);
+    }
     const resultat = await pousserSiActive(true);
     setEnCours(false);
     if (resultat === 'ok') toast('success', 'Sauvegarde poussée vers la destination configurée.');
-    else if (resultat === 'conflit')
-      toast(
-        'warning',
-        'Envoi vers le Drive suspendu : une sauvegarde plus récente y existe, faite depuis un autre appareil. Ouvrez les Paramètres pour la restaurer ou passer outre.',
-      );
     else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', 'Autorisation à renouveler dans les Paramètres (dossier ou Google Drive).');
@@ -81,16 +123,192 @@ function SauvegardeStatut() {
   return (
     <div className="flex flex-col gap-1.5">
       <span
-        className={`flex items-center gap-1.5 ${!date ? 'text-amber-700' : ''}`}
+        className={`flex items-center gap-1.5 ${!date || aReconnecter ? 'text-amber-700' : ''}`}
         title={date ? format(date, 'dd/MM/yyyy HH:mm:ss') : undefined}
       >
-        <FolderSync size={14} className={date ? 'text-green-600' : 'text-amber-600'} />
-        {libelle}
+        <FolderSync
+          size={14}
+          className={date && !aReconnecter ? 'text-green-600' : 'text-amber-600'}
+        />
+        {aReconnecter ? 'Synchronisation en attente' : libelle}
       </span>
-      {destination && (
+      {/* L'action de reconnexion vit dans `BandeauReconnexion` : ce bloc-ci est
+          masqué sur mobile et en barre repliée, c'est-à-dire précisément là où
+          le problème se pose. */}
+      {!aReconnecter && destination && (
         <Button variant="secondary" size="sm" onClick={() => void sauvegarder()} disabled={enCours}>
           <FolderSync size={14} /> {enCours ? 'Sauvegarde…' : 'Sauvegarder'}
         </Button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Bandeau d'état de la synchronisation, en tête du contenu.
+ *
+ * **Tout ce qui empêche les deux appareils de converger doit se voir.** Le
+ * battement lance un cycle toutes les cinq minutes sans que personne ne le
+ * regarde : sans ce bandeau, une horloge décalée, un garde-fou déclenché ou une
+ * autorisation expirée arrêtaient la synchronisation pour des jours, en
+ * silence. Sur un outil dont tout l'intérêt est que l'ordinateur imprime ce que
+ * l'iPad vient de saisir, c'est la pire défaillance : invisible et durable.
+ *
+ * Il est ici et pas dans la barre latérale parce que celle-ci est **masquée sur
+ * mobile et en mode replié** — c'est-à-dire sur l'iPad, l'appareil le plus
+ * exposé. Un avertissement invisible là où il est nécessaire ne vaut pas mieux
+ * que pas d'avertissement.
+ */
+function BandeauSync() {
+  const toast = useToast();
+  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const [enCours, setEnCours] = useState(false);
+  const etat = useSyncExternalStore(abonnerEtatSync, etatSync);
+  const perdues = useSyncExternalStore(abonnerEtatSync, saisiesRemplacees);
+
+  /*
+   * « En cours » n'est affiché qu'au-delà d'une seconde. Un cycle qui n'a rien à
+   * échanger dure une fraction de seconde : le montrer ferait clignoter un
+   * bandeau toutes les cinq minutes pour rien. Passé ce délai, en revanche, des
+   * données sont réellement en train d'arriver — et c'est précisément le moment
+   * où il ne faut pas imprimer.
+   */
+  const [attenteVisible, setAttenteVisible] = useState(false);
+  useEffect(() => {
+    if (etat.etat !== 'en_cours') {
+      setAttenteVisible(false);
+      return;
+    }
+    const t = setTimeout(() => setAttenteVisible(true), 1000);
+    return () => clearTimeout(t);
+  }, [etat.etat]);
+
+  /*
+   * L'ordre n'est pas négociable : `demanderAutorisationGoogle` doit être la
+   * première instruction du gestionnaire de clic. Safari/iOS n'autorise la
+   * fenêtre Google que tant que dure l'activation du geste, et le moindre accès
+   * à IndexedDB avant elle suffit à la faire expirer — la fenêtre est alors
+   * bloquée sans erreur, ce qui donne un bouton qui « ne fait rien ».
+   */
+  const reconnecter = async () => {
+    const idClient = parametres?.sauvegardeGDrive?.clientId || CLIENT_ID_GDRIVE;
+    if (estApplicationInstallee()) {
+      lancerConnexionParRedirection(idClient);
+      return;
+    }
+    const promesse = demanderAutorisationGoogle(idClient);
+    setEnCours(true);
+    try {
+      if (!(await promesse)) {
+        toast(
+          'warning',
+          "Autorisation Google non obtenue : fenêtre fermée, refusée, ou bloquée par le navigateur. Sur iPad : Réglages > Safari > désactiver « Bloquer les fenêtres surgissantes ».",
+        );
+        return;
+      }
+      reinitialiserAvertissements();
+      const resultat = await lancerCycle(true);
+      if (resultat.etat === 'ok') toast('success', 'Google Drive reconnecté — données synchronisées.');
+      else if (resultat.etat !== 'bloque') toast('warning', "Reconnecté, mais l'échange n'a pas abouti : réessayez.");
+    } finally {
+      setEnCours(false);
+    }
+  };
+
+  const reessayer = async () => {
+    setEnCours(true);
+    try {
+      const resultat = await lancerCycle(true);
+      if (resultat.etat === 'ok') toast('success', 'Synchronisation rétablie.');
+    } finally {
+      setEnCours(false);
+    }
+  };
+
+  /*
+   * Une saisie écrasée n'est pas une panne — la synchronisation a fonctionné et
+   * tranché en faveur de la version la plus récente. Mais c'est le seul endroit
+   * où du travail disparaît sans que personne ne l'ait demandé : il faut le
+   * nommer, et laisser l'utilisateur en prendre acte.
+   */
+  if (etat.etat === 'ok' || etat.etat === 'en_cours') {
+    if (perdues.length > 0) {
+      const nommer = (s: (typeof perdues)[number]) => s.reference ?? `${s.table} ${s.cle.slice(0, 8)}`;
+      return (
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
+          <span className="flex items-center gap-2">
+            <AlertTriangle size={14} />
+            {perdues.length === 1
+              ? `Votre modification de ${nommer(perdues[0])} a été remplacée par une version plus récente de l'autre appareil`
+              : `${perdues.length} de vos modifications ont été remplacées par des versions plus récentes : ${perdues.map(nommer).join(', ')}`}
+          </span>
+          <button
+            type="button"
+            onClick={oublierSaisiesRemplacees}
+            className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30"
+          >
+            J&apos;ai compris
+          </button>
+        </div>
+      );
+    }
+    if (etat.etat === 'ok') return null;
+  }
+
+
+  if (etat.etat === 'en_cours') {
+    if (!attenteVisible) return null;
+    return (
+      <div className="flex items-center justify-center gap-2 bg-accent-100 px-4 py-1.5 text-xs font-medium text-accent-700">
+        <RefreshCw size={14} className="animate-spin" />
+        Synchronisation en cours — attendez la fin avant d&apos;imprimer un document.
+      </div>
+    );
+  }
+
+  const message =
+    etat.etat === 'reconnexion'
+      ? "Synchronisation en attente — l'autorisation Google a expiré"
+      : etat.etat === 'bloque'
+        ? etat.raison === 'horloge'
+          ? "Synchronisation interrompue — l'horloge de cet appareil est trop décalée"
+          : 'Synchronisation interrompue — des suppressions inhabituelles ont été reçues'
+        : 'Synchronisation en échec — vos données restent enregistrées sur cet appareil';
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
+      <span className="flex items-center gap-2">
+        <AlertTriangle size={14} /> {message}
+        {etat.etat === 'bloque' && etat.details ? ` (${etat.details})` : ''}
+      </span>
+      {etat.etat === 'reconnexion' ? (
+        <button
+          type="button"
+          onClick={() => void reconnecter()}
+          disabled={enCours}
+          className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30 disabled:opacity-60"
+        >
+          {enCours ? 'Reconnexion…' : 'Reconnecter'}
+        </button>
+      ) : etat.etat === 'bloque' ? (
+        /* La résolution demande un choix éclairé (confirmer des suppressions,
+           corriger l'heure) : elle a sa place dans les Paramètres, pas dans un
+           bandeau. */
+        <Link
+          to="/parametres"
+          className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30"
+        >
+          Voir le détail
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void reessayer()}
+          disabled={enCours}
+          className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30 disabled:opacity-60"
+        >
+          {enCours ? 'Nouvel essai…' : 'Réessayer'}
+        </button>
       )}
     </div>
   );
@@ -137,8 +355,42 @@ export function AppLayout() {
     initAutosaveSurModifications(toast);
   }, [toast]);
 
-  // Push ZIP silencieux à l'ouverture si une destination (dossier ou Google
-  // Drive) est configurée et que la dernière sauvegarde date de + de 7 jours.
+  /*
+   * Synchronisation entre appareils : à l'ouverture, à chaque retour au premier
+   * plan, puis toutes les cinq minutes tant que l'application est visible.
+   *
+   * Ce battement est ce qui rend le travail à deux appareils praticable. Tous
+   * les autres déclencheurs supposent une **écriture locale** : sans lui, l'iPad
+   * qui ne fait que consulter n'apprendrait jamais ce qui a été saisi sur le
+   * poste fixe. Il ne doit surtout pas être adossé à l'ancienneté de la
+   * sauvegarde ZIP : l'instantané hebdomadaire la rafraîchit lui-même, et le
+   * cycle d'ouverture ne se déclenchait alors plus qu'une fois par semaine.
+   *
+   * Cycle silencieux et non interactif : sans autorisation Google valide — le
+   * cas courant sur Safari/iPad — il est simplement reporté, sans message.
+   */
+  useEffect(() => {
+    void purgerJournalSiInactif();
+    let minuteur: ReturnType<typeof setInterval> | undefined;
+    const armer = () => {
+      clearInterval(minuteur);
+      if (document.visibilityState !== 'visible') return;
+      void lancerCycle(false);
+      minuteur = setInterval(() => void lancerCycle(false), INTERVALLE_SYNC_MS);
+    };
+    armer();
+    document.addEventListener('visibilitychange', armer);
+    return () => {
+      clearInterval(minuteur);
+      document.removeEventListener('visibilitychange', armer);
+    };
+  }, []);
+
+  /*
+   * Archive ZIP dans le **dossier local** à l'ouverture, si la dernière date de
+   * plus de sept jours. Le Drive n'est plus concerné : il reçoit un cycle de
+   * synchronisation (ci-dessus) et son propre instantané.
+   */
   useEffect(() => {
     void (async () => {
       if (!(await destinationConfiguree())) return;
@@ -151,25 +403,6 @@ export function AppLayout() {
     })();
   }, []);
 
-  /*
-   * Vérification du Drive à l'ouverture : mieux vaut apprendre qu'un autre
-   * appareil a sauvegardé depuis **avant** de commencer à travailler sur des
-   * données périmées. Silencieuse par nature : sans autorisation Google valide
-   * — le cas courant sur Safari/iPad — la vérification est simplement reportée
-   * au prochain envoi, sans message d'erreur.
-   */
-  useEffect(() => {
-    void (async () => {
-      // Sans objet dès que la synchronisation fusionne : plus de version concurrente.
-      if (await syncActive()) return;
-      const etat = await verifierArchiveDistante(false);
-      if (etat.etat !== 'divergence') return;
-      toast(
-        'warning',
-        `Une sauvegarde plus récente existe sur le Drive (depuis « ${etat.archive.appareilNom ?? 'un autre appareil'} », le ${format(new Date(etat.archive.createdTime), "dd/MM 'à' HH'h'mm")}). La sauvegarde automatique est suspendue : ouvrez les Paramètres pour choisir.`,
-      );
-    })();
-  }, [toast]);
   const location = useLocation();
 
   /**
@@ -282,6 +515,8 @@ export function AppLayout() {
             <WifiOff size={14} /> Hors-ligne — vos données restent enregistrées sur cet appareil
           </div>
         )}
+        {/* Hors-ligne d'abord : sans réseau, reconnecter n'aurait aucun sens. */}
+        {enLigne && <BandeauSync />}
         <div className={pleinEcran ? '' : `mx-auto ${large ? 'max-w-7xl' : 'max-w-5xl'} px-4 py-6 sm:px-8`}>
           <Outlet />
           {!pleinEcran && (

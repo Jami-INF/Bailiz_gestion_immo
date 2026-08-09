@@ -5,6 +5,7 @@ import {
   dateModification,
   deciderReception,
   ecartHorloge,
+  empreintesSections,
   fusionnerParametres,
   lireNomFichier,
   nomFichier,
@@ -148,6 +149,21 @@ function parametres(m: Partial<Parametres> = {}): Parametres {
   };
 }
 
+/** Appareil neuf : sert à reconnaître une section jamais configurée. */
+const NEUF = empreintesSections(
+  parametres({ bailleur: { ...parametres().bailleur, nom: '', prenom: '' } }),
+);
+
+/** Fusion depuis un appareil dont la référence est celle de `avant`. */
+function fusionner(local: Parametres, distant: Parametres, avant?: Parametres) {
+  return fusionnerParametres(local, distant, {
+    reference: avant ? empreintesSections(avant) : undefined,
+    neuf: NEUF,
+  });
+}
+
+const avecNom = (nom: string) => parametres({ bailleur: { ...parametres().bailleur, nom } });
+
 describe('fusionnerParametres', () => {
   it('prend le maximum de chaque compteur, jamais la somme ni le dernier écrivain', () => {
     // Deux baux créés hors-ligne : sans le maximum, une référence serait réattribuée.
@@ -157,8 +173,7 @@ describe('fusionnerParametres', () => {
     const distant = parametres({
       compteursSequence: { bail: 5, edl: 9, inventaire: 0, document: 3, annee: 2026 },
     });
-    const fusion = fusionnerParametres(local, distant, true);
-    expect(fusion.compteursSequence).toEqual({
+    expect(fusionner(local, distant).fusionne.compteursSequence).toEqual({
       bail: 7,
       edl: 9,
       inventaire: 0,
@@ -176,7 +191,7 @@ describe('fusionnerParametres', () => {
     const distant = parametres({
       compteursSequence: { bail: 2, edl: 1, inventaire: 0, document: 3, annee: 2026 },
     });
-    expect(fusionnerParametres(local, distant, false).compteursSequence).toEqual({
+    expect(fusionner(local, distant).fusionne.compteursSequence).toEqual({
       bail: 2,
       edl: 1,
       inventaire: 0,
@@ -193,23 +208,77 @@ describe('fusionnerParametres', () => {
     const distant = parametres({
       sauvegardeGDrive: { clientId: 'distant', actif: false, dossierId: 'dossier-distant' },
     });
-    const fusion = fusionnerParametres(local, distant, true);
-    expect(fusion.sauvegardeGDrive?.clientId).toBe('local');
-    expect(fusion.sauvegardeGDrive?.dossierId).toBe('dossier-local');
-  });
-
-  it('applique le dernier écrivain aux réglages, dans les deux sens', () => {
-    const local = parametres({ bailleur: { ...parametres().bailleur, nom: 'Local' } });
-    const distant = parametres({ bailleur: { ...parametres().bailleur, nom: 'Distant' } });
-    expect(fusionnerParametres(local, distant, true).bailleur.nom).toBe('Distant');
-    expect(fusionnerParametres(local, distant, false).bailleur.nom).toBe('Local');
+    const { fusionne } = fusionner(local, distant);
+    expect(fusionne.sauvegardeGDrive?.clientId).toBe('local');
+    expect(fusionne.sauvegardeGDrive?.dossierId).toBe('dossier-local');
   });
 
   it('conserve la date de sauvegarde la plus récente', () => {
     const local = parametres({ derniereSauvegarde: T.vieux });
     const distant = parametres({ derniereSauvegarde: T.recent });
-    expect(fusionnerParametres(local, distant, false).derniereSauvegarde).toBe(T.recent);
-    expect(fusionnerParametres(distant, local, false).derniereSauvegarde).toBe(T.recent);
+    expect(fusionner(local, distant).fusionne.derniereSauvegarde).toBe(T.recent);
+    expect(fusionner(distant, local).fusionne.derniereSauvegarde).toBe(T.recent);
+  });
+
+  it('n’écrase pas une section que seul le distant… n’a pas touchée', () => {
+    // Référence = ce que les deux partageaient. Seul le local a bougé : le
+    // distant n'a rien à dire, sa version est simplement en retard.
+    const reference = avecNom('Commun');
+    const local = avecNom('Corrigé ici');
+    const { fusionne, collisions } = fusionner(local, reference, reference);
+    expect(fusionne.bailleur.nom).toBe('Corrigé ici');
+    expect(collisions).toEqual([]);
+  });
+
+  it('adopte la section que seul le distant a modifiée', () => {
+    const reference = avecNom('Commun');
+    const distant = avecNom('Corrigé là-bas');
+    const { fusionne, collisions } = fusionner(reference, distant, reference);
+    expect(fusionne.bailleur.nom).toBe('Corrigé là-bas');
+    expect(collisions).toEqual([]);
+  });
+
+  it('arbitre chaque section séparément : deux réglages différents survivent', () => {
+    /*
+     * Le cœur du travail à deux appareils : régler les clauses ici pendant
+     * qu'on corrige l'adresse du bailleur là-bas ne doit rien détruire.
+     */
+    const reference = parametres();
+    const local = parametres({ bailleur: { ...parametres().bailleur, adresse: '3 rue Locale' } });
+    const distant = parametres({
+      clausesBail: [
+        { id: 'c1', famille: 'occupation', titre: 'Distante', texte: 'x', active: true },
+      ],
+    });
+
+    const { fusionne, collisions } = fusionner(local, distant, reference);
+    expect(fusionne.bailleur.adresse).toBe('3 rue Locale');
+    expect(fusionne.clausesBail?.[0]?.titre).toBe('Distante');
+    expect(collisions).toEqual([]);
+  });
+
+  it('tranche en faveur du Drive quand la même section a bougé des deux côtés, et le signale', () => {
+    // Les deux appareils doivent trancher dans le même sens, sinon chacun
+    // réimposerait sa version au cycle suivant, indéfiniment.
+    const reference = avecNom('Commun');
+    const { fusionne, collisions } = fusionner(avecNom('Ici'), avecNom('Là-bas'), reference);
+    expect(fusionne.bailleur.nom).toBe('Là-bas');
+    expect(collisions).toEqual(['bailleur']);
+  });
+
+  it('sans référence, un appareil neuf adopte le Drive sans rien signaler', () => {
+    const neuf = parametres({ bailleur: { ...parametres().bailleur, nom: '', prenom: '' } });
+    const { fusionne, collisions } = fusionner(neuf, avecNom('Drive'));
+    expect(fusionne.bailleur.nom).toBe('Drive');
+    expect(collisions).toEqual([]);
+  });
+
+  it('sans référence, une section configurée ici prime — et la collision est signalée', () => {
+    // L'autre appareil, lui, a une référence : il adoptera cette version au
+    // cycle suivant. La convergence est assurée dans ce sens-là.
+    const { fusionne, collisions } = fusionner(avecNom('Configuré ici'), avecNom('Drive'));
+    expect(fusionne.bailleur.nom).toBe('Configuré ici');
+    expect(collisions).toEqual(['bailleur']);
   });
 });
 

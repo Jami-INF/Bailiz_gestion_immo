@@ -454,17 +454,6 @@ export const FAMILLE_CLAUSE_LABELS: Record<FamilleClause, string> = {
   immeuble: "Vie de l'immeuble et troubles",
 };
 
-/** Archive de sauvegarde présente sur le Drive, telle que décrite par l'API. */
-export interface ArchiveDrive {
-  id: string;
-  nom: string;
-  /** Date de création côté serveur (RFC 3339, UTC) : seule référence fiable entre appareils. */
-  createdTime: string;
-  /** Identifiant de l'appareil qui l'a poussée — absent pour les archives antérieures. */
-  appareil?: string;
-  appareilNom?: string;
-}
-
 export interface Parametres {
   id: 'singleton';
   bailleur: {
@@ -494,21 +483,13 @@ export interface Parametres {
     clientId: string;
     actif: boolean;
     dossierId?: string; // dossier « Bailiz » créé à la racine du Drive
-    dernierPush?: string;
     /**
-     * Dernière archive du Drive connue de cet appareil : sert à détecter qu'un
-     * autre appareil a poussé depuis (cf. `lib/gdrive.ts`). Mise à jour après
-     * un push, une restauration, ou un passage en force.
+     * Heure **serveur** du dernier cycle réussi. Comparer des dates serveur à
+     * une heure locale ferait manquer des fichiers à chaque cycle, d'où le
+     * stockage tel quel.
      */
-    derniereArchiveVue?: ArchiveDrive;
-    /**
-     * Synchronisation par fichiers (lot B) : activation et heure **serveur** du
-     * dernier cycle réussi. Comparer des dates serveur à une heure locale
-     * ferait manquer des fichiers à chaque cycle, d'où le stockage tel quel.
-     */
-    syncActive?: boolean;
     derniereSync?: string;
-    /** Date du dernier instantané ZIP hebdomadaire (filet de sécurité, jamais fusionné). */
+    /** Date du dernier instantané ZIP (filet de sécurité, jamais fusionné). */
     dernierInstantane?: string;
   };
 }

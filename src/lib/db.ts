@@ -51,12 +51,19 @@ export interface SyncEtat {
   /** Horodatage de la version poussée ou reçue, pour éviter les renvois inutiles. */
   modifieLe: string;
   /**
-   * Contenu exact de la dernière version synchronisée. Utilisé pour le seul
-   * singleton `parametres`, qui n'a pas de date de modification : comparer à
-   * cette empreinte est le seul moyen de savoir qui, du local ou du distant, a
-   * réellement changé.
+   * @deprecated Empreinte d'un seul bloc des réglages, remplacée par
+   * `empreintes`. Encore lue une fois, à la migration, pour ne pas repartir
+   * sans référence — ce qui rejouerait une fusion déjà tranchée.
    */
   empreinte?: string;
+  /**
+   * Contenu exact de la dernière version synchronisée, **par section de
+   * réglages**. Utilisé pour le seul singleton `parametres`, qui n'a pas de
+   * date de modification : comparer à ces empreintes est le seul moyen de
+   * savoir qui, du local ou du distant, a réellement changé — et de ne le
+   * décider que section par section.
+   */
+  empreintes?: Record<string, string>;
 }
 
 class BailizDB extends Dexie {

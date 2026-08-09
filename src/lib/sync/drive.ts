@@ -1,4 +1,9 @@
-import { appelApiDrive, construireCorpsMultipart, contexteDrive } from '@/lib/gdrive';
+import {
+  appelApiDrive,
+  construireCorpsMultipart,
+  contexteDrive,
+  ErreurApiDrive,
+} from '@/lib/gdrive';
 import type { DepotDistant, Espace, FichierDistant } from './depot';
 
 /**
@@ -47,8 +52,19 @@ async function assurerSousDossier(
   return ((await creation.json()) as { id: string }).id;
 }
 
+/*
+ * Identifiants des sous-dossiers, retenus pour la durée de la session.
+ *
+ * Les résoudre coûte une requête chacun, et un cycle a lieu toutes les cinq
+ * minutes : sans ce cache, l'ouverture du dépôt pèserait plus que l'échange
+ * lui-même. Un dossier supprimé à la main sur le Drive rendrait le cache faux,
+ * mais l'écriture échouerait alors franchement plutôt que d'écrire ailleurs —
+ * et recharger l'application suffit à repartir.
+ */
+const sousDossiers = new Map<string, Record<Espace, string>>();
+
 /**
- * Prépare le dépôt : jeton, dossier « Bailiz » et ses quatre sous-dossiers.
+ * Prépare le dépôt : jeton, dossier « Bailiz » et ses sous-dossiers.
  * `null` quand l'autorisation Google n'est pas disponible — la synchronisation
  * est alors simplement reportée.
  */
@@ -57,17 +73,22 @@ export async function ouvrirDepotDrive(interactif: boolean): Promise<DepotDistan
   if (!contexte) return null;
   const { token, dossierId } = contexte;
 
-  const dossiers = {} as Record<Espace, string>;
-  for (const espace of ESPACES) {
-    dossiers[espace] = await assurerSousDossier(token, dossierId, espace);
+  let dossiers = sousDossiers.get(dossierId);
+  if (!dossiers) {
+    dossiers = {} as Record<Espace, string>;
+    for (const espace of ESPACES) {
+      dossiers[espace] = await assurerSousDossier(token, dossierId, espace);
+    }
+    sousDossiers.set(dossierId, dossiers);
   }
 
   return {
-    async lister(espace, depuis) {
+    async lister(espace, filtre) {
       const conditions = [`'${dossiers[espace]}' in parents`, 'trashed=false'];
-      // Le filtre par date est appliqué par le serveur : un cycle ne rapatrie
-      // que ce qui a bougé, quelle que soit la taille du dépôt.
-      if (depuis) conditions.push(`modifiedTime > '${depuis}'`);
+      // Les filtres sont appliqués par le serveur : un cycle ne rapatrie que ce
+      // qu'il demande, quelle que soit la taille du dépôt.
+      if (filtre?.depuis) conditions.push(`modifiedTime > '${filtre.depuis}'`);
+      if (filtre?.nom) conditions.push(`name='${filtre.nom.replace(/'/g, "\\'")}'`);
       const q = encodeURIComponent(conditions.join(' and '));
       const fichiers: FichierDistant[] = [];
       let pageToken: string | undefined;
@@ -99,26 +120,41 @@ export async function ouvrirDepotDrive(interactif: boolean): Promise<DepotDistan
     async ecrire(espace, nom, contenu, idExistant) {
       const blob = typeof contenu === 'string' ? new Blob([contenu]) : contenu;
       const champs = 'id,name,modifiedTime';
+      const creer = async () => {
+        const { corps, contentType } = construireCorpsMultipart(
+          { name: nom, parents: [dossiers[espace]] },
+          blob,
+        );
+        const reponse = await appelApiDrive(
+          token,
+          `${API_UPLOAD}/files?uploadType=multipart&fields=${champs}`,
+          { method: 'POST', headers: { 'Content-Type': contentType }, body: corps },
+        );
+        return versFichier((await reponse.json()) as FichierApi);
+      };
+      if (!idExistant) return creer();
+
       // Un fichier déjà connu est mis à jour (même id) : le dépôt ne doit pas
       // accumuler de doublons du même enregistrement.
-      if (idExistant) {
+      try {
         const reponse = await appelApiDrive(
           token,
           `${API_UPLOAD}/files/${idExistant}?uploadType=media&fields=${champs}`,
           { method: 'PATCH', body: blob },
         );
         return versFichier((await reponse.json()) as FichierApi);
+      } catch (e) {
+        /*
+         * Le fichier a disparu : un autre appareil a supprimé la fiche pendant
+         * qu'on la modifiait ici. Abandonner bloquerait le cycle — et donc tout
+         * le reste de la file d'attente — pour un cas parfaitement normal en
+         * usage à deux appareils. On recrée, et l'arbitrage par horodatage
+         * décidera au prochain cycle qui de la suppression ou de la
+         * modification l'emporte.
+         */
+        if (!(e instanceof ErreurApiDrive) || e.statut !== 404) throw e;
+        return creer();
       }
-      const { corps, contentType } = construireCorpsMultipart(
-        { name: nom, parents: [dossiers[espace]] },
-        blob,
-      );
-      const reponse = await appelApiDrive(
-        token,
-        `${API_UPLOAD}/files?uploadType=multipart&fields=${champs}`,
-        { method: 'POST', headers: { 'Content-Type': contentType }, body: corps },
-      );
-      return versFichier((await reponse.json()) as FichierApi);
     },
 
     async supprimer(id) {

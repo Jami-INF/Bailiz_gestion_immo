@@ -21,11 +21,11 @@ describe('fichiersASupprimer (rotation des sauvegardes)', () => {
 });
 
 describe('agregerResultats', () => {
-  it('signale le conflit même si une destination a réussi', () => {
-    // Le dossier local est écrit, le Drive est suspendu : taire le conflit
-    // laisserait l'utilisateur croire ses deux appareils synchronisés.
-    expect(agregerResultats(['ok', 'conflit'])).toBe('conflit');
-    expect(agregerResultats(['conflit', 'ok'])).toBe('conflit');
+  it('signale un cycle bloqué même si une destination a réussi', () => {
+    // Le dossier local est écrit, mais un garde-fou a interrompu la
+    // synchronisation : le taire laisserait croire les deux appareils à jour.
+    expect(agregerResultats(['ok', 'bloque'])).toBe('bloque');
+    expect(agregerResultats(['bloque', 'ok'])).toBe('bloque');
   });
 
   it('renvoie ok dès qu’une destination a réussi', () => {

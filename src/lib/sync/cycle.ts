@@ -14,13 +14,16 @@ import {
   deciderReception,
   ECART_HORLOGE_MAX_MS,
   ecartHorloge,
+  empreintesSections,
   fusionnerParametres,
   lireNomFichier,
   nomFichier,
   referencesEnDouble,
+  SECTIONS_PARAMETRES,
   suppressionMassive,
   type EnveloppeEnregistrement,
   type ReferenceEnDouble,
+  type SectionParametres,
   type Tombstone,
 } from './protocole';
 
@@ -42,6 +45,23 @@ export type ResultatCycle =
       ecartHorlogeMs: number;
       /** Références attribuées deux fois : signalées, jamais renumérotées d'office. */
       doublons: ReferenceEnDouble[];
+      /**
+       * Sections de réglages modifiées des deux côtés depuis le dernier
+       * échange : la fusion a tranché en faveur du Drive, et la version saisie
+       * ici est perdue. Signalé, jamais tu.
+       */
+      reglagesEcrases: SectionParametres[];
+      /**
+       * Fiches dont une saisie locale **pas encore envoyée** vient d'être
+       * remplacée par une version plus récente de l'autre appareil.
+       *
+       * C'est le seul cas où une saisie disparaît sans que personne ne l'ait
+       * demandé : on travaille hors ligne sur la tablette, l'autre appareil
+       * modifie la même fiche plus tard, et la reconnexion adopte sa version.
+       * L'arbitrage est le bon — la modification la plus récente gagne — mais
+       * le taire laisserait croire que rien n'a été perdu.
+       */
+      saisiesRemplacees: SaisieRemplacee[];
     }
   | { etat: 'indisponible' }
   /** Un garde-fou a interrompu le cycle : rien n'a été appliqué ni envoyé. */
@@ -56,6 +76,18 @@ export type ResultatCycle =
  * le garde-fou de réception (`suppression_massive`) qui protège l'autre appareil.
  */
 export type RaisonBlocage = 'suppression_massive' | 'horloge';
+
+/** Une saisie locale abandonnée au profit d'une version distante plus récente. */
+export interface SaisieRemplacee {
+  table: string;
+  cle: string;
+  /** Référence imprimée s'il y en a une (`BAIL-2026-0007`), sinon rien. */
+  reference?: string;
+  /** Date de la saisie perdue, telle qu'elle figurait sur cet appareil. */
+  saisieLe?: string;
+  /** Vrai si la fiche a été **supprimée** ici, et non remplacée. */
+  supprimee?: boolean;
+}
 
 /** Espaces portant des blobs : immuables, donc jamais en conflit. */
 const ESPACE_PAR_TABLE: Partial<Record<string, Espace>> = {
@@ -78,12 +110,9 @@ async function memoriserEtat(etat: SyncEtat): Promise<void> {
   await db.syncEtat.put(etat);
 }
 
-/** Toutes les entités locales d'une table, indexées par clé. */
-async function lireTable(table: string): Promise<Map<string, Record<string, unknown>>> {
-  const rows = (await (db as unknown as Record<string, { toArray(): Promise<unknown[]> }>)[
-    table
-  ].toArray()) as Record<string, unknown>[];
-  return new Map(rows.map((r) => [String(r.id), r]));
+/** Nombre d'entités d'une table, sans charger leur contenu. */
+async function compterTable(table: string): Promise<number> {
+  return (db as unknown as Record<string, { count(): Promise<number> }>)[table].count();
 }
 
 async function ecrireEnregistrement(table: string, donnees: unknown): Promise<void> {
@@ -138,15 +167,42 @@ export async function synchroniser(
   // --- Pull ----------------------------------------------------------------
   const [fichiersDonnees, fichiersTombstones, fichiersPhotos, fichiersDocuments] =
     await Promise.all([
-      depot.lister('donnees', derniereSync),
-      depot.lister('tombstones', derniereSync),
-      depot.lister('photos', derniereSync),
-      depot.lister('documents', derniereSync),
+      depot.lister('donnees', { depuis: derniereSync }),
+      depot.lister('tombstones', { depuis: derniereSync }),
+      depot.lister('photos', { depuis: derniereSync }),
+      depot.lister('documents', { depuis: derniereSync }),
     ]);
 
   const tombstones = indexer(fichiersTombstones);
   let recus = 0;
   let supprimes = 0;
+
+  /*
+   * Ce qui restait à envoyer **avant** que la réception ne modifie quoi que ce
+   * soit. Une fiche qui figure ici et que le pull s'apprête à remplacer, c'est
+   * une saisie locale que personne n'a jamais vue et que personne ne reverra :
+   * le seul endroit du cycle où l'on peut encore la nommer.
+   */
+  const enAttenteAvantReception = new Set(
+    (await db.changements.toArray()).map((c) => `${c.table}__${c.cle}`),
+  );
+  const saisiesRemplacees: SaisieRemplacee[] = [];
+  const noterSaisiePerdue = (
+    table: string,
+    cle: string,
+    locale: unknown,
+    supprimee?: boolean,
+  ): void => {
+    if (!enAttenteAvantReception.has(`${table}__${cle}`)) return;
+    const enr = locale as { reference?: string; updatedAt?: string; createdAt?: string } | undefined;
+    saisiesRemplacees.push({
+      table,
+      cle,
+      reference: enr?.reference,
+      saisieLe: enr?.updatedAt ?? enr?.createdAt,
+      supprimee,
+    });
+  };
 
   /*
    * Index des contenus binaires, construit paresseusement. Le listage
@@ -177,6 +233,37 @@ export async function synchroniser(
     return indexerBlobs(espace, await depot.lister(espace)).get(cle);
   };
 
+  /*
+   * Index par nom d'un espace, construit au plus **une fois par cycle** et
+   * seulement si l'on en a besoin — jamais une requête par enregistrement : une
+   * suppression RGPD efface des dizaines de photos d'un coup, et autant
+   * d'allers-retours saturerait le quota Drive.
+   *
+   * Il sert à retrouver un fichier dont l'identifiant a été perdu : un envoi
+   * interrompu entre l'écriture des métadonnées et sa mémorisation laisse un
+   * orphelin, et repartir d'une création en produirait un second du même nom.
+   * Deux homonymes, c'est une version qui en masque une autre au hasard du
+   * listage — d'où la liste complète, et non le seul premier trouvé.
+   */
+  const indexParNom = new Map<Espace, Map<string, FichierDistant[]>>();
+  const tousParNom = async (espace: Espace, nom: string): Promise<FichierDistant[]> => {
+    let index = indexParNom.get(espace);
+    if (!index) {
+      index = new Map();
+      for (const f of await depot.lister(espace)) {
+        index.set(f.nom, [...(index.get(f.nom) ?? []), f]);
+      }
+      indexParNom.set(espace, index);
+    }
+    return index.get(nom) ?? [];
+  };
+  /** Le plus récent des homonymes : celui que les autres appareils liront. */
+  const trouverParNom = async (espace: Espace, nom: string) =>
+    (await tousParNom(espace, nom)).reduce<FichierDistant | undefined>(
+      (retenu, f) => (!retenu || f.modifieLe >= retenu.modifieLe ? f : retenu),
+      undefined,
+    );
+
   // Suppressions : recensées d'abord pour pouvoir refuser un cycle qui viderait
   // la base à cause d'un marqueur erroné.
   const aSupprimer: { table: string; cle: string; supprimeLe: string }[] = [];
@@ -200,9 +287,13 @@ export async function synchroniser(
   }
 
   if (aSupprimer.length > 0 && !options?.forcerSuppressions) {
-    const total = (
-      await Promise.all(TABLES_SYNCHRONISEES.map((t) => lireTable(t).then((m) => m.size)))
-    ).reduce((a, b) => a + b, 0);
+    // `count()` et non `toArray()` : la table `photos` porte les images
+    // elles-mêmes, et les charger toutes en mémoire pour les dénombrer ferait
+    // tomber la tablette au moment précis où le garde-fou doit la protéger.
+    const total = (await Promise.all(TABLES_SYNCHRONISEES.map((t) => compterTable(t)))).reduce(
+      (a, b) => a + b,
+      0,
+    );
     if (suppressionMassive(aSupprimer.length, total)) {
       return {
         etat: 'bloque',
@@ -213,6 +304,12 @@ export async function synchroniser(
   }
 
   for (const { table, cle } of aSupprimer) {
+    // Une saisie en attente sur une fiche que l'autre appareil vient de
+    // supprimer disparaît elle aussi : à signaler avant de l'effacer.
+    const locale = await (db as unknown as Record<string, { get(k: string): Promise<unknown> }>)[
+      table
+    ]?.get(cle);
+    noterSaisiePerdue(table, cle, locale, true);
     await supprimerEnregistrement(table, cle);
     await db.syncEtat.delete([table, cle]);
     supprimes++;
@@ -243,6 +340,26 @@ export async function synchroniser(
     if (decision !== 'prendre_distant') continue;
 
     const champBlob = CHAMP_BLOB[table];
+    const etatConnu = await etatSync(table, cle);
+
+    /*
+     * Version déjà détenue : le listage incrémental part de l'heure serveur
+     * relevée **au début** du cycle précédent, donc tout ce que ce cycle a
+     * poussé ressort au suivant. Sans ce filtre, chaque échange retélécharge et
+     * réécrit l'intégralité de ce qu'il vient d'envoyer, et annonce comme
+     * « reçues » des fiches qui n'ont pas bougé.
+     *
+     * Un blob absent fait exception : l'enregistrement est incomplet, il faut
+     * bien retenter le téléchargement.
+     */
+    const blobPresent =
+      !champBlob || Boolean((locale as Record<string, unknown> | undefined)?.[champBlob]);
+    if (locale && blobPresent && etatConnu?.modifieLe === enveloppe.modifieLe) continue;
+
+    // À partir d'ici la version distante sera bel et bien écrite : si une saisie
+    // locale attendait encore d'être envoyée, elle vient d'être abandonnée.
+    if (locale) noterSaisiePerdue(table, cle, locale);
+
     if (!champBlob) {
       await ecrireEnregistrement(table, enveloppe.donnees);
       await memoriserEtat({ table, cle, driveId: fichier.id, modifieLe: enveloppe.modifieLe });
@@ -272,7 +389,6 @@ export async function synchroniser(
         modifieLe: enveloppe.modifieLe,
       });
     } else {
-      const etatConnu = await etatSync(table, cle);
       await memoriserEtat({
         table,
         cle,
@@ -296,18 +412,41 @@ export async function synchroniser(
     const etat = await etatSync(table, cle);
 
     if (changement.type === 'suppr') {
-      // Métadonnées **et** contenu binaire : laisser le blob derrière laisserait
-      // une photo de locataire supprimé sur le Drive, ce que la suppression
-      // RGPD interdit précisément.
-      if (etat?.driveId) await depot.supprimer(etat.driveId).catch(() => undefined);
-      if (etat?.blobDriveId) await depot.supprimer(etat.blobDriveId).catch(() => undefined);
+      /*
+       * Métadonnées **et** contenu binaire : laisser le blob derrière laisserait
+       * une photo de locataire supprimé sur le Drive, ce que la suppression
+       * RGPD interdit précisément.
+       *
+       * On ne se contente pas des identifiants connus : un envoi interrompu a pu
+       * laisser un homonyme dont cet appareil n'a jamais entendu parler. Le
+       * balayage par nom est le seul moyen de garantir qu'il ne reste rien.
+       */
+      const aEffacer = new Set<string>();
+      if (etat?.driveId) aEffacer.add(etat.driveId);
+      if (etat?.blobDriveId) aEffacer.add(etat.blobDriveId);
+      for (const f of await tousParNom('donnees', nomFichier(table, cle))) aEffacer.add(f.id);
+      const espaceBlob = espaceDe(table);
+      if (espaceBlob !== 'donnees') {
+        const extension = table === 'photos' ? 'jpg' : 'pdf';
+        for (const f of await tousParNom(espaceBlob, `${cle}.${extension}`)) aEffacer.add(f.id);
+      }
+      for (const id of aEffacer) await depot.supprimer(id).catch(() => undefined);
+
       const tombstone: Tombstone = {
         table,
         cle,
         supprimeLe: changement.horodatage,
         appareil,
       };
-      await depot.ecrire('tombstones', nomFichier(table, cle), JSON.stringify(tombstone));
+      // Réutiliser le marqueur existant : supprimer deux fois la même fiche
+      // (la seconde après une résurrection) en accumulerait autrement des copies.
+      const tombstoneExistant = await trouverParNom('tombstones', nomFichier(table, cle));
+      await depot.ecrire(
+        'tombstones',
+        nomFichier(table, cle),
+        JSON.stringify(tombstone),
+        tombstoneExistant?.id,
+      );
       await db.syncEtat.delete([table, cle]);
       envoyes.push(changement);
       continue;
@@ -324,6 +463,10 @@ export async function synchroniser(
 
     const modifieLe = dateModification(enregistrement, changement.horodatage);
     const espace = espaceDe(table);
+    const nom = nomFichier(table, cle);
+    // Identifiant inconnu : plutôt que de créer un second fichier du même nom,
+    // reprendre celui qu'un envoi interrompu a laissé sur le dépôt.
+    const idMeta = etat?.driveId ?? (await trouverParNom('donnees', nom))?.id;
 
     if (espace === 'donnees') {
       const enveloppe: EnveloppeEnregistrement = {
@@ -333,12 +476,7 @@ export async function synchroniser(
         appareil,
         donnees: enregistrement,
       };
-      const fichier = await depot.ecrire(
-        'donnees',
-        nomFichier(table, cle),
-        JSON.stringify(enveloppe),
-        etat?.driveId,
-      );
+      const fichier = await depot.ecrire('donnees', nom, JSON.stringify(enveloppe), idMeta);
       await memoriserEtat({ table, cle, driveId: fichier.id, modifieLe });
     } else {
       // Contenu binaire : les métadonnées vont dans `donnees` (mises à jour sur
@@ -354,18 +492,29 @@ export async function synchroniser(
         appareil,
         donnees: meta,
       };
-      const fichierMeta = await depot.ecrire(
-        'donnees',
-        nomFichier(table, cle),
-        JSON.stringify(enveloppe),
-        etat?.driveId,
-      );
+      const fichierMeta = await depot.ecrire('donnees', nom, JSON.stringify(enveloppe), idMeta);
+      /*
+       * Mémorisé **avant** l'envoi du blob : une coupure entre les deux laissait
+       * jusqu'ici un fichier de métadonnées dont plus personne ne connaissait
+       * l'identifiant, et le cycle suivant en créait un second du même nom. Deux
+       * homonymes, c'est l'autre appareil qui lit une version au hasard.
+       */
+      await memoriserEtat({
+        table,
+        cle,
+        driveId: fichierMeta.id,
+        blobDriveId: etat?.blobDriveId,
+        modifieLe,
+      });
       let blobDriveId = etat?.blobDriveId;
       if (!blobDriveId && blob) {
         const extension = table === 'photos' ? 'jpg' : 'pdf';
-        blobDriveId = (await depot.ecrire(espace, `${cle}.${extension}`, blob)).id;
+        const blobExistant = await trouverParNom(espace, `${cle}.${extension}`);
+        blobDriveId = blobExistant
+          ? blobExistant.id
+          : (await depot.ecrire(espace, `${cle}.${extension}`, blob)).id;
+        await memoriserEtat({ table, cle, driveId: fichierMeta.id, blobDriveId, modifieLe });
       }
-      await memoriserEtat({ table, cle, driveId: fichierMeta.id, blobDriveId, modifieLe });
     }
     envoyes.push(changement);
   }
@@ -373,7 +522,7 @@ export async function synchroniser(
   await confirmerEnvoi(envoyes);
 
   // --- Paramètres ----------------------------------------------------------
-  await synchroniserParametres(depot, appareil);
+  const reglagesEcrases = await synchroniserParametres(depot, appareil);
 
   // `derniereSync` prend l'heure **serveur** : comparer ensuite des dates
   // serveur à une heure locale ferait manquer des fichiers à chaque cycle.
@@ -402,6 +551,8 @@ export async function synchroniser(
     supprimes,
     ecartHorlogeMs: ecart,
     doublons,
+    reglagesEcrases,
+    saisiesRemplacees,
   };
 }
 
@@ -409,46 +560,57 @@ export async function synchroniser(
  * Le singleton suit ses propres règles de fusion (protocole §4.6).
  *
  * Il n'a **pas de date de modification** : impossible de savoir par horodatage
- * qui a changé quoi. On compare donc au contenu de la dernière version
- * synchronisée. Sans cette empreinte, le distant l'emporterait à chaque cycle
- * et effacerait les réglages modifiés localement — bailleur, grille de vétusté,
- * catalogue de clauses, modèle de fiche de visite.
+ * qui a changé quoi. On compare donc, **section par section**, au contenu de la
+ * dernière version synchronisée. Sans ces empreintes, le distant l'emporterait
+ * à chaque cycle et effacerait les réglages modifiés localement — bailleur,
+ * grille de vétusté, catalogue de clauses, modèle de fiche de visite.
+ *
+ * Renvoie les sections que la fusion a dû trancher au détriment du local.
  */
-async function synchroniserParametres(depot: DepotDistant, appareil: string): Promise<void> {
+async function synchroniserParametres(
+  depot: DepotDistant,
+  appareil: string,
+): Promise<SectionParametres[]> {
   const nom = nomFichier('parametres', 'singleton');
   const local = await getParametres();
-  const fichiers = await depot.lister('donnees');
-  const distantFichier = fichiers.find((f) => f.nom === nom);
+  // Recherche par nom : lister l'espace `donnees` en entier à chaque cycle
+  // coûterait le prix du dépôt tout entier pour un unique fichier.
+  const [distantFichier] = await depot.lister('donnees', { nom });
   const etat = await db.syncEtat.get(['parametres', 'singleton']);
 
   /**
-   * Seuls les **réglages** servent à détecter un changement : les compteurs de
-   * séquence bougent dès qu'un document est généré, sans que l'utilisateur ait
-   * touché à sa configuration, et ils fusionnent de toute façon au maximum.
+   * Seules les **sections de réglages** servent à détecter un changement : les
+   * compteurs de séquence bougent dès qu'un document est généré, sans que
+   * l'utilisateur ait touché à sa configuration, et ils fusionnent de toute
+   * façon au maximum.
    */
-  const reglages = (p: Parametres) =>
-    JSON.stringify({
-      bailleur: p.bailleur,
-      grilleVetuste: p.grilleVetuste,
-      ficheVisite: p.ficheVisite,
-      clausesBail: p.clausesBail,
-    });
   const compteurs = (p: Parametres) => JSON.stringify(p.compteursSequence);
   const sansConfigDrive = (p: Parametres) => ({ ...p, sauvegardeGDrive: undefined });
+  const neuf = empreintesSections(parametresDefaut());
+
+  /*
+   * Reprise de l'empreinte d'un seul bloc des versions précédentes : la
+   * découper en sections vaut mieux que repartir sans référence, ce qui
+   * rejouerait au premier cycle une fusion déjà tranchée.
+   */
+  let reference = etat?.empreintes;
+  if (!reference && etat?.empreinte) {
+    try {
+      const bloc = JSON.parse(etat.empreinte) as Record<string, unknown>;
+      reference = Object.fromEntries(
+        SECTIONS_PARAMETRES.map((s) => [s, JSON.stringify(bloc[s] ?? null)]),
+      );
+    } catch {
+      // Empreinte illisible : on repart sans référence, la fusion est prudente.
+    }
+  }
 
   let fusionne = local;
+  let collisions: SectionParametres[] = [];
   if (distantFichier) {
     const enveloppe = JSON.parse(await depot.lireTexte(distantFichier.id)) as EnveloppeEnregistrement;
     const distant = enveloppe.donnees as Parametres;
-    /*
-     * Sans empreinte, cet appareil n'a jamais synchronisé : ses réglages
-     * valent-ils quelque chose ? S'ils sont encore ceux d'un appareil neuf, non
-     * — il adopte ceux du Drive. S'ils ont été configurés ici, ils priment.
-     */
-    const localAChange = etat?.empreinte
-      ? reglages(local) !== etat.empreinte
-      : reglages(local) !== reglages(parametresDefaut());
-    fusionne = fusionnerParametres(local, distant, !localAChange);
+    ({ fusionne, collisions } = fusionnerParametres(local, distant, { reference, neuf }));
     if (JSON.stringify(sansConfigDrive(fusionne)) !== JSON.stringify(sansConfigDrive(local))) {
       await sansJournaliser(async () => {
         await db.parametres.put(fusionne);
@@ -456,15 +618,18 @@ async function synchroniserParametres(depot: DepotDistant, appareil: string): Pr
     }
     // Rien n'a bougé de part et d'autre : ne pas réécrire, sinon l'autre
     // appareil verrait à chaque cycle une « modification » qui n'en est pas une.
-    if (reglages(fusionne) === reglages(distant) && compteurs(fusionne) === compteurs(distant)) {
+    const memesReglages = SECTIONS_PARAMETRES.every(
+      (s) => empreintesSections(fusionne)[s] === empreintesSections(distant)[s],
+    );
+    if (memesReglages && compteurs(fusionne) === compteurs(distant)) {
       await db.syncEtat.put({
         table: 'parametres',
         cle: 'singleton',
         driveId: distantFichier.id,
         modifieLe: enveloppe.modifieLe,
-        empreinte: reglages(fusionne),
+        empreintes: empreintesSections(fusionne),
       });
-      return;
+      return collisions;
     }
   }
 
@@ -488,6 +653,7 @@ async function synchroniserParametres(depot: DepotDistant, appareil: string): Pr
     cle: 'singleton',
     driveId: fichier.id,
     modifieLe: enveloppe.modifieLe,
-    empreinte: reglages(fusionne),
+    empreintes: empreintesSections(fusionne),
   });
+  return collisions;
 }

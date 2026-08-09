@@ -27,7 +27,6 @@ import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { usePersistanceStockage } from '@/hooks/useStatuts';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { FicheVisitePanel } from './FicheVisitePanel';
-import { SyncPanel } from './SyncPanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
@@ -216,7 +215,6 @@ export function ParametresPage() {
 
         <SauvegardeGDrivePanel />
 
-        <SyncPanel />
 
 
         <Card>

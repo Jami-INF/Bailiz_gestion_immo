@@ -91,21 +91,103 @@ export function deciderReception(params: {
 }
 
 /**
+ * Sections de réglages arbitrées **séparément**. Régler les clauses sur le
+ * poste fixe pendant qu'on corrige l'adresse du bailleur sur l'iPad est un
+ * usage normal à deux appareils : une fusion d'un seul bloc en perdrait une des
+ * deux, silencieusement.
+ */
+export const SECTIONS_PARAMETRES = [
+  'bailleur',
+  'grilleVetuste',
+  'ficheVisite',
+  'clausesBail',
+] as const;
+
+export type SectionParametres = (typeof SECTIONS_PARAMETRES)[number];
+
+/** Libellés pour les messages destinés à l'utilisateur. */
+export const LIBELLE_SECTION: Record<SectionParametres, string> = {
+  bailleur: 'coordonnées du bailleur',
+  grilleVetuste: 'grille de vétusté',
+  ficheVisite: 'modèle de fiche de visite',
+  clausesBail: 'catalogue de clauses',
+};
+
+/**
+ * Empreinte de chaque section : son contenu sérialisé. Les paramètres n'ont
+ * pas de date de modification — comparer au contenu de la dernière version
+ * synchronisée est le seul moyen de savoir qui, du local ou du distant, a
+ * réellement changé.
+ */
+export function empreintesSections(p: Parametres): Record<SectionParametres, string> {
+  return Object.fromEntries(
+    SECTIONS_PARAMETRES.map((s) => [s, JSON.stringify(p[s] ?? null)]),
+  ) as Record<SectionParametres, string>;
+}
+
+export interface FusionParametres {
+  fusionne: Parametres;
+  /**
+   * Sections modifiées **des deux côtés** : la fusion a dû trancher, et la
+   * version écartée n'est nulle part. C'est le seul cas de perte, et il doit
+   * remonter jusqu'à l'utilisateur.
+   */
+  collisions: SectionParametres[];
+}
+
+/**
  * Fusion du singleton `parametres`. Le dernier-écrivain-gagne ne convient pas :
  * ce document mélange des réglages, des compteurs de séquence et l'état de
  * synchronisation propre à l'appareil.
  *
+ * - réglages : **section par section**, chacune arbitrée sur sa propre
+ *   empreinte (cf. ci-dessous) ;
  * - compteurs : **maximum**, sinon deux appareils hors-ligne attribueraient la
  *   même référence `BAIL-2026-0007` à deux baux différents ;
- * - `sauvegardeGDrive` : **toujours local**, il décrit cet appareil-ci ;
- * - le reste : dernier écrivain gagne, d'un bloc.
+ * - `sauvegardeGDrive` : **toujours local**, il décrit cet appareil-ci.
+ *
+ * Arbitrage d'une section, quand l'empreinte de référence est connue :
+ * seul le côté qui a bougé l'emporte ; si les deux ont bougé, **le distant
+ * gagne**. Ce dernier choix n'est pas arbitraire : il faut que les deux
+ * appareils tranchent dans le même sens, sinon chacun réimposerait sa version
+ * au cycle suivant, indéfiniment.
+ *
+ * Sans empreinte de référence — cet appareil n'a jamais synchronisé — on ne
+ * peut que regarder si la section est encore celle d'un appareil neuf : si oui
+ * elle n'a rien à défendre et adopte le Drive, sinon elle a été configurée ici
+ * et prime. L'autre appareil, lui, dispose d'une référence : il adoptera cette
+ * version au cycle suivant, et la convergence est assurée.
  */
 export function fusionnerParametres(
   local: Parametres,
   distant: Parametres,
-  distantPlusRecent: boolean,
-): Parametres {
-  const base = distantPlusRecent ? distant : local;
+  contexte: {
+    /** Empreintes de la dernière version synchronisée, si cet appareil en a une. */
+    reference?: Partial<Record<SectionParametres, string>>;
+    /** Empreintes d'un appareil neuf, pour reconnaître une section jamais configurée. */
+    neuf: Record<SectionParametres, string>;
+  },
+): FusionParametres {
+  const eLocal = empreintesSections(local);
+  const eDistant = empreintesSections(distant);
+  const collisions: SectionParametres[] = [];
+
+  const prendreDistant = (s: SectionParametres): boolean => {
+    if (eLocal[s] === eDistant[s]) return false;
+    const reference = contexte.reference?.[s];
+    if (reference === undefined) {
+      if (eLocal[s] === contexte.neuf[s]) return true;
+      collisions.push(s);
+      return false;
+    }
+    const localAChange = eLocal[s] !== reference;
+    const distantAChange = eDistant[s] !== reference;
+    if (!localAChange) return distantAChange;
+    if (!distantAChange) return false;
+    collisions.push(s);
+    return true;
+  };
+
   const compteurs = (cle: keyof Parametres['compteursSequence']) =>
     Math.max(local.compteursSequence[cle] ?? 0, distant.compteursSequence[cle] ?? 0);
 
@@ -117,8 +199,8 @@ export function fusionnerParametres(
   const memeAnnee = anneeLocale === anneeDistante;
   const recent = anneeLocale > anneeDistante ? local : distant;
 
-  return {
-    ...base,
+  const fusionne: Parametres = {
+    ...local,
     id: 'singleton',
     // Propre à l'appareil : jamais repris du distant.
     sauvegardeGDrive: local.sauvegardeGDrive,
@@ -137,6 +219,14 @@ export function fusionnerParametres(
         .sort()
         .pop() ?? undefined,
   };
+
+  for (const section of SECTIONS_PARAMETRES) {
+    if (prendreDistant(section)) {
+      (fusionne as unknown as Record<string, unknown>)[section] = distant[section];
+    }
+  }
+
+  return { fusionne, collisions };
 }
 
 export interface ReferenceEnDouble {

@@ -14,21 +14,23 @@ import {
 } from '@/lib/autosave';
 import {
   CLIENT_ID_GDRIVE,
-  activerGDrive,
   connecterGDrive,
-  consommerRetourRedirection,
   demanderAutorisationGoogle,
-  derniereErreurGDrive,
   desactiverGDrive,
   estApplicationInstallee,
   lancerConnexionParRedirection,
-  pousserSauvegardeGDrive,
   prechargerGsi,
-  telechargerArchiveGDrive,
-  marquerArchiveVue,
-  verifierArchiveDistante,
-  type EtatDrive,
 } from '@/lib/gdrive';
+import {
+  compterEnAttente,
+  derniereErreurCycle,
+  instantanesDisponibles,
+  lancerCycle,
+  LIBELLE_SECTION,
+  telechargerInstantane,
+  type InstantaneDisponible,
+  type ResultatSync,
+} from '@/lib/sync';
 import { importerSauvegarde, lireSauvegarde } from '@/lib/backup';
 import { decrireErreur } from '@/lib/erreurs';
 import { definirNomAppareil, nomAppareil, nomAppareilParDefaut } from '@/lib/appareil';
@@ -61,12 +63,6 @@ export function SauvegardeAutoPanel() {
     const resultat = await pousserSiActive(true);
     if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier.');
     else if (resultat === 'base_vide') toast('warning', MSG_BASE_VIDE);
-    else if (resultat === 'conflit')
-      // Le dossier local a bien été écrit ; seul l'envoi vers le Drive est suspendu.
-      toast(
-        'warning',
-        'Dossier local sauvegardé. En revanche, l’envoi vers le Drive est suspendu : une sauvegarde plus récente y existe (voir le panneau Google Drive).',
-      );
     else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
@@ -135,29 +131,41 @@ export function SauvegardeAutoPanel() {
 }
 
 /**
- * Sauvegarde vers Google Drive (API drive.file) : fonctionne sur tous les
- * navigateurs, y compris Safari/iPad où File System Access n'existe pas.
+ * Google Drive : **connexion et synchronisation entre appareils**, en un seul
+ * endroit.
+ *
+ * Il y avait ici deux panneaux et un interrupteur : « archive complète » d'un
+ * côté, « synchronisation » de l'autre. Brancher le Drive, c'est désormais
+ * synchroniser — un seul mode, donc un seul panneau. Les coutures entre les
+ * deux régimes (date de sauvegarde partagée, garde-fou de divergence devenu
+ * sans objet, vocabulaires de résultat mélangés) avaient produit à elles seules
+ * l'essentiel des défauts de synchronisation.
  */
 export function SauvegardeGDrivePanel() {
   const toast = useToast();
   const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const enAttente = useLiveQuery(() => compterEnAttente());
   const [clientId, setClientId] = useState('');
   const [enCours, setEnCours] = useState(false);
-  /** Dernier état connu du Drive (divergence, à jour…) — non persisté. */
-  const [etatDrive, setEtatDrive] = useState<EtatDrive | null>(null);
-  const [confirmation, setConfirmation] = useState<'restaurer' | 'forcer' | null>(null);
+  const [dernier, setDernier] = useState<ResultatSync | null>(null);
+  const [confirmerSuppressions, setConfirmerSuppressions] = useState(false);
+  const [instantanes, setInstantanes] = useState<InstantaneDisponible[] | null>(null);
+  const [aRestaurer, setARestaurer] = useState<InstantaneDisponible | null>(null);
   const config = parametres?.sauvegardeGDrive;
+
   /*
-   * Un envoi qui date signale presque toujours une autorisation Google expirée.
-   * L'heure courante est lue dans un effet, jamais pendant le rendu : celui-ci
-   * doit rester déterministe (règle react-hooks/purity).
+   * Un échange qui date signale presque toujours une autorisation Google
+   * expirée. L'heure courante est lue dans un effet, jamais pendant le rendu :
+   * celui-ci doit rester déterministe (règle react-hooks/purity).
    */
-  const [envoiAncien, setEnvoiAncien] = useState(false);
+  const [echangeAncien, setEchangeAncien] = useState(false);
   useEffect(() => {
     const actif = Boolean(config?.actif);
-    const dernier = config?.dernierPush;
-    setEnvoiAncien(actif && (!dernier || Date.now() - new Date(dernier).getTime() > 24 * 3600 * 1000));
-  }, [config?.actif, config?.dernierPush]);
+    const dernierEchange = config?.derniereSync;
+    setEchangeAncien(
+      actif && (!dernierEchange || Date.now() - new Date(dernierEchange).getTime() > 24 * 3600 * 1000),
+    );
+  }, [config?.actif, config?.derniereSync]);
 
   // Le script Google est chargé dès l'affichage : au clic, la fenêtre de
   // connexion doit s'ouvrir sans attente réseau, sinon Safari/iOS la bloque.
@@ -165,34 +173,58 @@ export function SauvegardeGDrivePanel() {
     prechargerGsi();
   }, []);
 
-  /*
-   * Retour de la connexion par redirection : le jeton est déjà en mémoire, il
-   * reste à activer la destination et à pousser la première sauvegarde.
-   */
-  useEffect(() => {
-    const idUtilise = consommerRetourRedirection();
-    if (!idUtilise) return;
+  const annoncer = (resultat: ResultatSync) => {
+    setDernier(resultat);
+    if (resultat.etat === 'ok') {
+      const { recus, envoyes, supprimes } = resultat;
+      toast(
+        'success',
+        recus + envoyes + supprimes === 0
+          ? 'Déjà à jour : rien à échanger.'
+          : `Synchronisé : ${recus} reçu(s), ${envoyes} envoyé(s), ${supprimes} supprimé(s).`,
+      );
+    } else if (resultat.etat === 'bloque') {
+      toast('warning', 'Synchronisation interrompue — voir le détail ci-dessous.');
+    } else if (resultat.etat === 'erreur') {
+      toast('error', `Échec de la synchronisation — ${derniereErreurCycle() ?? 'cause inconnue'}`);
+    } else if (resultat.etat === 'ignore') {
+      toast('info', 'Une synchronisation est déjà en cours.');
+    } else {
+      toast(
+        'warning',
+        'Synchronisation reportée : autorisation Google à renouveler, ou appareil hors ligne.',
+      );
+    }
+  };
+
+  const synchroniserMaintenant = async (options?: { forcerSuppressions?: boolean }) => {
     setEnCours(true);
-    void (async () => {
-      try {
-        await activerGDrive(idUtilise);
-        const resultat = await pousserSauvegardeGDrive(true);
-        if (resultat === 'ok') toast('success', 'Google Drive connecté — sauvegarde envoyée.');
-        else if (resultat === 'base_vide') toast('warning', `Google Drive connecté. ${MSG_BASE_VIDE}`);
-        else if (resultat === 'conflit') {
-          // Appel direct plutôt que `verifier` : une fonction du composant en
-          // dépendance ferait re-jouer cet effet à chaque rendu.
-          setEtatDrive(await verifierArchiveDistante(false));
-          toast(
-            'warning',
-            'Google Drive connecté. Envoi suspendu : une sauvegarde plus récente existe déjà sur le Drive.',
-          );
-        } else toast('warning', "Google Drive connecté, mais l'envoi n'a pas abouti : réessayez.");
-      } finally {
-        setEnCours(false);
+    try {
+      /*
+       * L'autorisation est demandée AVANT tout accès à la base : la fenêtre
+       * Google doit s'ouvrir dans l'activation du clic, sinon Safari/iOS la
+       * bloque silencieusement (« fenêtre fermée » alors que rien ne s'est
+       * ouvert).
+       */
+      const idClient = config?.clientId || CLIENT_ID_GDRIVE;
+      if (estApplicationInstallee()) {
+        lancerConnexionParRedirection(idClient);
+        return;
       }
-    })();
-  }, [toast]);
+      if (!(await demanderAutorisationGoogle(idClient))) {
+        toast(
+          'warning',
+          "Autorisation Google non obtenue : la fenêtre a été fermée, refusée, ou bloquée par le navigateur. Sur iPad : Réglages > Safari > désactiver « Bloquer les fenêtres surgissantes », puis réessayez.",
+        );
+        return;
+      }
+      reinitialiserAvertissements();
+      annoncer(await lancerCycle(true, options));
+    } finally {
+      setEnCours(false);
+      setConfirmerSuppressions(false);
+    }
+  };
 
   const connecter = async () => {
     const id = (clientId || config?.clientId || CLIENT_ID_GDRIVE).trim();
@@ -209,108 +241,50 @@ export function SauvegardeGDrivePanel() {
     setEnCours(true);
     try {
       // Jeton demandé en premier, dans le geste utilisateur (contrainte Safari).
-      const autorise = await connecterGDrive(id);
-      if (!autorise) {
+      if (!(await connecterGDrive(id))) {
         toast(
           'warning',
           "Connexion Google non aboutie : fenêtre fermée, refusée, ou bloquée par le navigateur. Sur iPad, autorisez les fenêtres surgissantes pour ce site (Réglages > Safari) puis réessayez.",
         );
         return;
       }
-      const resultat = await pousserSauvegardeGDrive(true);
-      if (resultat === 'ok') {
-        toast('success', 'Google Drive connecté — première sauvegarde poussée dans le dossier « Bailiz ».');
-      } else if (resultat === 'base_vide') {
-        toast('warning', `Google Drive connecté. ${MSG_BASE_VIDE}`);
-      } else if (resultat === 'conflit') {
-        await verifier(false);
-        toast('warning', 'Google Drive connecté. Envoi suspendu : une sauvegarde plus récente existe déjà sur le Drive.');
-      } else if (resultat === 'permission_requise') {
-        toast('warning', 'Autorisation Google expirée : réessayez.');
-        await desactiverGDrive();
-      } else if (resultat === 'hors_ligne') {
-        toast('warning', 'Configuré — la première sauvegarde partira au retour du réseau.');
-      } else {
-        toast(
-          'error',
-          `Échec de l'envoi vers Drive (vérifiez l'ID client et les origines autorisées) — ${derniereErreurGDrive() ?? 'cause inconnue'}`,
-        );
-      }
+      toast('success', 'Google Drive connecté — première synchronisation en cours.');
+      annoncer(await lancerCycle(true));
     } finally {
       setEnCours(false);
     }
   };
 
-  const pousserMaintenant = async () => {
-    setEnCours(true);
-    // L'autorisation est demandée AVANT tout accès à la base : la fenêtre Google
-    // doit s'ouvrir dans l'activation du clic, sinon Safari/iOS la bloque
-    // silencieusement (« fenêtre fermée » alors que rien ne s'est ouvert).
-    const idClient = config?.clientId || CLIENT_ID_GDRIVE;
-    if (estApplicationInstallee()) {
-      lancerConnexionParRedirection(idClient);
-      return;
-    }
-    const autorise = await demanderAutorisationGoogle(idClient);
-    if (!autorise) {
-      setEnCours(false);
-      toast(
-        'warning',
-        "Autorisation Google non obtenue : la fenêtre a été fermée, refusée, ou bloquée par le navigateur. Sur iPad : Réglages > Safari > désactiver « Bloquer les fenêtres surgissantes », puis réessayez.",
-      );
-      return;
-    }
-    const resultat = await pousserSauvegardeGDrive(true);
-    setEnCours(false);
-    if (resultat === 'ok') toast('success', 'Sauvegarde poussée sur Google Drive.');
-    else if (resultat === 'base_vide') toast('warning', MSG_BASE_VIDE);
-    else if (resultat === 'conflit') {
-      await verifier(false);
-      toast('warning', "Envoi suspendu : une sauvegarde plus récente existe sur le Drive.");
-    } else if (resultat === 'hors_ligne') toast('warning', 'Hors-ligne : envoi automatique au retour du réseau.');
-    else if (resultat === 'permission_requise') toast('warning', 'Reconnectez-vous à Google (fenêtre fermée ?).');
-    else toast('error', `Échec de l'envoi vers Google Drive — ${derniereErreurGDrive() ?? 'cause inconnue'}`);
-  };
-
-  /** Interroge le Drive et affiche l'état ; `annoncer` gère les messages. */
-  const verifier = async (annoncer = true) => {
+  const chargerInstantanes = async () => {
     setEnCours(true);
     try {
-      const resultat = await verifierArchiveDistante(true);
-      setEtatDrive(resultat);
-      if (!annoncer) return;
-      if (resultat.etat === 'divergence') {
-        toast('warning', 'Une sauvegarde plus récente existe sur le Drive.');
-      } else if (resultat.etat === 'a_jour') {
-        toast('success', 'Le Drive est à jour avec cet appareil.');
-      } else if (resultat.etat === 'aucune') {
-        toast('info', "Aucune sauvegarde sur le Drive pour l'instant.");
-      } else {
-        toast(
-          'warning',
-          "Vérification impossible pour l'instant : autorisation Google à renouveler ou appareil hors ligne.",
-        );
+      const liste = await instantanesDisponibles();
+      setInstantanes(liste ?? []);
+      if (liste === null) {
+        toast('warning', 'Drive inaccessible : autorisation à renouveler, ou appareil hors ligne.');
+      } else if (liste.length === 0) {
+        toast('info', 'Aucun instantané sur le Drive pour le moment.');
       }
     } finally {
       setEnCours(false);
     }
   };
 
-  /** Adopte la version du Drive : les données locales absentes sont perdues. */
   const restaurer = async () => {
-    if (etatDrive?.etat !== 'divergence') return;
+    if (!aRestaurer) return;
     setEnCours(true);
     try {
-      const blob = await telechargerArchiveGDrive(etatDrive.archive);
+      const blob = await telechargerInstantane(aRestaurer.id);
+      if (!blob) {
+        toast('warning', 'Téléchargement impossible : autorisation Google à renouveler.');
+        return;
+      }
       const { zip, data } = await lireSauvegarde(blob);
       const resume = await importerSauvegarde(zip, data, 'remplacer');
-      await marquerArchiveVue(etatDrive.archive);
-      reinitialiserAvertissements();
-      setEtatDrive({ etat: 'a_jour', archive: etatDrive.archive });
-      setConfirmation(null);
+      setARestaurer(null);
       toast(
         'success',
-        `Données remplacées par la sauvegarde du Drive : ${resume.biens} biens, ${resume.baux} baux, ${resume.edls} EDL, ${resume.photos} photos.`,
+        `Données remplacées par l'instantané : ${resume.biens} biens, ${resume.baux} baux, ${resume.edls} EDL, ${resume.photos} photos.`,
       );
     } catch (e) {
       toast('error', `Restauration impossible — ${decrireErreur(e)}`);
@@ -319,102 +293,156 @@ export function SauvegardeGDrivePanel() {
     }
   };
 
-  /** Passe outre la divergence : l'archive distante reste dans l'historique. */
-  const sauvegarderQuandMeme = async () => {
-    if (etatDrive?.etat !== 'divergence') return;
-    setEnCours(true);
-    try {
-      await marquerArchiveVue(etatDrive.archive);
-      reinitialiserAvertissements();
-      const resultat = await pousserSauvegardeGDrive(true, { forcer: true });
-      setConfirmation(null);
-      if (resultat === 'ok') {
-        setEtatDrive({ etat: 'a_jour' });
-        toast('success', 'Sauvegarde envoyée. L’archive de l’autre appareil reste sur le Drive.');
-      } else {
-        toast('warning', "L'envoi n'a pas abouti : réessayez depuis « Sauvegarder maintenant ».");
-      }
-    } finally {
-      setEnCours(false);
-    }
-  };
+  const doublons = dernier?.etat === 'ok' ? dernier.doublons : [];
+  const reglagesEcrases = dernier?.etat === 'ok' ? dernier.reglagesEcrases : [];
 
   return (
     <Card>
       <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-        <HardDriveUpload size={18} /> Sauvegarde Google Drive (iPad et tous navigateurs)
+        <RefreshCw size={18} /> Google Drive — synchronisation entre appareils
       </h2>
       <p className="mb-3 text-sm text-accent-600">
-        Envoie l'archive complète directement sur votre Google Drive (dossier « Bailiz »),
-        avec les mêmes déclencheurs que le dossier local : après chaque signature, à chaque
-        modification et à l'ouverture. L'application n'accède qu'aux fichiers qu'elle a
-        elle-même créés (scope <span className="font-mono text-xs">drive.file</span>). Hors
-        connexion, l'envoi repart automatiquement au retour du réseau.
+        Vos appareils échangent <strong>fiche par fiche</strong> via un dossier « Bailiz » sur
+        votre Drive : les modifications faites en parallèle sur deux appareils se rejoignent au
+        lieu de s'écraser, les photos ne remontent qu'une fois, et les suppressions se propagent.
+        Une archive ZIP complète est déposée à part comme filet de sécurité. L'application
+        n'accède qu'aux fichiers qu'elle a elle-même créés (scope{' '}
+        <span className="font-mono text-xs">drive.file</span>). Hors connexion, tout repart au
+        retour du réseau.
       </p>
+
       {config?.actif ? (
         <div className="space-y-3">
           <p className="text-sm text-accent-800">
-            Connecté — dossier « Bailiz » sur votre Drive. Dernier envoi :{' '}
-            {config.dernierPush ? format(new Date(config.dernierPush), 'dd/MM/yyyy à HH:mm') : 'jamais'}
+            Connecté. Dernier échange :{' '}
+            {config.derniereSync
+              ? format(new Date(config.derniereSync), 'dd/MM/yyyy à HH:mm')
+              : 'jamais'}
+            {enAttente !== undefined && enAttente > 0 && (
+              <span className="text-accent-600">
+                {' '}
+                · {enAttente} modification(s) en attente d'envoi
+              </span>
+            )}
           </p>
 
-          {etatDrive?.etat === 'divergence' && (
+          {echangeAncien && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Aucun échange depuis plus de 24 h. L'autorisation Google expire au bout d'environ une
+              heure et ne peut pas être renouvelée sans vous (l'application n'a aucun serveur) —
+              c'est systématique sur iPad, où Safari bloque le renouvellement silencieux. Cliquez
+              sur « Synchroniser maintenant » pour ré-autoriser et repartir.
+            </p>
+          )}
+
+          {dernier?.etat === 'bloque' && (
             <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
               <p className="flex items-start gap-2 text-sm font-medium text-amber-900">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                Une sauvegarde plus récente existe sur le Drive, envoyée depuis «{' '}
-                {etatDrive.archive.appareilNom ?? 'un autre appareil'} » le{' '}
-                {format(new Date(etatDrive.archive.createdTime), "dd/MM/yyyy 'à' HH:mm")}.
+                {dernier.raison === 'horloge'
+                  ? "L'horloge de cet appareil est trop décalée par rapport au serveur"
+                  : 'Ce cycle supprimerait une partie inhabituelle de vos données'}
+                {dernier.details ? ` (${dernier.details})` : ''}.
               </p>
-              <p className="text-sm text-amber-800">
-                La sauvegarde automatique de cet appareil est suspendue pour ne pas la recouvrir.
-                Choisissez : reprendre la version du Drive, ou envoyer celle-ci malgré tout —
-                l'archive de l'autre appareil restera dans l'historique.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setConfirmation('restaurer')} disabled={enCours}>
-                  <Download size={14} /> Restaurer cette sauvegarde
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setConfirmation('forcer')}
-                  disabled={enCours}
-                >
-                  Sauvegarder quand même
-                </Button>
-              </div>
+              {dernier.raison === 'horloge' ? (
+                <p className="text-sm text-amber-800">
+                  Les versions sont départagées par leur date : une horloge fausse ferait perdre
+                  la modification la plus récente. Corrigez l'heure de l'appareil (réglage
+                  automatique recommandé), puis relancez.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-amber-800">
+                    Ces suppressions viennent de l'autre appareil. Si vous y avez effectivement
+                    supprimé ces fiches, confirmez ; sinon, ne faites rien et vérifiez d'abord.
+                  </p>
+                  <Button size="sm" onClick={() => setConfirmerSuppressions(true)} disabled={enCours}>
+                    Appliquer ces suppressions
+                  </Button>
+                </>
+              )}
             </div>
           )}
-          {envoiAncien && (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              Aucun envoi depuis plus de 24 h. L'autorisation Google expire au bout d'environ une
-              heure et ne peut pas être renouvelée sans vous (l'application n'a aucun serveur) —
-              c'est systématique sur iPad, où Safari bloque le renouvellement silencieux. Cliquez
-              sur « Sauvegarder maintenant » pour ré-autoriser et repartir.
-            </p>
+
+          {reglagesEcrases.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-900">
+                Réglages modifiés des deux côtés depuis le dernier échange :
+              </p>
+              <ul className="mt-1 space-y-0.5 text-sm text-amber-800">
+                {reglagesEcrases.map((s) => (
+                  <li key={s}>{LIBELLE_SECTION[s]}</li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-amber-700">
+                La version du Drive a été retenue — il faut bien que les deux appareils tranchent
+                dans le même sens, sinon chacun réimposerait la sienne indéfiniment. Vérifiez ces
+                réglages : ce que vous aviez saisi ici vient d'être remplacé.
+              </p>
+            </div>
           )}
+
+          {doublons.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-900">
+                Références attribuées deux fois, à corriger à la main :
+              </p>
+              <ul className="mt-1 space-y-0.5 text-sm text-amber-800">
+                {doublons.map((d) => (
+                  <li key={`${d.table}-${d.reference}`}>
+                    {d.reference} — {d.ids.length} documents ({d.table})
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-amber-700">
+                Deux appareils hors ligne ont attribué le même numéro. Rien n'est renuméroté
+                automatiquement : la référence figure peut-être sur un document déjà imprimé.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void pousserMaintenant()} disabled={enCours}>
-              <HardDriveUpload size={14} /> {enCours ? 'Envoi…' : 'Sauvegarder maintenant'}
+            <Button size="sm" onClick={() => void synchroniserMaintenant()} disabled={enCours}>
+              <RefreshCw size={14} /> {enCours ? 'Synchronisation…' : 'Synchroniser maintenant'}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => void verifier()} disabled={enCours}>
-              <RefreshCw size={14} /> Vérifier le Drive
+            <Button variant="secondary" size="sm" onClick={() => void chargerInstantanes()} disabled={enCours}>
+              <Download size={14} /> Restaurer un instantané
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() =>
-                void desactiverGDrive().then(() => toast('info', 'Sauvegarde Google Drive désactivée.'))
+                void desactiverGDrive().then(() => toast('info', 'Google Drive déconnecté.'))
               }
             >
               Déconnecter
             </Button>
           </div>
 
+          {instantanes !== null && instantanes.length > 0 && (
+            <div className="rounded-lg border border-accent-200 p-3">
+              <p className="mb-2 text-sm text-accent-800">
+                Archives complètes figées sur le Drive. Restaurer remplace{' '}
+                <strong>toutes</strong> les données de cet appareil par celles de l'archive.
+              </p>
+              <ul className="space-y-1">
+                {instantanes.map((i) => (
+                  <li key={i.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-accent-800">
+                      {format(i.date, "dd/MM/yyyy 'à' HH:mm")}
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => setARestaurer(i)} disabled={enCours}>
+                      Restaurer
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <Field
             label="Nom de cet appareil"
-            hint="Sert à identifier l'origine d'une sauvegarde quand vous travaillez sur plusieurs appareils. Conservé uniquement ici, jamais inclus dans les sauvegardes."
+            hint="Sert à identifier l'origine d'une modification quand vous travaillez sur plusieurs appareils. Conservé uniquement ici, jamais inclus dans les sauvegardes."
           >
             <Input
               defaultValue={nomAppareil()}
@@ -424,9 +452,9 @@ export function SauvegardeGDrivePanel() {
           </Field>
 
           <p className="text-xs text-accent-500">
-            Après un certain temps d'inactivité, Google peut redemander une confirmation lors
-            du prochain envoi (fenêtre de connexion) : c'est normal. Avant chaque envoi,
-            l'application vérifie qu'un autre appareil n'a pas sauvegardé entre-temps.
+            La synchronisation se déclenche à l'ouverture, au retour sur l'application, toutes les
+            cinq minutes, après chaque signature et quelques secondes après une modification.
+            Après un temps d'inactivité, Google peut redemander une confirmation : c'est normal.
           </p>
         </div>
       ) : (
@@ -460,21 +488,22 @@ export function SauvegardeGDrivePanel() {
       )}
 
       <ConfirmModal
-        open={confirmation === 'restaurer'}
-        onClose={() => setConfirmation(null)}
-        onConfirm={restaurer}
-        title="Reprendre la sauvegarde du Drive ?"
-        message="Les données de cet appareil seront remplacées par celles de la sauvegarde du Drive. Toute modification faite ici et absente de cette archive sera définitivement perdue. Exportez d'abord une sauvegarde locale si vous avez le moindre doute."
-        confirmLabel="Remplacer mes données"
+        open={confirmerSuppressions}
+        onClose={() => setConfirmerSuppressions(false)}
+        onConfirm={() => void synchroniserMaintenant({ forcerSuppressions: true })}
+        title="Appliquer les suppressions reçues ?"
+        message="Les fiches supprimées sur l'autre appareil seront également supprimées ici. Cette opération est définitive : exportez une sauvegarde d'abord si vous avez un doute."
+        confirmLabel="Supprimer ici aussi"
         danger
       />
       <ConfirmModal
-        open={confirmation === 'forcer'}
-        onClose={() => setConfirmation(null)}
-        onConfirm={sauvegarderQuandMeme}
-        title="Envoyer cette version malgré tout ?"
-        message="La sauvegarde de cet appareil deviendra la plus récente du Drive. Celle de l'autre appareil reste disponible dans l'historique des archives, mais les deux versions continueront de diverger."
-        confirmLabel="Envoyer quand même"
+        open={aRestaurer !== null}
+        onClose={() => setARestaurer(null)}
+        onConfirm={restaurer}
+        title="Restaurer cet instantané ?"
+        message="Toutes les données de cet appareil seront remplacées par celles de l'archive. Ce qui a été saisi depuis sera définitivement perdu, ici comme sur les autres appareils une fois la synchronisation passée. Exportez d'abord une sauvegarde locale si vous avez le moindre doute."
+        confirmLabel="Remplacer mes données"
+        danger
       />
     </Card>
   );

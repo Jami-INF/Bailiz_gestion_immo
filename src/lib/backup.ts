@@ -31,7 +31,17 @@ export async function baseSansDonnees(): Promise<boolean> {
     db.edls.count(),
     db.documents.count(),
   ]);
-  return compteurs.every((n) => n === 0);
+  if (compteurs.some((n) => n > 0)) return false;
+  /*
+   * Aucune fiche, mais l'application peut avoir été **configurée** : coordonnées
+   * du bailleur, grille de vétusté, catalogue de clauses, modèle de fiche de
+   * visite. C'est un vrai travail, et il ne serait jamais sauvegardé si l'on
+   * s'en tenait au décompte des fiches. Le nom du bailleur sert de marqueur :
+   * sans lui, aucun document ne peut être produit — l'appareil est réellement
+   * neuf, et le garde-fou garde tout son sens.
+   */
+  const parametres = await db.parametres.get('singleton');
+  return !parametres?.bailleur.nom.trim();
 }
 
 /** Exporte toutes les données + photos + PDF dans un fichier ZIP. */

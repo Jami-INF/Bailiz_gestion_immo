@@ -1,4 +1,4 @@
-import type { DepotDistant, Espace, FichierDistant } from './depot';
+import type { DepotDistant, Espace, FichierDistant, FiltreListe } from './depot';
 
 /**
  * Dépôt en mémoire, pour rejouer un cycle complet sans réseau. Deux appareils
@@ -22,15 +22,23 @@ export class DepotMemoire implements DepotDistant {
   /** Nombre d'écritures avant de simuler une coupure (0 = illimité). */
   public couperApres = 0;
   public ecritures = 0;
+  /**
+   * Nombre de listages effectués. Un listage est une requête réseau : c'est la
+   * grandeur à surveiller pour qu'une suppression de masse ne dégénère pas en
+   * une requête par fiche.
+   */
+  public listages = 0;
 
   avancer(secondes: number): void {
     this.maintenant = new Date(this.maintenant.getTime() + secondes * 1000);
   }
 
-  async lister(espace: Espace, depuis?: string): Promise<FichierDistant[]> {
+  async lister(espace: Espace, filtre?: FiltreListe): Promise<FichierDistant[]> {
+    this.listages++;
     return [...this.fichiers.values()]
       .filter((f) => f.espace === espace)
-      .filter((f) => !depuis || Date.parse(f.modifieLe) > Date.parse(depuis))
+      .filter((f) => !filtre?.depuis || Date.parse(f.modifieLe) > Date.parse(filtre.depuis))
+      .filter((f) => !filtre?.nom || f.nom === filtre.nom)
       .map((f) => ({ id: f.id, nom: f.nom, modifieLe: f.modifieLe }));
   }
 
@@ -56,7 +64,15 @@ export class DepotMemoire implements DepotDistant {
     if (this.couperApres && this.ecritures > this.couperApres) {
       throw new Error('Coupure réseau simulée');
     }
-    const id = idExistant ?? `f${++this.compteur}`;
+    // Fichier disparu entre-temps : le contrat impose de le recréer, avec un
+    // identifiant neuf — c'est ce que fait l'API Drive après un 404.
+    const id = idExistant && this.fichiers.has(idExistant) ? idExistant : `f${++this.compteur}`;
+    /*
+     * Le fichier est daté **après** l'heure serveur relevée au début du cycle,
+     * comme le fait Drive. Une horloge figée masquerait le fait que tout ce
+     * qu'un cycle envoie ressort au listage incrémental du suivant.
+     */
+    this.maintenant = new Date(this.maintenant.getTime() + 1);
     const modifieLe = this.maintenant.toISOString();
     this.fichiers.set(id, { id, espace, nom, modifieLe, contenu });
     return { id, nom, modifieLe };

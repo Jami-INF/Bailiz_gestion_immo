@@ -284,6 +284,16 @@ System Access :
 - Astuce de test : un handle OPFS (`navigator.storage.getDirectory()`) expose la même
   interface qu'un dossier réel et permet de tester le push sans dialogue natif.
 
+### 4.6 bis Garde-fou « base vide »
+
+`baseSansDonnees()` empêche un appareil neuf de pousser une archive vide, qui évincerait par
+rotation les sauvegardes pleines des autres appareils. Il ne comptait que les **fiches**
+(biens, locataires, baux, EDL, documents) : un utilisateur ayant seulement saisi ses
+coordonnées, sa grille de vétusté ou son catalogue de clauses voyait donc son travail refusé à
+la sauvegarde, avec le message « aucune donnée sur cet appareil ». Le nom du bailleur sert
+désormais de marqueur de configuration — sans lui, aucun document ne peut être produit et
+l'appareil est réellement neuf.
+
 ### 4.7 Détection de divergence entre appareils (lot A)
 
 Deux appareils poussant dans le même dossier ne se regardaient pas : le plus en retard
@@ -304,8 +314,22 @@ recouvrait l'autre en silence. Correctif :
 
 ### 4.8 Synchronisation par fichiers (lot B, `lib/sync/`)
 
-Remplace le push ZIP vers le Drive **quand elle est activée** (`sauvegardeGDrive.syncActive`,
-désactivée par défaut). Les deux appareils convergent au lieu de s'écraser.
+**Seul mode d'échange avec le Drive** : le connecter, c'est synchroniser. Les deux appareils
+convergent au lieu de s'écraser. Pour ne pas synchroniser, on déconnecte — il n'y a plus
+d'interrupteur, plus de push ZIP vers Drive, plus de garde-fou de divergence. Le dossier local
+synchronisé garde ses ZIP, indépendamment.
+
+Ne jamais reconstruire l'objet `sauvegardeGDrive` à neuf (`activerGDrive`) : on y perdrait
+`derniereSync`, dont la disparition force au cycle suivant un re-listage et une réécriture
+complète de la base. La reconnexion Google est un geste banal — le jeton n'est jamais persisté.
+
+**Déclenchement** : à l'ouverture, à chaque retour au premier plan, toutes les
+`INTERVALLE_SYNC_MS` (5 min) tant que l'application est visible, après chaque signature, et
+quelques secondes après une modification. Le battement périodique est indispensable : tous les
+autres déclencheurs supposent une **écriture locale**, or un appareil qui ne fait que consulter
+doit voir arriver ce que l'autre a saisi. Ne pas l'adosser à l'ancienneté de `derniereSauvegarde`
+— l'instantané hebdomadaire la rafraîchit lui-même, et le cycle d'ouverture ne se déclenchait
+alors plus qu'une fois par semaine.
 
 | Module | Rôle |
 |---|---|
@@ -315,7 +339,7 @@ désactivée par défaut). Les deux appareils convergent au lieu de s'écraser.
 | `drive.ts` | Implémentation Drive du contrat (sous-dossiers, listage incrémental, pagination). |
 | `depotMemoire.ts` | Dépôt en mémoire : rejoue un cycle complet sans réseau (tests). |
 | `cycle.ts` | Pull puis push, garde-fous. |
-| `instantane.ts` | Filet ZIP hebdomadaire. |
+| `instantane.ts` | Filet ZIP : après signature (plancher 24 h), sinon hebdomadaire. Liste et restaure. |
 | `index.ts` | Point d'entrée : jeton, rattrapage, cycle, instantané. |
 
 **Disposition Drive** : `donnees/<table>__<id>.json`, `photos/<id>.jpg`, `documents/<id>.pdf`,
@@ -326,6 +350,21 @@ désactivée par défaut). Les deux appareils convergent au lieu de s'écraser.
 (ou `createdAt` / `dateCapture` pour les immuables). À égalité, le distant l'emporte — la
 convergence doit être déterministe des deux côtés. Jamais de fusion champ à champ : un EDL à
 moitié de chaque appareil n'aurait aucun sens juridique.
+
+C'est **la saisie la plus récente à la montre** qui gagne, jamais « le dernier connecté » : le
+cycle reçoit avant d'envoyer, donc un appareil resté hors ligne adopte la version postérieure au
+lieu de la recouvrir — et impose la sienne si elle est plus tardive. L'ordre de connexion
+n'entre pas en jeu ; c'est aussi pourquoi le garde-fou d'horloge est indispensable. Voir
+`arbitrage.test.ts`, qui fige ces cas : ils ne sont pas devinables et une régression y serait
+silencieuse.
+
+**Saisies remplacées** (`ResultatCycle.saisiesRemplacees`) : quand la réception écrase — ou
+supprime — une fiche pour laquelle le journal portait encore une modification, c'est du travail
+qui disparaît sans que personne ne l'ait demandé. Le cycle le détecte en comparant la clé au
+journal **relevé avant le pull**, seul moment où la saisie perdue peut encore être nommée. Le
+résultat est accumulé dans le magasin de `lib/sync/index.ts` et affiché par `BandeauSync`
+jusqu'à ce que l'utilisateur en prenne acte. Ne pas confondre avec la santé du cycle : la
+synchronisation a fonctionné, elle a seulement tranché.
 
 **Suppressions** : un tombstone est déposé et le fichier retiré. Sans ce mécanisme, une fusion
 naïve **ressusciterait** les enregistrements supprimés — dont les suppressions RGPD. Le
@@ -341,10 +380,63 @@ tombstone ne contient qu'une clé technique, aucune donnée personnelle.
   (`ReadOnlyError` → page blanche au premier lancement). Utiliser `lireParametres()`.
 - Le singleton `parametres` ne passe **pas** par la boucle générique : compteurs fusionnés au
   maximum, `sauvegardeGDrive` jamais repris du distant. N'ayant aucune date de modification, il
-  est arbitré par **empreinte** de la dernière version synchronisée.
+  est arbitré **section par section** (`SECTIONS_PARAMETRES`) sur l'**empreinte** de la dernière
+  version synchronisée (`syncEtat.empreintes`). Un seul bloc ferait perdre l'intégralité des
+  réglages d'un appareil dès que l'autre en touche un seul. Quand la même section a bougé des
+  deux côtés, **le distant gagne** : il faut que les deux appareils tranchent dans le même sens,
+  sinon chacun réimposerait sa version indéfiniment. La collision remonte dans
+  `ResultatCycle.reglagesEcrases` et s'affiche dans les Paramètres — c'est le seul cas de perte.
 - Les tables à blob (`photos`, `documents`) portent métadonnées et contenu dans deux fichiers
   distincts (`driveId` / `blobDriveId`) : écrire l'enveloppe sans préserver le blob local le
-  détruirait.
+  détruirait. Mémoriser `driveId` **avant** d'envoyer le blob : une coupure entre les deux
+  laisserait sinon un fichier dont plus personne ne connaît l'identifiant, et le cycle suivant en
+  créerait un homonyme — deux fichiers du même nom, et la réception en lit un au hasard.
+- Le journal se compacte à une entrée par fiche, mais `confirmerEnvoi` doit retirer **toutes** les
+  entrées absorbées (`idsResumes`), pas seulement celle qui a été envoyée : sinon il ne se vide
+  jamais, le compteur « en attente » ment, et la fiche repart à chaque cycle.
+- Le listage incrémental part de l'heure serveur relevée **au début** du cycle : tout ce que ce
+  cycle envoie ressort au suivant. D'où le filtre `syncEtat.modifieLe === enveloppe.modifieLe` à
+  la réception. `DepotMemoire` avance sa date à chaque écriture pour que les tests le voient.
+- Compter les enregistrements avec `count()`, jamais `toArray()` : la table `photos` porte les
+  images elles-mêmes.
+- Ne jamais interroger le dépôt **par fiche** : une suppression RGPD en efface des dizaines d'un
+  coup. Les recherches par nom passent par des index construits une fois par espace et par cycle
+  (`tousParNom`, `trouverBlob`), et les identifiants des sous-dossiers sont mis en cache pour la
+  session — avec un cycle toutes les 5 min, les résoudre à chaque fois coûterait plus que
+  l'échange lui-même.
+- `lancerCycle` distingue **`ignore`** (rien à tenter : Drive déconnecté, ou cycle déjà en
+  cours — banal avec le battement, ne jamais alerter) de **`indisponible`** (dépôt inaccessible :
+  hors-ligne ou autorisation à renouveler, là il y a une action à proposer). Les confondre
+  affichait « reconnectez Google Drive » à un utilisateur dont le Drive fonctionnait.
+- **Signal d'état** (`EtatSync` : `etatSync` / `abonnerEtatSync`, consommé par `BandeauSync` via
+  `useSyncExternalStore`). **Tout ce qui empêche les deux appareils de converger doit se voir** :
+  le battement lance un cycle toutes les cinq minutes sans que personne ne lise son résultat, si
+  bien qu'une horloge décalée ou un garde-fou déclenché arrêtait la synchronisation pour des
+  jours, en silence — et l'ordinateur imprimait d'anciennes données en se croyant à jour.
+  Cinq pièges, tous rencontrés :
+  - déduire l'état de la validité du jeton en mémoire donnerait un faux signal à chaque
+    chargement de page (le renouvellement silencieux marche très bien là où le navigateur
+    l'autorise) : l'état vient du **résultat réel** des cycles ;
+  - ne pas tester `navigator.onLine` inviterait à reconnecter quelqu'un qui est simplement hors
+    couverture ;
+  - ne pas remettre à `ok` sur `ignore` laisserait un avertissement affiché à jamais après une
+    déconnexion, plus aucun cycle n'atteignant le code qui l'éteint ;
+  - laisser `en_cours` recouvrir un avertissement ferait disparaître le bandeau « Reconnecter »
+    toutes les cinq minutes, y compris sous le doigt de qui s'apprête à le toucher : on n'entre
+    dans `en_cours` que depuis `ok` ;
+  - afficher `en_cours` immédiatement ferait clignoter un bandeau à chaque battement, un cycle
+    sans rien à échanger durant une fraction de seconde : il n'apparaît qu'au-delà d'une seconde,
+    c'est-à-dire quand des données arrivent réellement — le moment où il ne faut pas imprimer.
+- **Toute demande d'autorisation Google doit être la première instruction du gestionnaire de
+  clic**, avant le moindre `await` sur IndexedDB : Safari/iOS n'autorise la fenêtre que pendant
+  l'activation du geste, et la bloque ensuite *sans erreur* — le bouton paraît ne rien faire.
+  C'est pourquoi `BandeauReconnexion` et `SauvegardeStatut` appellent `demanderAutorisationGoogle`
+  eux-mêmes au lieu de laisser `pousserSiActive` le faire : celui-ci traverse le dossier local,
+  soit deux lectures de base, avant d'arriver au jeton.
+- Le bandeau vit **en tête du contenu** (`<main>`), pas dans la barre latérale : celle-ci est
+  masquée sur mobile et en mode replié, c'est-à-dire exactement sur l'iPad, seul appareil où
+  l'autorisation expire toutes les heures. Un bouton invisible là où il est nécessaire ne vaut
+  pas mieux que pas de bouton.
 - Rotation des instantanés **par identifiant**, pas par nom : deux archives créées dans la même
   seconde partagent leur nom.
 
