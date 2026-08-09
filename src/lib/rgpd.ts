@@ -83,3 +83,58 @@ export async function supprimerLocataireEtDonnees(locataireId: string): Promise<
 
   return perimetre;
 }
+
+/** Ce que la suppression d'un bail va effacer avec lui. */
+export interface PerimetreSuppressionBail {
+  edls: number;
+  photos: number;
+  documents: number;
+}
+
+/**
+ * Calcule ce que la suppression d'un bail entraînera, sans rien modifier.
+ *
+ * Les locataires et le bien, eux, **survivent** : ils existent indépendamment
+ * du bail et peuvent en porter d'autres.
+ */
+export async function perimetreSuppressionBail(bailId: string): Promise<PerimetreSuppressionBail> {
+  const edlIds = await db.edls.where('bailId').equals(bailId).primaryKeys();
+  const photos = edlIds.length ? await db.photos.where('edlId').anyOf(edlIds).count() : 0;
+  // Un PDF peut être rattaché au bail ou directement à l'un de ses EDL.
+  const docsBail = await db.documents.where('bailId').equals(bailId).primaryKeys();
+  const docsEdl = edlIds.length ? await db.documents.where('edlId').anyOf(edlIds).primaryKeys() : [];
+  return {
+    edls: edlIds.length,
+    photos,
+    documents: new Set([...docsBail, ...docsEdl]).size,
+  };
+}
+
+/**
+ * Supprime un bail et tout ce qui n'existe que par lui : états des lieux,
+ * photos de ces états des lieux, PDF archivés.
+ *
+ * Nécessaire ne serait-ce que pour se débarrasser d'un bail resté en base après
+ * un enregistrement interrompu — il n'y avait jusqu'ici aucun moyen d'en
+ * effacer un. Les photos et les PDF partent avec : laisser des blobs orphelins
+ * dans IndexedDB les rendrait invisibles et indestructibles.
+ */
+export async function supprimerBailEtDonnees(bailId: string): Promise<PerimetreSuppressionBail> {
+  const perimetre = await perimetreSuppressionBail(bailId);
+  const edlIds = await db.edls.where('bailId').equals(bailId).primaryKeys();
+  const photoIds = edlIds.length
+    ? await db.photos.where('edlId').anyOf(edlIds).primaryKeys()
+    : [];
+  const docsBail = await db.documents.where('bailId').equals(bailId).primaryKeys();
+  const docsEdl = edlIds.length ? await db.documents.where('edlId').anyOf(edlIds).primaryKeys() : [];
+  const docIds = [...new Set([...docsBail, ...docsEdl])];
+
+  await db.transaction('rw', [db.baux, db.edls, db.photos, db.documents], async () => {
+    if (photoIds.length) await db.photos.bulkDelete(photoIds);
+    if (docIds.length) await db.documents.bulkDelete(docIds);
+    if (edlIds.length) await db.edls.bulkDelete(edlIds);
+    await db.baux.delete(bailId);
+  });
+
+  return perimetre;
+}

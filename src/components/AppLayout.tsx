@@ -46,6 +46,7 @@ import {
 } from '@/lib/gdrive';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
 import { Button, Modal, useToast } from '@/components/ui';
+import { LimiteErreur } from './LimiteErreur';
 
 const nav = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -518,7 +519,11 @@ export function AppLayout() {
         {/* Hors-ligne d'abord : sans réseau, reconnecter n'aurait aucun sens. */}
         {enLigne && <BandeauSync />}
         <div className={pleinEcran ? '' : `mx-auto ${large ? 'max-w-7xl' : 'max-w-5xl'} px-4 py-6 sm:px-8`}>
-          <Outlet />
+          {/* La clé remet la limite à zéro à chaque changement de page : sans
+              elle, une erreur figerait l'écran même après navigation. */}
+          <LimiteErreur key={location.pathname}>
+            <Outlet />
+          </LimiteErreur>
           {!pleinEcran && (
             <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-accent-200 pt-4 text-xs text-accent-500">
               <Link to="/mentions-legales" className="hover:text-accent-800 hover:underline">

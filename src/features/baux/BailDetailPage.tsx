@@ -36,6 +36,61 @@ import { ouvrirBlob } from '@/lib/backup';
 import { formatAdresse } from '@/lib/adresse';
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { STATUT_BAIL_UI } from './BauxPage';
+import { BoutonSupprimerBail } from './SupprimerBail';
+
+/**
+ * Bail dont le bien a disparu — supprimé ici, ou sur l'autre appareil et la
+ * suppression reçue par synchronisation.
+ *
+ * Presque tout l'écran de détail cite le bien : les documents, les calculs, les
+ * états des lieux. Plutôt que de rendre chacun tolérant à son absence, on
+ * propose une vue réduite qui montre ce qui reste et permet enfin d'effacer la
+ * fiche. Auparavant l'écran rendait `null` : une page blanche, donc un bail
+ * invisible et indestructible.
+ */
+function BailOrphelin({ bail }: { bail: Bail }) {
+  const dateEffet = bail.dateEffet ? new Date(bail.dateEffet) : null;
+  const effetLisible =
+    dateEffet && !Number.isNaN(dateEffet.getTime()) ? format(dateEffet, 'dd/MM/yyyy') : 'inconnue';
+
+  return (
+    <div>
+      <PageHeader
+        titre={bail.reference ?? 'Bail sans référence'}
+        sousTitre="Le bien associé à ce bail n'existe plus"
+        actions={<BoutonSupprimerBail bail={bail} />}
+      />
+      <Card className="space-y-3">
+        <p className="text-sm text-accent-700">
+          Ce bail référence un bien qui a été supprimé. Les documents ne peuvent plus être
+          régénérés — ils citent le logement — et les calculs de loyer n'ont plus de support.
+        </p>
+        <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="inline text-accent-500">Date d'effet : </dt>
+            <dd className="inline text-accent-900">{effetLisible}</dd>
+          </div>
+          <div>
+            <dt className="inline text-accent-500">Loyer hors charges : </dt>
+            <dd className="inline text-accent-900">{bail.loyerHC ?? '—'} €</dd>
+          </div>
+          <div>
+            <dt className="inline text-accent-500">Charges : </dt>
+            <dd className="inline text-accent-900">{bail.charges?.montant ?? '—'} €</dd>
+          </div>
+          <div>
+            <dt className="inline text-accent-500">Statut : </dt>
+            <dd className="inline text-accent-900">{bail.statut ?? 'inconnu'}</dd>
+          </div>
+        </dl>
+        <p className="text-xs text-accent-500">
+          Si ce bail est encore utile, recréez d'abord le bien, puis saisissez un nouveau bail :
+          rétablir le lien vers un bien supprimé n'est pas possible.
+        </p>
+      </Card>
+    </div>
+  );
+}
 
 export function BailDetailPage() {
   const { id } = useParams();
@@ -44,8 +99,9 @@ export function BailDetailPage() {
   const bail = useLiveQuery(() => (id ? db.baux.get(id) : undefined), [id]);
   const bien = useLiveQuery(() => (bail ? db.biens.get(bail.bienId) : undefined), [bail?.bienId]);
   const locataires = useLiveQuery(
-    () => (bail ? db.locataires.where('id').anyOf(bail.locataireIds).toArray() : []),
-    [bail?.locataireIds.join(',')],
+    // `locataireIds` peut manquer sur une fiche abîmée : ne jamais le supposer.
+    () => (bail ? db.locataires.where('id').anyOf(bail.locataireIds ?? []).toArray() : []),
+    [bail?.locataireIds?.join(',')],
   );
   const edls = useLiveQuery(() => (id ? db.edls.where('bailId').equals(id).toArray() : []), [id]);
   const parametres = useLiveQuery(() => lireParametres());
@@ -53,10 +109,19 @@ export function BailDetailPage() {
   const [nouvelIndice, setNouvelIndice] = useState(0);
   const [nouveauTrimestre, setNouveauTrimestre] = useState('');
 
-  if (!bail || !bien || !locataires || !parametres) return null;
+  if (!bail || !locataires || !parametres) return null;
+
+  /*
+   * Le bien peut avoir disparu — supprimé ici, ou sur l'autre appareil et la
+   * suppression reçue par synchronisation. Exiger sa présence rendait une page
+   * **blanche** : le bail devenait invisible, donc impossible à consulter comme
+   * à supprimer. On l'affiche donc sans lui, en désactivant les seules actions
+   * qui en dépendent (les documents le citent).
+   */
+  if (!bien) return <BailOrphelin bail={bail} />;
 
   const nomsLocs = nomsPersonnes(locataires);
-  const ui = STATUT_BAIL_UI[bail.statut];
+  const ui = STATUT_BAIL_UI[bail.statut] ?? { label: bail.statut ?? 'Inconnu', tone: 'neutral' as const };
   const edlEntree = edls?.find((e) => e.type === 'entree');
   const edlSortie = edls?.find((e) => e.type === 'sortie');
   const prorata = prorataPremierLoyer(new Date(bail.dateEffet), bail.loyerHC, bail.charges.montant);
@@ -273,7 +338,12 @@ export function BailDetailPage() {
       <PageHeader
         titre={`${bail.reference}`}
         sousTitre={`${bien.nom} — ${locataires.map((l) => `${l.prenom} ${l.nom}`).join(', ')}`}
-        actions={<Badge tone={ui.tone}>{ui.label}</Badge>}
+        actions={
+          <>
+            <Badge tone={ui.tone}>{ui.label}</Badge>
+            <BoutonSupprimerBail bail={bail} />
+          </>
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
