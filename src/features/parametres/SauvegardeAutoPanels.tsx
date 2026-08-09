@@ -33,7 +33,7 @@ import {
 } from '@/lib/sync';
 import { importerSauvegarde, lireSauvegarde } from '@/lib/backup';
 import { decrireErreur } from '@/lib/erreurs';
-import { Button, Card, ConfirmModal, Field, Input, useToast } from '@/components/ui';
+import { Button, CarteRepliable, ConfirmModal, Field, Input, useToast } from '@/components/ui';
 
 /**
  * Panneaux de sauvegarde automatique (dossier local synchronisé et Google
@@ -69,10 +69,12 @@ export function SauvegardeAutoPanel() {
   };
 
   return (
-    <Card>
-      <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-        <FolderSync size={18} /> Sauvegarde automatique (dossier synchronisé)
-      </h2>
+    <CarteRepliable
+      identifiant="dossier-local"
+      titre="Sauvegarde automatique (dossier synchronisé)"
+      icone={<FolderSync size={18} />}
+      resume={config ? `Dossier « ${config.nomDossier} »` : 'Aucun dossier configuré'}
+    >
       {!autosaveSupportee() ? (
         <p className="text-sm text-accent-600">
           Non disponible sur ce navigateur (API File System Access requise — Chrome ou Edge sur
@@ -125,7 +127,7 @@ export function SauvegardeAutoPanel() {
           )}
         </>
       )}
-    </Card>
+    </CarteRepliable>
   );
 }
 
@@ -296,10 +298,21 @@ export function SauvegardeGDrivePanel() {
   const reglagesEcrases = dernier?.etat === 'ok' ? dernier.reglagesEcrases : [];
 
   return (
-    <Card>
-      <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-        <RefreshCw size={18} /> Google Drive — synchronisation entre appareils
-      </h2>
+    <CarteRepliable
+      identifiant="drive"
+      titre="Google Drive — synchronisation entre appareils"
+      icone={<RefreshCw size={18} />}
+      resume={
+        config?.actif
+          ? `Connecté · dernier échange ${
+              config.derniereSync
+                ? format(new Date(config.derniereSync), 'dd/MM à HH:mm')
+                : 'jamais'
+            }`
+          : 'Non connecté — les appareils n’échangent rien'
+      }
+      resumeAlerte={!config?.actif}
+    >
       <p className="mb-3 text-sm text-accent-600">
         Vos appareils échangent <strong>fiche par fiche</strong> via un dossier « Bailiz » sur
         votre Drive : les modifications faites en parallèle sur deux appareils se rejoignent au
@@ -493,6 +506,6 @@ export function SauvegardeGDrivePanel() {
         confirmLabel="Remplacer mes données"
         danger
       />
-    </Card>
+    </CarteRepliable>
   );
 }

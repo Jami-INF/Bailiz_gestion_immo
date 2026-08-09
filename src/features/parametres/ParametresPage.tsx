@@ -6,10 +6,12 @@ import {
   HardDriveDownload,
   HardDriveUpload,
   Plus,
+  Ruler,
   Save,
   Scale,
   ShieldCheck,
   Trash2,
+  UserRound,
 } from 'lucide-react';
 import { db, getParametres, lireParametres } from '@/lib/db';
 import { genererEtArchiver } from '@/lib/pdf/generer';
@@ -29,7 +31,16 @@ import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPane
 import { FicheVisitePanel } from './FicheVisitePanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
 import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
-import { Button, Card, Field, Input, Modal, PageHeader, Select, useToast } from '@/components/ui';
+import {
+  Button,
+  CarteRepliable,
+  Field,
+  Input,
+  Modal,
+  PageHeader,
+  Select,
+  useToast,
+} from '@/components/ui';
 
 export function ParametresPage() {
   const toast = useToast();
@@ -114,8 +125,18 @@ export function ParametresPage() {
     <div>
       <PageHeader titre="Paramètres" />
       <div className="space-y-4">
-        <Card>
-          <h2 className="mb-4 font-semibold text-accent-900">Bailleur</h2>
+        <CarteRepliable
+          identifiant="bailleur"
+          titre="Bailleur"
+          icone={<UserRound size={18} />}
+          resume={
+            bailleur.nom.trim()
+              ? `${bailleur.civilite} ${bailleur.prenom} ${bailleur.nom}`.trim()
+              : 'Non renseigné — obligatoire pour produire un document'
+          }
+          resumeAlerte={!bailleur.nom.trim()}
+          defautOuvert={!bailleur.nom.trim()}
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Civilité">
               <Select value={bailleur.civilite} onChange={(e) => majBailleur({ civilite: e.target.value })}>
@@ -177,10 +198,18 @@ export function ParametresPage() {
               <Save size={16} /> Enregistrer
             </Button>
           </div>
-        </Card>
+        </CarteRepliable>
 
-        <Card>
-          <h2 className="mb-2 font-semibold text-accent-900">Sauvegarde et restauration</h2>
+        <CarteRepliable
+          identifiant="sauvegarde"
+          titre="Sauvegarde et restauration"
+          icone={<HardDriveDownload size={18} />}
+          resume={
+            parametres.derniereSauvegarde
+              ? `Dernier export le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')}`
+              : 'Aucun export manuel effectué'
+          }
+        >
           <p className="mb-1 text-sm text-accent-600">
             Toutes les données restent sur cet appareil. Exportez régulièrement une sauvegarde
             complète (fichier ZIP : données + photos + PDF), notamment après chaque état des
@@ -209,7 +238,7 @@ export function ParametresPage() {
               onChange={(e) => void choisirFichier(e.target.files?.[0] ?? null)}
             />
           </div>
-        </Card>
+        </CarteRepliable>
 
         <SauvegardeAutoPanel />
 
@@ -217,8 +246,12 @@ export function ParametresPage() {
 
 
 
-        <Card>
-          <h2 className="mb-2 font-semibold text-accent-900">Grille de vétusté</h2>
+        <CarteRepliable
+          identifiant="vetuste"
+          titre="Grille de vétusté"
+          icone={<Ruler size={18} />}
+          resume={`${parametres.grilleVetuste.length} poste(s) de vétusté`}
+        >
           <p className="mb-3 text-sm text-accent-600">
             Utilisée pour calculer la part des réparations restant à la charge du locataire lors
             de l'EDL de sortie. Après la franchise, l'abattement s'applique chaque année ; une
@@ -302,16 +335,18 @@ export function ParametresPage() {
             La grille est aussi générée automatiquement comme annexe à chaque création de bail
             (art. 4 du décret n°2016-382 : elle doit être convenue dès la signature).
           </p>
-        </Card>
+        </CarteRepliable>
 
         <ClausesBailPanel />
 
         <FicheVisitePanel />
 
-        <Card>
-          <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-            <FileText size={18} /> Fiche d'aide juridique
-          </h2>
+        <CarteRepliable
+          identifiant="fiche-aide"
+          titre="Fiche d'aide juridique"
+          icone={<FileText size={18} />}
+          resume="Mémo PDF : préavis, congés, impayés, dépôt de garantie"
+        >
           <p className="mb-3 text-sm text-accent-600">
             Mémo PDF à conserver avec vos dossiers : préavis et congés (1 mois locataire, 3
             mois bailleur motivé), formes de notification valables (LRAR, commissaire de
@@ -322,12 +357,14 @@ export function ParametresPage() {
           <Button onClick={() => void genererFicheAide()}>
             <FileText size={16} /> Télécharger la fiche d'aide (PDF)
           </Button>
-        </Card>
+        </CarteRepliable>
 
-        <Card>
-          <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-            <ShieldCheck size={18} /> Données personnelles (RGPD)
-          </h2>
+        <CarteRepliable
+          identifiant="rgpd"
+          titre="Données personnelles (RGPD)"
+          icone={<ShieldCheck size={18} />}
+          resume="Conservation et suppression des données de vos locataires"
+        >
           <p className="text-sm text-accent-600">
             Les données des locataires sont conservées uniquement dans le navigateur de cet
             appareil ; aucune donnée n'est transmise à un serveur. En tant que bailleur, vous
@@ -335,12 +372,16 @@ export function ParametresPage() {
             prescription) et de leur suppression. La suppression définitive d'un locataire
             s'effectue depuis la page Locataires (bloquée si un bail actif y est lié).
           </p>
-        </Card>
+        </CarteRepliable>
 
-        <Card>
-          <h2 className="mb-2 font-semibold text-accent-900">Avertissement juridique</h2>
+        <CarteRepliable
+          identifiant="avertissement"
+          titre="Avertissement juridique"
+          icone={<Scale size={18} />}
+          resume="Aide à la rédaction, pas un conseil juridique"
+        >
           <p className="text-sm text-accent-600">{DISCLAIMER_JURIDIQUE}</p>
-        </Card>
+        </CarteRepliable>
       </div>
 
       <Modal

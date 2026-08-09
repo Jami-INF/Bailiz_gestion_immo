@@ -11,7 +11,7 @@ import { FicheVisitePdf } from '@/lib/pdf/FicheVisitePdf';
 import { ouvrirBlob } from '@/lib/backup';
 import {
   Button,
-  Card,
+  CarteRepliable,
   Checkbox,
   ConfirmModal,
   Field,
@@ -133,10 +133,12 @@ export function FicheVisitePanel() {
   };
 
   return (
-    <Card>
-      <h2 className="mb-2 flex items-center gap-2 font-semibold text-accent-900">
-        <ClipboardList size={18} /> Fiche de visite
-      </h2>
+    <CarteRepliable
+      identifiant="fiche-visite"
+      titre="Fiche de visite"
+      icone={<ClipboardList size={18} />}
+      resume={`${modele.sections.length} rubrique(s) de dossier`}
+    >
       <p className="mb-4 text-sm text-accent-600">
         Document remis au candidat à la fin d'une visite (généré depuis la fiche d'un bien) :
         récapitulatif du logement et de ses conditions, informations pratiques, puis liste des
@@ -328,6 +330,6 @@ export function FicheVisitePanel() {
         confirmLabel="Réinitialiser"
         danger
       />
-    </Card>
+    </CarteRepliable>
   );
 }

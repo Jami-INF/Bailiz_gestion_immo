@@ -7,3 +7,4 @@ export { Badge } from './Badge';
 export { Stepper } from './Stepper';
 export { Card, PageHeader, EmptyState } from './Layout';
 export { Section } from './Section';
+export { CarteRepliable } from './CarteRepliable';
