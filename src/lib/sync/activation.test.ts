@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, getParametres } from '@/lib/db';
@@ -105,41 +106,44 @@ describe('cycles concurrents', () => {
      * « reconnectez Google Drive » à un utilisateur dont le Drive marche très
      * bien — et l'inviterait à un geste inutile, voire inquiétant.
      */
-    await configurer({ clientId: 'x', actif: true });
+    await avecReseau(true, async () => {
+      // Dépôt impossible à ouvrir : c'est « indisponible », pas « ignore ».
+      await driveInutilisable();
+      expect((await lancerCycle(false)).etat).toBe('indisponible');
 
-    // `lancerCycle` sans autorisation Google : le dépôt ne s'ouvre pas.
-    const sansDrive = await lancerCycle(false);
-    expect(sansDrive.etat).toBe('indisponible');
-
-    // Drive déconnecté : rien à tenter, et rien à signaler.
-    await configurer({ clientId: 'x', actif: false });
-    expect((await lancerCycle(false)).etat).toBe('ignore');
+      // Drive déconnecté : rien à tenter, et rien à signaler.
+      await configurer({ clientId: 'x', actif: false });
+      expect((await lancerCycle(false)).etat).toBe('ignore');
+    });
   });
 });
 
-describe('signal d’état de synchronisation', () => {
-  /**
-   * Force l'état réseau le temps d'une action. En environnement Node,
-   * `navigator.onLine` n'existe pas — donc tout paraît hors ligne, et la
-   * branche à couvrir ne serait jamais atteinte.
-   */
-  const avecReseau = async (enLigne: boolean, action: () => Promise<void>) => {
-    const origine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
-    Object.defineProperty(navigator, 'onLine', { value: enLigne, configurable: true });
-    try {
-      await action();
-    } finally {
-      if (origine) Object.defineProperty(navigator, 'onLine', origine);
-      else Reflect.deleteProperty(navigator, 'onLine');
-    }
-  };
+/**
+ * Force l'état réseau le temps d'une action.
+ *
+ * `navigator.onLine` est une propriété du prototype sous jsdom : on la masque
+ * par une propriété propre, puis on la retire pour rendre le getter d'origine.
+ */
+const avecReseau = async (enLigne: boolean, action: () => Promise<void>) => {
+  const origine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+  Object.defineProperty(navigator, 'onLine', { value: enLigne, configurable: true });
+  try {
+    await action();
+  } finally {
+    if (origine) Object.defineProperty(navigator, 'onLine', origine);
+    else Reflect.deleteProperty(navigator, 'onLine');
+  }
+};
 
-  /*
-   * `clientId` vide : le dépôt refuse de s'ouvrir sans toucher au réseau ni au
-   * script Google, ce qui met le cycle exactement dans l'état à couvrir —
-   * « indisponible » — sans dépendre d'un navigateur.
-   */
-  const driveInutilisable = () => configurer({ clientId: '', actif: true });
+/*
+ * `clientId` vide : le dépôt refuse de s'ouvrir **avant** de charger le script
+ * Google, ce qui met le cycle exactement dans l'état à couvrir — « indisponible »
+ * — sans jamais toucher au réseau. Indispensable sous jsdom, où une balise
+ * `<script>` vers accounts.google.com ne se résoudrait jamais.
+ */
+const driveInutilisable = () => configurer({ clientId: '', actif: true });
+
+describe('signal d’état de synchronisation', () => {
 
   it('reste éteint hors ligne : il n’y a rien à reconnecter', async () => {
     /*
