@@ -33,7 +33,6 @@ import {
 } from '@/lib/sync';
 import { importerSauvegarde, lireSauvegarde } from '@/lib/backup';
 import { decrireErreur } from '@/lib/erreurs';
-import { definirNomAppareil, nomAppareil, nomAppareilParDefaut } from '@/lib/appareil';
 import { Button, Card, ConfirmModal, Field, Input, useToast } from '@/components/ui';
 
 /**
@@ -439,17 +438,6 @@ export function SauvegardeGDrivePanel() {
               </ul>
             </div>
           )}
-
-          <Field
-            label="Nom de cet appareil"
-            hint="Sert à identifier l'origine d'une modification quand vous travaillez sur plusieurs appareils. Conservé uniquement ici, jamais inclus dans les sauvegardes."
-          >
-            <Input
-              defaultValue={nomAppareil()}
-              onBlur={(e) => definirNomAppareil(e.target.value)}
-              placeholder={nomAppareilParDefaut()}
-            />
-          </Field>
 
           <p className="text-xs text-accent-500">
             La synchronisation se déclenche à l'ouverture, au retour sur l'application, toutes les
