@@ -194,8 +194,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 et non 20 : Astro 7 exige `>=22.12.0` (cf. ses `engines`).
+          # L'application, elle, s'accommode des deux.
+          node-version: 22
           cache: npm
+          # Deux projets, deux verrous : sans ce chemin explicite, le cache ne
+          # couvrirait que celui de la racine.
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
 
       # --- Application ------------------------------------------------------
       - run: npm ci
@@ -445,17 +452,27 @@ Puis **Sitemaps** → soumettre `sitemap-index.xml`.
 C'est la seule mesure de référencement qui compte les premiers mois. N'attendez pas de résultats
 avant 6 à 12 mois, et jugez sur les impressions et les requêtes, pas sur des positions isolées.
 
-### L'ancienne URL
+### L'ancienne URL — et le réglage GitHub Pages
 
-`jami-inf.github.io/Bailiz_gestion_immo/` doit rester en ligne, avec une page de renvoi. Les
-utilisateurs qui ont **installé la PWA depuis cette adresse ne suivront pas** : leur application
-pointe sur l'ancienne origine, et leurs données IndexedDB y restent — elles ne sont ni perdues ni
-transférables automatiquement.
+`jami-inf.github.io/Bailiz_gestion_immo/` **doit rester en ligne, et doit continuer à servir
+l'application**, pas une page de renvoi statique.
 
-La page doit dire exactement ceci : *Bailiz a déménagé sur bailiz.fr. **Exportez votre sauvegarde
-depuis cette page**, puis réimportez-la sur le nouveau site.* Avec un lien vers l'écran d'export.
+La raison est technique et décisive : les données des utilisateurs sont dans l'IndexedDB de
+**cette origine-là**. Pour les récupérer, il leur faut l'**application** qui tourne sur cette
+origine — c'est elle qui contient la fonction d'export. La remplacer par une page de renvoi leur
+retirerait le seul moyen d'accéder à leurs baux et à leurs états des lieux.
 
-Une redirection sèche ferait croire à une perte de données.
+**Réglage à appliquer** : Settings → Pages → Source → **GitHub Actions**.
+
+- Cela **désactive** le workflow Jekyll automatique, qui échoue sur les fichiers `.astro` du
+  dossier `site/` (cf. §10).
+- Le nouveau workflow ne publie plus rien sur Pages : la **dernière version déployée reste
+  servie**, donc l'ancienne application reste accessible.
+- **Ne pas mettre « None »** : cela supprimerait le site et, avec lui, le chemin d'export.
+
+Le message de déménagement viendra plus tard, sous forme d'un bandeau **dans** l'ancienne
+application (un déploiement ponctuel), jamais d'une redirection sèche — qui ferait croire à une
+perte de données.
 
 ### Liens à mettre à jour
 
@@ -487,6 +504,8 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 
 | Symptôme | Cause probable | Correction |
 |---|---|---|
+| Un job **Jekyll** échoue sur les fichiers `.astro` | GitHub Pages est réglé sur « Deploy from a branch » : le workflow automatique `pages-build-deployment` lance Jekyll sur la racine du dépôt, et lit les `---` des fichiers `.astro` comme du front matter YAML | **Aucun correctif dans le code.** Settings → Pages → Source → **GitHub Actions**. Ne pas mettre « None » : cf. §8 |
+| `npm ci --prefix site` ou le build vitrine échoue en CI, mais passe en local | Version de Node du runner inférieure à celle exigée par Astro (`>=22.12.0`) | `node-version: 22` dans le workflow. Le vérifier après chaque montée de version majeure d'Astro : `node -p "require('./site/node_modules/astro/package.json').engines"` |
 | `403 Forbidden` à la racine | Fichiers déposés à côté de `www/` et non dedans | Vérifier la cible du miroir : `www/` relatif, jamais `/www/` |
 | `500 Internal Server Error` | Une directive de `.htaccess` non supportée | Commenter les blocs `<IfModule>` un par un pour isoler |
 | Redirections et cache sans effet | `mod_rewrite` / `mod_headers` inactifs | Vérifier l'offre ; sans eux, le site fonctionne mais perd §7 |
