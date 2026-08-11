@@ -1,18 +1,20 @@
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addDays, addMonths, addYears, differenceInDays, format, isAfter } from 'date-fns';
+import { addMonths, addYears, differenceInDays, format, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
   AlertTriangle,
   Building2,
   CalendarClock,
   ClipboardList,
-  FileWarning,
   HardDriveDownload,
   Plus,
 } from 'lucide-react';
 import { db } from '@/lib/db';
+import { estBailEnCours } from '@/lib/bail';
+import { dateLimiteRestitution, formatOctets } from '@/lib/calculs';
 import { sauvegardeAncienne } from '@/lib/backup';
+import { useQuotaStockage } from '@/hooks/useStatuts';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 
 interface Alerte {
@@ -27,6 +29,7 @@ export function TableauDeBordPage() {
   const baux = useLiveQuery(() => db.baux.toArray());
   const edls = useLiveQuery(() => db.edls.toArray());
   const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const quota = useQuotaStockage();
 
   if (!biens || !baux || !edls) return null;
 
@@ -50,7 +53,9 @@ export function TableauDeBordPage() {
     const bail = baux.find((b) => b.id === edl.bailId);
     if (!bail || bail.depotGarantie <= 0) continue;
     const aDegradations = edl.pieces.some((p) => p.elements.some((el) => el.degradation));
-    const limite = addDays(new Date(edl.signatures!.dateSignature), aDegradations ? 60 : 30);
+    // Même règle que la synthèse de l'EDL et que la lettre de restitution : un
+    // seul calcul du délai légal, pour qu'aucun écran n'annonce une autre date.
+    const limite = dateLimiteRestitution(new Date(edl.signatures!.dateSignature), aDegradations);
     const restants = differenceInDays(limite, new Date());
     if (restants >= 0 && restants <= 45) {
       alertes.push({
@@ -60,6 +65,16 @@ export function TableauDeBordPage() {
         lien: `/edl/${edl.id}/synthese`,
       });
     }
+  }
+
+  // Stockage proche de la saturation : prévenir avant que l'écriture échoue.
+  if (quota?.critique) {
+    alertes.push({
+      cle: 'quota',
+      niveau: quota.pct >= 95 ? 'red' : 'orange',
+      texte: `Stockage du navigateur occupé à ${quota.pct} % (${formatOctets(quota.utilise)}) — exportez et faites de la place avant le prochain état des lieux`,
+      lien: '/parametres',
+    });
   }
 
   // Sauvegarde ancienne
@@ -76,7 +91,7 @@ export function TableauDeBordPage() {
 
   // Échéancier : fins de bail et anniversaires de révision IRL
   const echeances: { date: Date; texte: string; lien: string }[] = [];
-  for (const bail of baux.filter((b) => ['signe', 'actif'].includes(b.statut))) {
+  for (const bail of baux.filter(estBailEnCours)) {
     const bien = biens.find((x) => x.id === bail.bienId);
     const fin = addMonths(new Date(bail.dateEffet), bail.dureeMois);
     echeances.push({
@@ -132,9 +147,7 @@ export function TableauDeBordPage() {
             </h2>
             <ul className="space-y-2">
               {biens.map((bien) => {
-                const bail = baux.find(
-                  (b) => b.bienId === bien.id && ['signe', 'actif'].includes(b.statut),
-                );
+                const bail = baux.find((b) => b.bienId === bien.id && estBailEnCours(b));
                 return (
                   <li key={bien.id}>
                     <Link
@@ -171,10 +184,8 @@ export function TableauDeBordPage() {
                           : 'border-amber-200 bg-amber-50 text-amber-800'
                       }`}
                     >
-                      {a.cle === 'sauvegarde' ? (
+                      {a.cle === 'sauvegarde' || a.cle === 'quota' ? (
                         <HardDriveDownload size={16} className="mt-0.5 shrink-0" />
-                      ) : a.cle.startsWith('diag') ? (
-                        <FileWarning size={16} className="mt-0.5 shrink-0" />
                       ) : (
                         <ClipboardList size={16} className="mt-0.5 shrink-0" />
                       )}

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   coefficientVetuste,
-  delaiRestitutionJours,
+  dateLimiteRestitution,
+  delaiRestitutionMois,
   depotGarantieMax,
   prorataPremierLoyer,
   retenueApresVetuste,
@@ -144,9 +145,25 @@ describe('validerDecenceDPE', () => {
   });
 });
 
-describe('delaiRestitutionJours', () => {
+describe('delaiRestitutionMois', () => {
   it('1 mois si conforme, 2 mois si retenues', () => {
-    expect(delaiRestitutionJours(false)).toBe(30);
-    expect(delaiRestitutionJours(true)).toBe(60);
+    expect(delaiRestitutionMois(false)).toBe(1);
+    expect(delaiRestitutionMois(true)).toBe(2);
+  });
+});
+
+describe('dateLimiteRestitution', () => {
+  it('compte en mois calendaires, pas en tranches de trente jours', () => {
+    // Remise des clés le 31 janvier : un mois plus tard, c'est le 28 février —
+    // et non le 2 mars comme le donnait un décompte à 30 jours.
+    const limite = dateLimiteRestitution(new Date(2026, 0, 31), false);
+    expect(limite.getMonth()).toBe(1);
+    expect(limite.getDate()).toBe(28);
+  });
+
+  it('double le délai en présence de retenues', () => {
+    const limite = dateLimiteRestitution(new Date(2026, 5, 15), true);
+    expect(limite.getMonth()).toBe(7);
+    expect(limite.getDate()).toBe(15);
   });
 });

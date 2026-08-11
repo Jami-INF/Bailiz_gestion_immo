@@ -3,9 +3,22 @@ import ReactDOM from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { recupererJetonRedirection } from './lib/gdrive';
+import { signalerMiseAJour } from './lib/majApp';
 import './index.css';
 
-registerSW({ immediate: true });
+/*
+ * Mise à jour **proposée**, jamais imposée : `registerType: 'prompt'` côté Vite,
+ * et ici on se contente de signaler la disponibilité à l'interface. Une prise de
+ * contrôle automatique du service worker peut recharger la page pendant un état
+ * des lieux saisi sur place — la saisie est certes sauvegardée en continu, mais
+ * pas la confiance du locataire qui regarde l'écran.
+ */
+const majSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    signalerMiseAJour(() => majSW(true));
+  },
+});
 
 /*
  * Retour de la connexion Google (PWA iOS) : le jeton arrive dans le fragment

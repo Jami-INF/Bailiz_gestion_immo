@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
+import { format } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 import type { Bien, ClasseDPE, ConditionsLocation, PeriodeConstruction, TypeBien } from '@/types';
 import { PERIODE_CONSTRUCTION_LABELS } from '@/types';
@@ -20,6 +21,7 @@ import {
   Textarea,
   useToast,
 } from '@/components/ui';
+import { useBrouillon } from '@/hooks/useBrouillon';
 import { PhotoBien } from './PhotoBien';
 import { PiecesEditeur } from './PiecesEditeur';
 
@@ -77,6 +79,13 @@ function parserAnnexes(texte: string): Bien['annexes'] {
     });
 }
 
+/** Contenu du brouillon : tout ce qu'il faut pour reprendre la saisie au même point. */
+interface SaisieBien {
+  bien: Bien;
+  textes: { equipements: string; communs: string; annexes: string };
+  etape: number;
+}
+
 export function BienFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -85,6 +94,8 @@ export function BienFormPage() {
   const [bien, setBien] = useState<Bien>(bienVide);
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   const [charge, setCharge] = useState(!id);
+  /** `updatedAt` de la fiche au chargement, pour périmer un brouillon dépassé. */
+  const [baseUpdatedAt, setBaseUpdatedAt] = useState<string | undefined>(undefined);
   // Les listes saisies en texte libre restent des chaînes brutes pendant l'édition
   // (un textarea contrôlé par un join/split mangerait les retours à la ligne),
   // et ne sont converties en listes qu'à l'enregistrement.
@@ -95,6 +106,7 @@ export function BienFormPage() {
     void db.biens.get(id).then((b) => {
       if (b) {
         setBien(b);
+        setBaseUpdatedAt(b.updatedAt);
         setTextes({
           equipements: b.equipementsPrivatifs.join('\n'),
           communs: b.partiesCommunes.join('\n'),
@@ -105,7 +117,24 @@ export function BienFormPage() {
     });
   }, [id]);
 
-  if (!charge) return null;
+  /*
+   * Sauvegarde continue de la saisie, comme le mode terrain de l'EDL : cinq
+   * étapes de formulaire ne doivent pas partir en fumée à cause d'un
+   * rechargement ou d'une notification qui passe au premier plan.
+   */
+  const saisie: SaisieBien = useMemo(() => ({ bien, textes, etape }), [bien, textes, etape]);
+  const [reprise, setReprise] = useState<string | null>(null);
+  const brouillon = useBrouillon<SaisieBien>(id ? `bien:${id}` : 'bien:nouveau', saisie, charge, {
+    baseUpdatedAt,
+    onRepris: (donnees, updatedAt) => {
+      setBien(donnees.bien);
+      setTextes(donnees.textes);
+      setEtape(donnees.etape ?? 0);
+      setReprise(updatedAt);
+    },
+  });
+
+  if (!charge || brouillon.chargement) return null;
 
   const maj = (m: Partial<Bien>) => setBien((b) => ({ ...b, ...m }));
   const cond = bien.conditionsLocation ?? {};
@@ -159,13 +188,44 @@ export function BienFormPage() {
       annexes: parserAnnexes(textes.annexes),
       updatedAt: nowISO(),
     });
+    // La saisie est devenue une fiche : le brouillon n'a plus lieu d'être.
+    await brouillon.oublier();
     toast('success', id ? 'Bien mis à jour.' : 'Bien créé.');
     navigate(`/biens/${bien.id}`);
   };
 
+  /** Écarte la saisie en cours et repart de la fiche enregistrée (ou d'un formulaire vierge). */
+  const abandonnerBrouillon = async () => {
+    const initial = id ? await db.biens.get(id) : undefined;
+    setBien(initial ?? bienVide());
+    setTextes({
+      equipements: initial?.equipementsPrivatifs.join('\n') ?? '',
+      communs: initial?.partiesCommunes.join('\n') ?? '',
+      annexes: initial?.annexes.map((a) => `${a.type} : ${a.description}`).join('\n') ?? '',
+    });
+    setEtape(0);
+    setReprise(null);
+    await brouillon.oublier();
+    toast('success', id ? 'Saisie en cours écartée — fiche enregistrée rétablie.' : 'Brouillon effacé.');
+  };
+
   return (
     <div>
-      <PageHeader titre={id ? `Modifier — ${bien.nom}` : 'Nouveau bien'} />
+      <PageHeader
+        titre={id ? `Modifier — ${bien.nom}` : 'Nouveau bien'}
+        sousTitre="Saisie enregistrée en continu sur cet appareil : vous pouvez fermer et revenir."
+      />
+      {reprise && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+          <span>
+            <span className="font-medium">Saisie reprise</span> — modifications non enregistrées du{' '}
+            {format(new Date(reprise), "dd/MM/yyyy 'à' HH:mm")}.
+          </span>
+          <Button variant="secondary" size="sm" onClick={() => void abandonnerBrouillon()}>
+            {id ? 'Repartir de la fiche enregistrée' : 'Repartir de zéro'}
+          </Button>
+        </div>
+      )}
       <div className="mb-6">
         <Stepper etapes={ETAPES} courante={etape} />
       </div>
@@ -184,16 +244,21 @@ export function BienFormPage() {
                 placeholder="T2 Chamalières"
               />
             </Field>
-            <Field
-              label="Photo du logement"
-              hint="Une photo d'illustration : elle s'affiche sur la fiche du bien et en tête de la fiche de visite. Compressée automatiquement."
-            >
+            {/* Pas un `Field` : il n'y a aucun contrôle de formulaire à étiqueter
+                ici, seulement des boutons. Un `<label for>` pointerait dans le
+                vide. Même motif que les photos du mode terrain. */}
+            <div className="space-y-1">
+              <span className="block text-sm font-medium text-accent-800">Photo du logement</span>
               <PhotoBien
                 bienId={bien.id}
                 photoId={bien.photoId}
                 onChange={(photoId) => maj({ photoId })}
               />
-            </Field>
+              <p className="text-xs text-accent-500">
+                Une photo d'illustration : elle s'affiche sur la fiche du bien et en tête de la
+                fiche de visite. Compressée automatiquement.
+              </p>
+            </div>
             <Field label="Adresse" required error={erreurs.ligne1}>
               <Input
                 value={bien.adresse.ligne1}
@@ -333,8 +398,10 @@ export function BienFormPage() {
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Chauffage">
-                <div className="flex gap-2">
+              <div className="flex gap-2">
+                {/* Deux contrôles, donc deux étiquettes : un `Field` n'en porte
+                    qu'une, et elle ne peut désigner qu'un seul champ. */}
+                <Field label="Chauffage">
                   <Select
                     value={bien.chauffage.type}
                     onChange={(e) =>
@@ -344,15 +411,19 @@ export function BienFormPage() {
                     <option value="individuel">Individuel</option>
                     <option value="collectif">Collectif</option>
                   </Select>
+                </Field>
+                <Field label="Énergie">
                   <Input
                     value={bien.chauffage.energie}
                     onChange={(e) => maj({ chauffage: { ...bien.chauffage, energie: e.target.value } })}
-                    placeholder="Énergie"
+                    placeholder="Gaz, électricité…"
                   />
-                </div>
-              </Field>
-              <Field label="Eau chaude sanitaire">
-                <div className="flex gap-2">
+                </Field>
+              </div>
+              <div className="flex gap-2">
+                {/* Deux contrôles, donc deux étiquettes : un `Field` n'en porte
+                    qu'une, et elle ne peut désigner qu'un seul champ. */}
+                <Field label="Eau chaude sanitaire">
                   <Select
                     value={bien.eauChaude.type}
                     onChange={(e) =>
@@ -362,13 +433,15 @@ export function BienFormPage() {
                     <option value="individuel">Individuelle</option>
                     <option value="collectif">Collective</option>
                   </Select>
+                </Field>
+                <Field label="Énergie">
                   <Input
                     value={bien.eauChaude.energie}
                     onChange={(e) => maj({ eauChaude: { ...bien.eauChaude, energie: e.target.value } })}
-                    placeholder="Énergie"
+                    placeholder="Gaz, électricité…"
                   />
-                </div>
-              </Field>
+                </Field>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Field

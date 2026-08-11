@@ -17,6 +17,7 @@ import { uid, nowISO } from '@/lib/ids';
 import type { Bail, ElementEDL, EtatDesLieux } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros, prorataPremierLoyer, revisionIRL } from '@/lib/calculs';
+import { baseRevisionIRL, dateApplicationRevision, derniereRevision, loyerCourant } from '@/lib/bail';
 import { construirePiecesSortie } from '@/lib/etat';
 import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
 import {
@@ -297,12 +298,20 @@ export function BailDetailPage() {
     navigate(`/edl/${edl.id}`);
   };
 
+  /*
+   * La révision repart du **loyer courant** et de l'indice de la dernière
+   * révision, pas des valeurs d'origine du contrat : sinon le courrier de la
+   * deuxième année annonce « votre loyer passe de … » en citant le loyer d'il y
+   * a deux ans.
+   */
+  const baseIrl = baseRevisionIRL(bail);
+  const revisionEnCours = derniereRevision(bail);
+
   const genererCourrierIrl = async () => {
-    if (!bail.revisionIRL.valeurIndice || !nouvelIndice) return;
-    const calc = revisionIRL(bail.loyerHC, bail.revisionIRL.valeurIndice, nouvelIndice);
+    if (!baseIrl.indice || !nouvelIndice) return;
+    const calc = revisionIRL(baseIrl.loyer, baseIrl.indice, nouvelIndice);
     const parametresBailleur = await getParametres();
-    const anniversaire = new Date(bail.dateEffet);
-    anniversaire.setFullYear(new Date().getFullYear());
+    const dateApplication = dateApplicationRevision(bail);
     await genererEtArchiver({
       type: 'courrier_irl',
       titre: `Révision IRL ${new Date().getFullYear()} — ${bien.nom} — ${nomsLocs}`,
@@ -315,22 +324,45 @@ export function BailDetailPage() {
           bien={bien}
           locataires={locataires}
           parametres={parametresBailleur}
-          ancienIndice={bail.revisionIRL.valeurIndice}
+          ancienTrimestre={baseIrl.trimestre}
+          ancienIndice={baseIrl.indice}
           nouvelIndice={nouvelIndice}
           nouveauTrimestre={nouveauTrimestre}
-          ancienLoyer={bail.loyerHC}
+          ancienLoyer={baseIrl.loyer}
           nouveauLoyer={calc.nouveauLoyer}
-          dateApplication={anniversaire.toISOString()}
+          dateApplication={dateApplication.toISOString()}
         />
       ),
     });
+    /*
+     * Le courrier notifié fait le loyer : sans cet enregistrement, le bail
+     * restait éternellement au loyer d'origine et chaque révision suivante
+     * repartait de zéro.
+     */
+    await majBail({
+      revisionsLoyer: [
+        ...(bail.revisionsLoyer ?? []),
+        {
+          date: nowISO(),
+          dateApplication: dateApplication.toISOString(),
+          trimestreReference: baseIrl.trimestre,
+          indiceReference: baseIrl.indice,
+          nouveauTrimestre,
+          nouvelIndice,
+          ancienLoyer: baseIrl.loyer,
+          nouveauLoyer: calc.nouveauLoyer,
+        },
+      ],
+    });
     setModaleIrl(false);
+    setNouvelIndice(0);
+    setNouveauTrimestre('');
     toast('success', `Courrier de révision généré : nouveau loyer ${formatEuros(calc.nouveauLoyer)}.`);
   };
 
   const calcIrl =
-    bail.revisionIRL.valeurIndice > 0 && nouvelIndice > 0
-      ? revisionIRL(bail.loyerHC, bail.revisionIRL.valeurIndice, nouvelIndice)
+    baseIrl.indice > 0 && nouvelIndice > 0
+      ? revisionIRL(baseIrl.loyer, baseIrl.indice, nouvelIndice)
       : null;
 
   return (
@@ -355,7 +387,15 @@ export function BailDetailPage() {
             <dt className="text-accent-500">Prise d'effet</dt>
             <dd>{format(new Date(bail.dateEffet), 'dd/MM/yyyy')} ({bail.dureeMois} mois)</dd>
             <dt className="text-accent-500">Loyer HC</dt>
-            <dd>{formatEuros(bail.loyerHC)}</dd>
+            <dd>
+              {formatEuros(loyerCourant(bail))}
+              {revisionEnCours && (
+                <span className="block text-xs text-accent-500">
+                  révisé le {format(new Date(revisionEnCours.dateApplication), 'dd/MM/yyyy')} — loyer
+                  au contrat : {formatEuros(bail.loyerHC)}
+                </span>
+              )}
+            </dd>
             <dt className="text-accent-500">Charges ({bail.charges.mode})</dt>
             <dd>{formatEuros(bail.charges.montant)}</dd>
             <dt className="text-accent-500">Dépôt de garantie</dt>
@@ -575,9 +615,18 @@ export function BailDetailPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-accent-600">
-            Indice de référence au bail : {bail.revisionIRL.valeurIndice} (
-            {bail.revisionIRL.trimestreReference || 'trimestre non renseigné'}). Saisissez le
-            nouvel indice publié par l'INSEE pour le même trimestre.
+            {revisionEnCours ? 'Indice de la dernière révision' : 'Indice de référence au bail'} :{' '}
+            {baseIrl.indice || '—'} ({baseIrl.trimestre || 'trimestre non renseigné'}), pour un
+            loyer de {formatEuros(baseIrl.loyer)} hors charges. Saisissez le nouvel indice publié
+            par l'INSEE pour le même trimestre.
+          </p>
+          <p className="text-sm text-accent-600">
+            Prise d'effet :{' '}
+            <span className="font-medium text-accent-900">
+              {format(dateApplicationRevision(bail), 'dd/MM/yyyy')}
+            </span>{' '}
+            — la révision joue à la date anniversaire du bail et ne rétroagit pas si elle est
+            demandée après (art. 17-1 de la loi du 6 juillet 1989).
           </p>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nouveau trimestre" hint="Ex. « 1er trimestre 2027 »">

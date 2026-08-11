@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
+import { appliquerMiseAJour, miseAJourDisponible, sAbonnerMiseAJour } from '@/lib/majApp';
 import { format, isToday } from 'date-fns';
 import { db, getParametres } from '@/lib/db';
 import {
@@ -341,6 +342,35 @@ function DisclaimerPremiereUtilisation() {
   );
 }
 
+/**
+ * Nouvelle version prête à installer. Elle n'est **jamais** appliquée d'office :
+ * le service worker attend ce clic. Le bandeau reste masqué en mode terrain, où
+ * il couvrirait la saisie et proposerait un rechargement au pire moment.
+ */
+export function BandeauMiseAJour({ masque }: { masque: boolean }) {
+  const disponible = useSyncExternalStore(sAbonnerMiseAJour, miseAJourDisponible, () => false);
+  const [enCours, setEnCours] = useState(false);
+  if (!disponible || masque) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 bg-accent-800 px-4 py-2 text-xs font-medium text-white">
+      <span className="flex items-center gap-2">
+        <RefreshCw size={14} /> Une nouvelle version de Bailiz est disponible.
+      </span>
+      <button
+        type="button"
+        disabled={enCours}
+        onClick={() => {
+          setEnCours(true);
+          void appliquerMiseAJour();
+        }}
+        className="rounded-lg bg-white px-3 py-1 font-semibold text-accent-900 disabled:opacity-60"
+      >
+        {enCours ? 'Installation…' : 'Installer et recharger'}
+      </button>
+    </div>
+  );
+}
+
 export function AppLayout() {
   const enLigne = useEnLigne();
   const persiste = usePersistanceStockage();
@@ -511,6 +541,7 @@ export function AppLayout() {
         </aside>
       )}
       <main className={`min-w-0 flex-1 ${pleinEcran ? '' : 'pb-24 sm:pb-0'}`}>
+        <BandeauMiseAJour masque={pleinEcran} />
         {!enLigne && (
           <div className="flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
             <WifiOff size={14} /> Hors-ligne — vos données restent enregistrées sur cet appareil

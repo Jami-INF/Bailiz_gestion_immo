@@ -5,6 +5,7 @@ import { fr } from 'date-fns/locale';
 import { Pencil, Trash2, FileText, Plus, ExternalLink, ClipboardList } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
+import { estBailEnCours } from '@/lib/bail';
 import { urlExterneSure } from '@/lib/liens';
 import { formatAdresse } from '@/lib/adresse';
 import { formatEuros } from '@/lib/calculs';
@@ -48,7 +49,7 @@ export function BienDetailPage() {
 
   if (!bien) return null;
 
-  const bailEnCours = baux?.find((b) => ['signe', 'actif'].includes(b.statut));
+  const bailEnCours = baux?.find(estBailEnCours);
   // Lien saisi librement : filtré avant d'être rendu cliquable (cf. QR code du bail).
   const lienDossierTechnique = urlExterneSure(bien.dossierTechniqueUrl);
   const conditions = bien.conditionsLocation;
@@ -257,7 +258,7 @@ export function BienDetailPage() {
                       <FileText size={15} className="text-accent-400" />
                       {b.reference} — {TYPE_BAIL_LABELS[b.typeBail]}
                     </span>
-                    <Badge tone={b.statut === 'actif' || b.statut === 'signe' ? 'green' : 'neutral'}>
+                    <Badge tone={estBailEnCours(b) ? 'green' : 'neutral'}>
                       {b.statut}
                     </Badge>
                   </Link>

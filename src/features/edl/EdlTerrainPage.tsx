@@ -20,7 +20,7 @@ import { db } from '@/lib/db';
 import { nowISO, uid } from '@/lib/ids';
 import type { CategorieElement, Compteur, ElementEDL, EtatDesLieux, EtatNote, PieceEDL } from '@/types';
 import { CATEGORIE_LABELS, ETAT_LABELS } from '@/types';
-import { estDegradation, progressionEDL } from '@/lib/etat';
+import { elementsNonRenseignes, estDegradation, progressionEDL } from '@/lib/etat';
 import { Badge, Button, Checkbox, DateInput, Field, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
 import { PhotoCapture } from './PhotoCapture';
 import { SectionCles, SectionCompteurs } from './SectionsReleves';
@@ -50,6 +50,7 @@ export function EdlTerrainPage() {
   const [modalePiece, setModalePiece] = useState(false);
   const [nomNouvellePiece, setNomNouvellePiece] = useState('');
   const [modaleRectifier, setModaleRectifier] = useState(false);
+  const [modaleOublis, setModaleOublis] = useState(false);
   /** Photos ouvertes en plein écran (comparaison entrée/sortie). */
   const [visionneuse, setVisionneuse] = useState<{ titre: string; groupes: GroupePhotos[]; initial: number } | null>(
     null,
@@ -75,6 +76,14 @@ export function EdlTerrainPage() {
   const signe = edl.statut === 'signe';
   const sortie = edl.type === 'sortie';
   const prog = progressionEDL(edl.pieces);
+  const oublis = elementsNonRenseignes(edl.pieces);
+
+  /** Ouvre la pièce qui contient l'élément oublié (et ferme le récapitulatif). */
+  const allerALaPiece = (pieceId: string) => {
+    const idx = onglets.findIndex((o) => o.type === 'piece' && o.pieceId === pieceId);
+    if (idx >= 0) setOngletIdx(idx);
+    setModaleOublis(false);
+  };
   const onglet = onglets[Math.min(ongletIdx, onglets.length - 1)];
   const obligatoiresAbsents = edl.pieces
     .flatMap((p) => p.elements)
@@ -120,6 +129,41 @@ export function EdlTerrainPage() {
     // EDL de sortie : marquage automatique de la dégradation (décochable)
     if (sortie) m.degradation = estDegradation(el.etatEntree, etat);
     majElement(pieceId, el.id, m);
+  };
+
+  /**
+   * Renseigne d'un coup tous les éléments **encore vierges** d'une pièce.
+   *
+   * Dans un logement en bon état, la quasi-totalité des éléments partagent le
+   * même état : on pose la valeur commune, puis on corrige les exceptions. Les
+   * éléments déjà statués ne sont jamais réécrits — un raccourci ne doit pas
+   * pouvoir effacer une observation faite sur place.
+   */
+  const renseignerRestants = (piece: PieceEDL, etat: EtatNote) => {
+    const restants = piece.elements.filter((el) => el.etat === undefined && !el.manquant);
+    if (restants.length === 0) return;
+    maj({
+      pieces: edl.pieces.map((p) =>
+        p.id !== piece.id
+          ? p
+          : {
+              ...p,
+              elements: p.elements.map((el) =>
+                el.etat !== undefined || el.manquant
+                  ? el
+                  : {
+                      ...el,
+                      etat,
+                      ...(sortie ? { degradation: estDegradation(el.etatEntree, etat) } : {}),
+                    },
+              ),
+            },
+      ),
+    });
+    toast(
+      'success',
+      `${restants.length} élément(s) de « ${piece.nom} » renseigné(s) en « ${ETAT_LABELS[etat]} ». Corrigez les exceptions une par une.`,
+    );
   };
 
   /**
@@ -244,20 +288,34 @@ export function EdlTerrainPage() {
             <div className="text-sm font-bold text-accent-900">
               {edl.reference} — {sortie ? 'Sortie' : 'Entrée'}
             </div>
-            <div className="text-xs text-accent-500">
-              {prog.renseignes}/{prog.total} éléments · sauvegarde automatique
-            </div>
+            {oublis.length > 0 && !signe ? (
+              <button
+                type="button"
+                onClick={() => setModaleOublis(true)}
+                className="text-xs font-medium text-amber-700 underline underline-offset-2"
+              >
+                {oublis.length} élément(s) non renseigné(s) — voir la liste
+              </button>
+            ) : (
+              <div className="text-xs text-accent-500">
+                {prog.renseignes}/{prog.total} éléments · sauvegarde automatique
+              </div>
+            )}
           </div>
           {signe ? (
             <Badge tone="green">
               <Lock size={12} /> Signé
             </Badge>
           ) : (
-            <Link to={`/edl/${edl.id}/signature`}>
-              <Button size="sm">
-                <PenLine size={14} /> Signer
-              </Button>
-            </Link>
+            <Button
+              size="sm"
+              onClick={() =>
+                // Ne jamais bloquer : on montre ce qui manque, l'utilisateur tranche.
+                oublis.length > 0 ? setModaleOublis(true) : navigate(`/edl/${edl.id}/signature`)
+              }
+            >
+              <PenLine size={14} /> Signer
+            </Button>
           )}
         </div>
         {/* Barre de progression */}
@@ -359,6 +417,33 @@ export function EdlTerrainPage() {
         )}
         {onglet?.type === 'piece' && (
           <div className="space-y-3">
+            {(() => {
+              const piece = edl.pieces.find((p) => p.id === onglet.pieceId)!;
+              const restants = piece.elements.filter((el) => el.etat === undefined && !el.manquant);
+              if (signe || restants.length === 0) return null;
+              return (
+                <div className="rounded-xl border border-accent-200 bg-white p-3">
+                  <p className="mb-2 text-sm font-medium text-accent-800">
+                    Renseigner d'un coup les {restants.length} élément(s) restant(s) de « {piece.nom} »
+                  </p>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => (
+                      <button
+                        key={etat}
+                        type="button"
+                        onClick={() => renseignerRestants(piece, etat)}
+                        className="min-h-touch rounded-lg border-2 border-dashed border-accent-300 px-1 py-2 text-xs font-semibold text-accent-600 transition-all hover:border-accent-500 hover:bg-accent-50"
+                      >
+                        {ETAT_LABELS[etat]}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-accent-500">
+                    Les éléments déjà renseignés ne sont pas modifiés.
+                  </p>
+                </div>
+              );
+            })()}
             {edl.pieces
               .find((p) => p.id === onglet.pieceId)!
               .elements.map((el) => (
@@ -655,6 +740,50 @@ export function EdlTerrainPage() {
           onClose={() => setVisionneuse(null)}
         />
       )}
+
+      <Modal
+        open={modaleOublis}
+        onClose={() => setModaleOublis(false)}
+        title={`${oublis.length} élément(s) sans état renseigné`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModaleOublis(false)}>
+              Continuer la saisie
+            </Button>
+            <Button onClick={() => navigate(`/edl/${edl.id}/signature`)}>
+              Signer quand même
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-accent-700">
+            Un élément sans état ne prouve rien à la sortie : il ne pourra pas servir de point de
+            comparaison. Touchez une ligne pour aller directement à sa pièce.
+          </p>
+          <ul className="max-h-72 space-y-1 overflow-y-auto">
+            {oublis.map((o) => (
+              <li key={o.elementId}>
+                <button
+                  type="button"
+                  onClick={() => allerALaPiece(o.pieceId)}
+                  className="flex min-h-touch w-full items-center justify-between gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left text-sm hover:bg-accent-50"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-medium text-accent-900">{o.elementNom}</span>
+                    <span className="block text-xs text-accent-500">{o.pieceNom}</span>
+                  </span>
+                  <ArrowRight size={16} className="shrink-0 text-accent-400" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-accent-500">
+            Astuce : dans chaque pièce, « Renseigner d'un coup les éléments restants » pose l'état
+            commun, puis vous corrigez les exceptions.
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         open={modaleRectifier}

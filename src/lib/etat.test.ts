@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { EtatDesLieux } from '@/types';
-import { construirePiecesSortie, elementsDegrades, estDegradation, progressionEDL } from './etat';
+import {
+  construirePiecesSortie,
+  elementsDegrades,
+  elementsNonRenseignes,
+  estDegradation,
+  progressionEDL,
+} from './etat';
 
 function edlEntreeFixture(): EtatDesLieux {
   return {
@@ -125,3 +131,55 @@ describe('EDL enrichi (quantités et éléments manquants)', () => {
   });
 });
 
+
+describe('elementsNonRenseignes', () => {
+  it('liste les éléments sans état, avec leur pièce', () => {
+    const pieces = [
+      {
+        id: 'p1',
+        nom: 'Séjour',
+        ordre: 0,
+        elements: [
+          { id: 'e1', nom: 'Sol', categorie: 'sol' as const, etat: 'bon' as const, photoIds: [] },
+          { id: 'e2', nom: 'Murs', categorie: 'mur' as const, photoIds: [] },
+        ],
+      },
+    ];
+    expect(elementsNonRenseignes(pieces)).toEqual([
+      { pieceId: 'p1', pieceNom: 'Séjour', elementId: 'e2', elementNom: 'Murs' },
+    ]);
+  });
+
+  it('ne compte pas un élément marqué manquant : c’est une décision, pas un oubli', () => {
+    const pieces = [
+      {
+        id: 'p1',
+        nom: 'Cuisine',
+        ordre: 0,
+        elements: [{ id: 'e1', nom: 'Four', categorie: 'equipement' as const, manquant: true, photoIds: [] }],
+      },
+    ];
+    expect(elementsNonRenseignes(pieces)).toEqual([]);
+  });
+
+  it('suit l’ordre des pièces, pas celui du tableau', () => {
+    const elementVierge = (id: string, nom: string) => ({
+      id,
+      nom,
+      categorie: 'autre' as const,
+      photoIds: [],
+    });
+    const pieces = [
+      { id: 'p2', nom: 'Chambre', ordre: 1, elements: [elementVierge('e2', 'Sol')] },
+      { id: 'p1', nom: 'Séjour', ordre: 0, elements: [elementVierge('e1', 'Sol')] },
+    ];
+    expect(elementsNonRenseignes(pieces).map((o) => o.pieceNom)).toEqual(['Séjour', 'Chambre']);
+  });
+
+  it('reste cohérent avec la progression affichée', () => {
+    const edl = edlEntreeFixture();
+    edl.pieces[0].elements[1].etat = undefined;
+    const prog = progressionEDL(edl.pieces);
+    expect(elementsNonRenseignes(edl.pieces)).toHaveLength(prog.total - prog.renseignes);
+  });
+});

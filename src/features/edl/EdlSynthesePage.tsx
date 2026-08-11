@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -10,7 +10,8 @@ import type { ElementEDL, EtatDesLieux } from '@/types';
 import { ETAT_LABELS } from '@/types';
 import {
   coefficientVetuste,
-  delaiRestitutionJours,
+  dateLimiteRestitution,
+  delaiRestitutionMois,
   formatEuros,
   retenueApresVetuste,
   totalRetenues,
@@ -93,9 +94,9 @@ export function EdlSynthesePage() {
       };
     });
   const total = totalRetenues(lignes);
-  const delai = delaiRestitutionJours(total > 0);
+  const delai = delaiRestitutionMois(total > 0);
   const dateLimite = edl.signatures
-    ? addDays(new Date(edl.signatures.dateSignature), delai)
+    ? dateLimiteRestitution(new Date(edl.signatures.dateSignature), total > 0)
     : undefined;
 
   const genererLettre = async () => {
@@ -139,7 +140,7 @@ export function EdlSynthesePage() {
         <p className="text-sm text-accent-700">
           <span className="font-semibold">{degrades.length}</span> élément(s) marqué(s) en
           dégradation. Délai légal de restitution du dépôt de garantie :{' '}
-          <span className="font-semibold">{delai / 30} mois</span> après remise des clés
+          <span className="font-semibold">{delai} mois</span> après remise des clés
           {dateLimite && (
             <>
               {' '}

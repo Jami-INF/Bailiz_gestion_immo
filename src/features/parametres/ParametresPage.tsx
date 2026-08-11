@@ -26,7 +26,8 @@ import {
   telechargerBlob,
 } from '@/lib/backup';
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
-import { usePersistanceStockage } from '@/hooks/useStatuts';
+import { formatOctets } from '@/lib/calculs';
+import { usePersistanceStockage, useQuotaStockage } from '@/hooks/useStatuts';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { FicheVisitePanel } from './FicheVisitePanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
@@ -48,6 +49,7 @@ export function ParametresPage() {
   // paramètres (modèle de fiche de visite…) sont complétés à la lecture.
   const parametres = useLiveQuery(() => lireParametres());
   const persiste = usePersistanceStockage();
+  const quota = useQuotaStockage();
   const [bailleur, setBailleur] = useState<Parametres['bailleur'] | null>(null);
   const fichierRef = useRef<HTMLInputElement>(null);
   const [importEnAttente, setImportEnAttente] = useState<{
@@ -222,7 +224,21 @@ export function ParametresPage() {
               : 'jamais'}{' '}
             · Stockage persistant :{' '}
             {persiste === undefined ? '…' : persiste ? 'accordé par le navigateur' : 'non garanti (pensez à exporter !)'}
+            {quota && (
+              <>
+                {' '}
+                · Espace occupé : {formatOctets(quota.utilise)} sur {formatOctets(quota.quota)} (
+                {quota.pct} %)
+              </>
+            )}
           </p>
+          {quota?.critique && (
+            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Le stockage de ce navigateur est occupé à {quota.pct} %. Au-delà, il peut refuser
+              d'enregistrer une photo ou un PDF — en plein état des lieux. Exportez une sauvegarde,
+              puis libérez de la place (états des lieux anciens, documents archivés).
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button onClick={exporter}>
               <HardDriveDownload size={16} /> Exporter la sauvegarde (.zip)

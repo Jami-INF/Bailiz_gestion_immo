@@ -66,6 +66,28 @@ export interface SyncEtat {
   empreintes?: Record<string, string>;
 }
 
+/**
+ * Saisie en cours d'un formulaire, écrite en continu pendant la frappe.
+ *
+ * Volontairement **hors** de l'export ZIP et de la synchronisation : un
+ * brouillon appartient à l'appareil et à la session où il est saisi, il n'a rien
+ * à faire dans une sauvegarde ni sur un autre appareil. Il disparaît dès que le
+ * formulaire est enregistré ou abandonné.
+ */
+export interface BrouillonFormulaire {
+  /** `bien:nouveau`, `bien:<id>` — un seul brouillon par formulaire. */
+  cle: string;
+  donnees: unknown;
+  /** Date de la dernière frappe, affichée à la reprise. */
+  updatedAt: string;
+  /**
+   * `updatedAt` de l'entité au moment où le brouillon a commencé. Si la fiche a
+   * changé depuis (modification reçue par synchronisation), le brouillon est
+   * périmé et ne doit pas écraser la version arrivée entre-temps.
+   */
+  baseUpdatedAt?: string;
+}
+
 class BailizDB extends Dexie {
   biens!: EntityTable<Bien, 'id'>;
   locataires!: EntityTable<Locataire, 'id'>;
@@ -79,6 +101,7 @@ class BailizDB extends Dexie {
   sauvegardeAuto!: EntityTable<ConfigSauvegardeAuto, 'id'>;
   changements!: EntityTable<Changement, 'id'>;
   syncEtat!: Dexie.Table<SyncEtat, [string, string]>;
+  brouillons!: EntityTable<BrouillonFormulaire, 'cle'>;
 
   constructor() {
     super('bailiz');
@@ -110,6 +133,11 @@ class BailizDB extends Dexie {
     this.version(4).stores({
       changements: '++id, [table+cle], horodatage',
       syncEtat: '[table+cle], driveId',
+    });
+    // v5 : brouillons de formulaires (saisie en cours). Locaux à l'appareil,
+    // donc absents de `TABLES_SYNCHRONISEES` et de l'export ZIP.
+    this.version(5).stores({
+      brouillons: 'cle',
     });
   }
 }

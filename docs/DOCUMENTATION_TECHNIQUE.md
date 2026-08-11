@@ -68,13 +68,14 @@ src/
   main.tsx                 Bootstrap : registerSW (PWA), navigator.storage.persist()
   App.tsx                  Routes (HashRouter) — table de routage unique
   types.ts                 TOUT le modèle de données + labels FR (ETAT_LABELS, etc.)
-  index.css                Tailwind + import police Inter (cache runtime Workbox)
+  index.css                Tailwind + @font-face Inter auto-hébergée (assets/fonts/)
 
   components/
     ui/                    Design system : Button, Input/Textarea/Select/Checkbox/Field,
                            DateInput (saisie JJ/MM/AAAA masquée + calendrier natif),
                            Modal/ConfirmModal, Toast (ToastProvider + useToast), Badge,
-                           Stepper, Card/PageHeader/EmptyState. Export groupé via index.ts.
+                           Stepper, Card/PageHeader/EmptyState,
+                           BarreListe (recherche + tri des listes). Export groupé via index.ts.
     AppLayout.tsx          Navigation (sidebar desktop / barre basse mobile), indicateurs
                            hors-ligne + persistance, disclaimer 1re utilisation.
                            Exporte DISCLAIMER_JURIDIQUE (réutilisé en Paramètres).
@@ -82,6 +83,7 @@ src/
                            SignatureBloc). Utilisé par EDL ET inventaire.
 
   hooks/useStatuts.ts      useEnLigne (online/offline), usePersistanceStockage
+  hooks/useBrouillon.ts    Sauvegarde continue d'une saisie de formulaire (table brouillons)
 
   lib/
     db.ts                  Schéma Dexie, getParametres(), prochaineReference()
@@ -196,15 +198,26 @@ structured-cloneables, donc persistables dans IndexedDB). Cette table est **volo
 exclue de l'export ZIP** : un handle est propre à l'appareil et n'aurait aucun sens restauré
 ailleurs.
 
-### 4.3 ter Schémas v3 et v4
+### 4.3 ter Schémas v3, v4 et v5
 
 - **v3** : `photos: 'id, edlId, bienId'` — une photo peut illustrer un bien (fiche de visite)
   et plus seulement un EDL ; `Photo.edlId` devient donc optionnel.
 - **v4** : `changements: '++id, [table+cle], horodatage'` (journal de synchronisation) et
   `syncEtat: '[table+cle], driveId'` (lien enregistrement ↔ fichier Drive). Aucune donnée
   existante n'est transformée.
+- **v5** : `brouillons: 'cle'` — saisies de formulaires en cours (cf. §5.1). Table
+  **volontairement absente** de `TABLES_SYNCHRONISEES` et de l'export ZIP : un brouillon
+  appartient à l'appareil où on le saisit. Ne pas l'ajouter à ces listes.
 
 ### 4.4 Sauvegarde ZIP (`lib/backup.ts`)
+
+**Validation avant toute écriture** (`validerSauvegarde`) : l'import écrase ou fusionne des
+données irremplaçables, il ne doit jamais commencer sur un fichier dont la forme n'a pas été
+vérifiée. Sont contrôlés le numéro de version (`VERSION_SAUVEGARDE`, refus **motivé** au-dessus
+comme en dessous) et la présence de chaque collection. Un `data.json` tronqué passait
+auparavant le simple test de version puis échouait au milieu de `bulkPut` — en mode
+« remplacer », après que les tables ont déjà été vidées.
+
 
 Format de l'archive :
 
@@ -452,9 +465,19 @@ manque — indispensable à la première activation sur une base déjà remplie.
 
 ### 5.1 Biens
 
-- `BienFormPage` : 4 étapes, état local `Bien` complet + validation zod à la transition
+- `BienFormPage` : 5 étapes, état local `Bien` complet + validation zod à la transition
   (`schemaIdentite`, `schemaSurfaces`). Sert aussi à la modification (route
   `/biens/:id/modifier`, préchargement via `db.biens.get`).
+- **Sauvegarde continue de la saisie** (`hooks/useBrouillon.ts`, table `brouillons`) : chaque
+  frappe est écrite après 600 ms d'inactivité et retrouvée telle quelle au retour — cinq
+  étapes ne doivent pas disparaître avec un rechargement ou une notification passée au
+  premier plan. Ce sont les **données du formulaire** qui sont conservées, **jamais une
+  entité à demi renseignée** : un bien incomplet n'a rien à faire dans la liste des biens, le
+  sélecteur d'un bail ou une sauvegarde. Le brouillon est effacé à l'enregistrement, ou par
+  « Repartir de la fiche enregistrée ». Un brouillon dont la fiche a changé entre-temps
+  (`baseUpdatedAt`, modification reçue par synchronisation) est écarté plutôt que d'écraser la
+  version arrivée. Le hook est générique : le brancher sur un autre formulaire ne demande que
+  la clé et l'état.
 - Champs légaux du bail type portés par le bien (tous optionnels, pas de migration Dexie) :
   `identifiantFiscal` (12 chiffres, décret 2023-796, baux depuis le 01/01/2024),
   `typeHabitat` (collectif/individuel), `periodeConstruction`, `classeDPE`,
@@ -473,6 +496,16 @@ manque — indispensable à la première activation sur une base déjà remplie.
   d'être rendue cliquable ou encodée : le QR est scanné par un tiers.
 - Les éléments de catégorie `mobilier` des pièces (avec leur `quantite`) alimentent la partie
   inventaire de l'état des lieux d'entrée.
+
+**Recherche et tri des listes** (Biens, Locataires, Baux) : un seul composant, `BarreListe`,
+et un seul jeu de comparateurs (`lib/recherche.ts`). La recherche est insensible aux accents
+(`normaliser`) et exige **tous** les mots saisis, dans n'importe quel ordre (`correspond`) —
+« chamalieres » doit trouver « Chamalières ». Le tri passe par `comparerTexte`
+(`localeCompare` fr, `numeric` : « Chambre 2 » avant « Chambre 10 ») et `comparerDatesDesc`,
+qui relègue les dates absentes ou illisibles en fin de liste plutôt que d'échouer — une fiche
+abîmée ne doit jamais rendre une liste inaccessible. La barre n'apparaît qu'à partir de
+`SEUIL_BARRE_LISTE` (6) éléments : filtrer quatre biens coûte plus d'écran qu'il ne fait
+gagner de temps.
 
 ### 5.2 Locataires
 
@@ -528,9 +561,17 @@ manque — indispensable à la première activation sur une base déjà remplie.
   téléchargement) — utiliser ce helper pour tout nouveau document annexe.
 - La checklist d'annexes est figée dans le bail à la création (`annexesParDefaut(bien)` —
   l'extrait de copropriété ne s'ajoute que si `regimeJuridique === 'copropriete'`).
-- Calculateurs : prorata affiché en permanence (`prorataPremierLoyer` — jour d'effet inclus) ;
-  révision IRL en modal (`revisionIRL` = loyer × nouvel indice / indice de référence),
-  génère `CourrierIrlPdf` avec date d'application = anniversaire de l'année courante.
+- Calculateurs : prorata affiché en permanence (`prorataPremierLoyer` — jour d'effet inclus,
+  toujours calculé sur le loyer **du contrat**) ; révision IRL en modal (`revisionIRL` =
+  loyer × nouvel indice / indice de référence).
+- **Révisions de loyer** (`lib/bail.ts`) : générer le courrier **enregistre** la révision dans
+  `bail.revisionsLoyer`. `bail.loyerHC` n'est jamais réécrit — c'est le loyer du contrat
+  imprimé et signé, et le bail doit se régénérer à l'identique ; le loyer dû aujourd'hui se lit
+  par `loyerCourant(bail)`, la base du prochain courrier par `baseRevisionIRL(bail)`. Sans cet
+  historique, chaque révision repartait du loyer d'origine et le courrier de la deuxième année
+  annonçait un loyer vieux de deux ans.
+- `dateApplicationRevision` : anniversaire du bail, ou **date de la demande** si l'anniversaire
+  est passé — la révision ne rétroagit pas (art. 17-1, I, al. 2).
 
 ### 5.4 États des lieux (cœur de l'app — vaut inventaire)
 
@@ -567,6 +608,18 @@ obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `o
 - Dégradation (sortie) : `choisirEtat` recalcule `degradation = estDegradation(etatEntree,
   etat)` à chaque sélection (ordre : neuf > très bon > bon > usagé > mauvais, cf.
   `ETAT_ORDRE`), et la case reste décochable manuellement (usure normale).
+- **Remplissage groupé** (`renseignerRestants`) : en tête de chaque pièce, cinq boutons posent
+  l'état commun sur les éléments **encore vierges** — dans un logement en bon état, la
+  quasi-totalité partage le même état, on corrige ensuite les exceptions. Les éléments déjà
+  statués ne sont **jamais** réécrits : un raccourci ne doit pas pouvoir effacer une
+  observation faite sur place. Le bloc disparaît dès que la pièce est complète.
+- **Récapitulatif des oublis** (`elementsNonRenseignes`, `lib/etat.ts`) : l'en-tête affiche
+  « N élément(s) non renseigné(s) » cliquable, et « Signer » ouvre la même liste au lieu de
+  naviguer. Chaque ligne mène à la pièce concernée. Rien n'est **bloqué** — « Signer quand
+  même » reste offert — mais une barre de progression dit qu'il reste du travail sans dire
+  *où* : c'est la liste qui rend l'information exploitable sur le terrain. La même liste est
+  reprise, nominative, en tête de `EdlSignaturePage`. Un élément `manquant` compte comme
+  renseigné : c'est une décision, pas un oubli.
 - Verrouillage : si `statut === 'signe'`, `maj()` ne fait rien et tous les contrôles sont
   `disabled`. Seuls restent possibles : création d'**avenant** (texte daté, poussé dans
   `edl.avenants`, avec avertissement si les 10 jours sont dépassés) et l'accès à la synthèse.
@@ -625,13 +678,28 @@ obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `o
 
 Toute la logique d'alertes est dans `TableauDeBordPage` (pas de lib dédiée) :
 - EDL d'entrée signé alors que le bail est encore `brouillon`/`genere` ;
-- dépôt à restituer : EDL de sortie signé → date limite = signature + 30 ou 60 jours selon
-  dégradations, alerte affichée à ≤ 45 jours de l'échéance (rouge à ≤ 7 jours) ;
+- dépôt à restituer : EDL de sortie signé → date limite par `dateLimiteRestitution`
+  (1 ou 2 **mois** calendaires selon dégradations, art. 22 — jamais 30/60 jours), alerte
+  affichée à ≤ 45 jours de l'échéance (rouge à ≤ 7 jours) ;
 - sauvegarde > 30 jours.
 Échéancier : fins de bail (`dateEffet + dureeMois`) et prochain anniversaire de révision IRL
 des baux révisables. Si vous ajoutez un type d'alerte, suivez l'interface `Alerte` existante.
 
+**Périmètre des baux suivis** : toujours `estBailEnCours` (`lib/bail.ts`), qui retient
+`genere | signe | actif`. Ne pas retester les statuts à la main : `genere` est l'état d'un bail
+qu'on vient d'enregistrer et il n'en sort que par une action manuelle — l'exclure affichait le
+logement « Vacant » et vidait l'échéancier. Signer l'EDL d'entrée bascule le bail en `actif`
+(`EdlSignaturePage`), le bouton « Marquer le logement loué » ne servant plus que de rattrapage.
+
 ### 5.7 Paramètres
+
+**Occupation du stockage** (`useQuotaStockage`, `navigator.storage.estimate()`) : affichée
+avec la persistance, et alertée au-delà de `SEUIL_QUOTA_CRITIQUE_PCT` (80 %) dans les
+Paramètres **et** au tableau de bord. Les photos d'états des lieux s'accumulent sans qu'on les
+voie ; sans cette mesure, on découvre le quota le jour où une écriture échoue, c'est-à-dire en
+plein état des lieux. `undefined` si l'API manque ou ne rend rien d'exploitable : mieux vaut
+ne rien afficher qu'un pourcentage inventé.
+
 
 - Bailleur (affiché sur tous les PDF), grille de vétusté (tableau éditable, champs
   `defaultValue`+`onBlur`, bouton reset vers `GRILLE_VETUSTE_DEFAUT`), export/import (§4.4),
@@ -700,10 +768,25 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
    `yyyy-MM-dd` et renvoie `''` si vide — les appelants doivent ignorer la valeur vide
    (`onChange={(d) => d && ...}`) pour ne jamais construire de `Date` invalide. Ne pas
    réintroduire d'`<input type="date">` nu.
-5. **Police Inter via Google Fonts** (`index.css`) : disponible en ligne, mise en cache
-   runtime par Workbox (`CacheFirst`) après la première visite en ligne ; au tout premier
-   chargement hors-ligne on retombe proprement sur `system-ui`. Pour une garantie totale,
-   embarquer les fichiers woff2 dans `public/` et remplacer l'`@import`.
+5. **Police Inter auto-hébergée** (`index.css` + `src/assets/fonts/`) : deux woff2 variables
+   (`latin`, `latin-ext`), émis et versionnés par Vite, précachés comme le reste. Ne pas
+   réintroduire l'`@import` vers `fonts.googleapis.com` : il envoyait l'IP de chaque
+   utilisateur à Google — contraire aux mentions légales de l'app — et retardait le premier
+   rendu. L'application ne charge **rien** depuis un domaine tiers ; `vite.config.ts` n'a donc
+   plus de `runtimeCaching`.
+5bis. **Mise à jour de l'application** : `registerType: 'prompt'` (jamais `autoUpdate`) +
+   `lib/majApp.ts`, petit magasin auquel `BandeauMiseAJour` s'abonne par
+   `useSyncExternalStore`. Le service worker ne prend la main **que** sur clic de
+   l'utilisateur, et le bandeau est masqué en mode terrain : un rechargement automatique au
+   milieu d'un état des lieux rempli devant le locataire est le pire moment possible.
+5ter. **Étiquetage des champs** : `Field` associe son `<label for>` au contrôle via un
+   contexte (`ChampContext`) et lui passe `aria-describedby` vers l'aide ou l'erreur. Règle
+   à respecter : **un `Field`, un contrôle**. Deux contrôles côte à côte (type + énergie du
+   chauffage) valent deux `Field`. Toute tentative de n'attribuer l'identifiant qu'au
+   « premier » contrôle demande de mémoriser qui l'a pris, et `StrictMode` rejoue le rendu :
+   l'identifiant était attribué puis retiré, le libellé se retrouvait orphelin **en
+   production alors que les tests passaient**. Pour un bloc sans contrôle de formulaire
+   (photo), ne pas utiliser `Field` : un `<span>` titre suffit.
 6. **HashRouter** : les URL sont en `/#/...`. Ne pas remplacer par `BrowserRouter` sans
    configurer le fallback SPA de l'hébergeur ET la `navigateFallback` du service worker.
 7. **`.claude/launch.json` du repo portfolio** contient une entrée `bailiz` (port 5273,
@@ -717,10 +800,79 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
 ## 8. Tests et qualité
 
 ```bash
-npm run lint        # ESLint (flat config) — exécuté en CI avant les tests
-npm test            # Vitest, environnement node, src/**/*.test.ts
-npx tsc -b          # type-check strict (aussi exécuté par npm run build)
+npm run lint          # ESLint (flat config) — exécuté en CI avant les tests
+npm test              # Vitest : toute la suite
+npm run test:watch    # même chose, en continu pendant le développement
+npm run test:coverage # + couverture et seuils (ce que lance la CI)
+npm run test:ui       # seulement les tests d'écran
+npx tsc -b            # type-check strict (aussi exécuté par npm run build)
 ```
+
+### 8.1 Stratégie
+
+Trois niveaux, chacun avec un rôle distinct — et aucun qui cherche à faire le travail des
+autres.
+
+**1. Logique métier (`lib/*.test.ts`, environnement node).** Calculs légaux, comparaison
+d'états des lieux, RGPD, recherche, synchronisation. C'est là que se trouve tout ce dont une
+régression est *invisible à l'écran* et se découvre sur un document déjà signé. Ces modules
+sont couverts à ~100 % et des **seuils par domaine** l'imposent (cf. §8.2). Rapides : aucun
+DOM, aucun rendu.
+
+**2. Écrans (`features/**/*.test.tsx`, environnement jsdom).** Montés avec Testing Library,
+**sur la vraie base** Dexie (`fake-indexeddb`) — la couche de données n'est jamais simulée.
+C'est délibéré : les défauts de cette application vivent à la jonction, pas dans une fonction
+pure. Un écran qui lit un champ que personne n'écrit, un statut qu'aucune action ne pose, une
+suppression qui laisse des PDF derrière elle — un test qui bouchonne `db` ne verrait rien de
+tout cela. Les cinq bugs corrigés en août 2026 étaient tous de cette nature, et chacun a
+désormais son test de non-régression.
+
+Ce qui est bouchonné, en revanche : le **rendu PDF** dans les parcours d'écran
+(`vi.mock('@/lib/pdf/generer')`). Le parcours de révision IRL vérifie ce qui est écrit dans le
+bail ; la mise en page du courrier a ses propres tests.
+
+**3. Documents (`lib/pdf/*.test.ts`).** Deux familles :
+- le **plan** et le contenu (numérotation des parties, clauses retenues) ;
+- le **rendu de toutes les combinaisons** (`BailPdf.combinaisons.test.ts`) : type de bail ×
+  colocation × régime juridique, plus les cas dégradés (aucune mention facultative,
+  locataire non pourvu, encadrement sans loyer de référence). Le mode de panne visé est
+  brutal : `renderToBuffer` **lève**, et l'utilisateur se retrouve sans document, devant le
+  locataire. Une combinaison rare n'est jamais exercée à la main : elle doit l'être ici.
+
+**Ce qui n'est volontairement pas testé** : les écrans de paramétrage (`ParametresPage`,
+panneaux de sauvegarde, éditeurs de modèles). Beaucoup de surface, peu de logique, et un coût
+de maintenance supérieur à ce qu'ils protègent. C'est un choix assumé, pas un oubli — s'ils
+gagnent de la logique, ils devront gagner des tests.
+
+### 8.2 Couverture
+
+`npm run test:coverage` (provider v8) échoue sous les seuils. Ils sont **calés sur le niveau
+atteint**, pas sur une cible aspirationnelle : un seuil qu'on n'atteint pas est un seuil qu'on
+finit par baisser.
+
+| Périmètre | Lignes | Branches | Fonctions |
+|---|---|---|---|
+| Global | 45 % | 78 % | 50 % |
+| Cœur métier (`lib/{bail,calculs,etat,recherche,rgpd,lettres,adresse,liens,erreurs,crypto,rotation,dates}.ts`) | 98 % | 90 % | 100 % |
+| Synchronisation (`lib/sync/*.ts`) | 85 % | 85 % | 80 % |
+
+Le plancher global est modeste parce que `features/` est fait de vues ; **`branches` est le
+chiffre à regarder** (≈ 82 %) : il mesure les cas traités, pas les lignes traversées. Sont
+exclus du calcul les points d'entrée (`main.tsx`, `App.tsx`), les déclarations de types et les
+catalogues de contenu (`lib/defauts.ts` — des données, exercées indirectement par les tests
+PDF).
+
+### 8.3 Outillage des tests d'écran
+
+- `src/test/setup.ts` : matchers `jest-dom`, nettoyage entre tests, et les bouchons jsdom
+  manquants (`matchMedia`, `scrollTo`, `navigator.storage`). Expose `figerDate(iso)` — qui ne
+  falsifie **que** `Date` : `useFakeTimers()` complet met en défaut `fake-indexeddb` et les
+  attentes de Testing Library, et les tests se figent au lieu d'échouer.
+- `src/test/utils.tsx` : `rendre` / `rendreRoute` (routeur + toasts), `viderBase`, et des
+  fixtures surchargeables (`unBien`, `unBail`, `unEdl`, `semer`).
+- Les requêtes passent par les **rôles et les libellés**, ce que `Field` rend possible depuis
+  qu'il associe son `<label>` au contrôle (cf. §5). Éviter `getByText` sur un nom d'élément
+  d'EDL : les libellés de catégories (`Sol`, `Murs`…) créent des homonymes.
 
 **ESLint** (`eslint.config.js`) vise les vrais défauts, pas le style : règles des hooks,
 variables/imports morts, `no-explicit-any`, `eqeqeq`, `no-console` (sauf `warn`/`error`).
@@ -731,8 +883,20 @@ La CI échoue sur toute **erreur** ESLint.
 
 | Fichier | Couvre |
 |---|---|
-| `lib/calculs.test.ts` | prorata (mois entier / partiel), IRL (formule + indice invalide), plafond dépôt (2 mois, refus 3 mois, interdiction mobilité), durées par type, coefficient de vétusté (franchise, abattement, plancher 10 %, 0 % fin de vie), total retenues, délais 30/60 j |
-| `lib/etat.test.ts` | ordre des états, `construirePiecesSortie` (report entrée→référence, nouveaux ids), progression, extraction des dégradés |
+| `lib/backup.validation.test.ts` | validation de `data.json` avant import : format plus récent (message « mettez l'application à jour »), format plus ancien, version absente, archive tronquée (collections nommées), JSON illisible, base intacte en cas de refus |
+| `lib/erreurs.test.ts` | traduction de chaque cause navigateur (quota, contrainte, base fermée, clonage, transaction) + repli nom/message |
+| `lib/pdf/BailPdf.combinaisons.test.ts` | rendu de 12 combinaisons (type de bail × colocation × régime juridique) + cas dégradés : aucune mention facultative, toutes les mentions, locataire non pourvu, encadrement sans loyer de référence |
+| `features/dashboard/TableauDeBordPage.test.tsx` | logement loué dès le bail enregistré, échéancier (fin de bail, IRL), délai de restitution en mois calendaires, alerte de stockage saturé |
+| `features/baux/BailDetailPage.test.tsx` | révision IRL : écriture dans le bail, loyer du contrat préservé, chaînage des cycles, non-rétroactivité, bail sans clause, bien supprimé |
+| `features/edl/EdlTerrainPage.test.tsx` | remplissage groupé (éléments vierges seulement, autres pièces intactes, dégradation en sortie), récapitulatif des oublis (liste, navigation, interception de « Signer »), verrouillage après signature |
+| `features/biens/BienFormPage.test.tsx` | brouillon : écriture continue sans créer de fiche, reprise au retour, effacement à l'enregistrement, abandon, brouillon périmé par une synchronisation |
+| `features/biens/BiensPage.test.tsx` | seuil d'affichage de la barre, recherche (accents, adresse, multi-mots), tris (nom, ville, statut, récence), fiche sans date |
+| `features/locataires/LocatairesPage.test.tsx` | recherche, tri, suppression RGPD (blocage si bail en cours, cascade complète, colocation préservée) |
+| `components/AppLayout.majApp.test.tsx` | mise à jour proposée et jamais imposée, masquée en mode terrain, abonnement/désabonnement |
+| `lib/calculs.test.ts` | prorata (mois entier / partiel), IRL (formule + indice invalide), plafond dépôt (2 mois, refus 3 mois, interdiction mobilité), durées par type, coefficient de vétusté (franchise, abattement, plancher 10 %, 0 % fin de vie), total retenues, délai de restitution (1/2 mois calendaires, fin de mois court) |
+| `lib/recherche.test.ts` | normalisation (accents, casse), recherche multi-mots et multi-champs, tri alphabétique français (accents, nombres), tri par date avec dates absentes ou illisibles |
+| `lib/bail.test.ts` | `estBailEnCours` (bail à peine généré compris), loyer courant et historique des révisions, base du prochain courrier IRL, date d'application (première année, anticipation, demande tardive non rétroactive, enchaînement des cycles) |
+| `lib/etat.test.ts` | ordre des états, `construirePiecesSortie` (report entrée→référence, nouveaux ids), progression, extraction des dégradés, éléments non renseignés (ordre des pièces, « manquant » exclu, cohérence avec la progression) |
 | `lib/crypto.test.ts` | vecteurs SHA-256 connus (chaîne vide, "abc"), formatage |
 | `lib/dates.test.ts` | parsing JJ/MM/AAAA (dates inexistantes rejetées), formatage, masque de saisie |
 | `lib/lettres.test.ts` | nombres en lettres (règles françaises : 71, 80, 200, accords), montants en euros |

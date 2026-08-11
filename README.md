@@ -32,7 +32,8 @@ https://jami-inf.github.io/Bailiz_gestion_immo/
 - PDF côté client : `@react-pdf/renderer`
 - `react-router-dom` v7, `react-hook-form` + `zod`, `dexie-react-hooks`, `signature_pad`,
   `date-fns` (locale fr), `jszip`, `lucide-react`
-- Qualité : ESLint (flat config) + Vitest (`fake-indexeddb` pour la couche Dexie)
+- Qualité : ESLint (flat config), Vitest + Testing Library (`fake-indexeddb` pour la couche
+  Dexie), couverture v8 avec seuils par domaine — 390 tests, cf. `docs/DOCUMENTATION_TECHNIQUE.md` §8
 
 ## Démarrer
 
@@ -40,13 +41,19 @@ https://jami-inf.github.io/Bailiz_gestion_immo/
 npm install
 npm run dev        # serveur de développement
 npm run lint       # ESLint (exécuté aussi en CI)
-npm test           # tests unitaires (Vitest)
+npm test           # toute la suite de tests (Vitest)
+npm run test:coverage  # + couverture et seuils (ce que lance la CI)
 npm run build      # build de production + PWA
 ```
 
 ## Fonctionnalités
 
 ### Biens
+- **Saisie enregistrée en continu** : le formulaire en cinq étapes s'écrit dans le navigateur
+  à chaque frappe et se retrouve intact au retour — un rechargement ou une notification qui
+  passe au premier plan ne coûte plus la saisie. Ce sont les données du formulaire qui sont
+  conservées, jamais une fiche à demi remplie : rien n'apparaît dans les listes tant que vous
+  n'avez pas enregistré, et « Repartir de la fiche enregistrée » écarte la saisie en cours.
 - CRUD avec formulaire multi-étapes : identité → surfaces/équipements → dossier technique →
   location & visite → pièces. L'étape « dossier technique » recense les conditions qui
   déterminent les diagnostics dus (âge des installations gaz/électricité, zonage ERP, bruit).
@@ -138,6 +145,12 @@ npm run build      # build de production + PWA
 - Calculateurs : prorata du premier loyer, révision IRL avec courrier PDF.
 
 ### États des lieux — valant inventaire (cœur de l'app, optimisé iPad)
+- **Renseigner d'un coup les éléments restants d'une pièce** : dans un logement en bon état,
+  presque tout partage le même état — on le pose sur les éléments encore vierges, puis on
+  corrige les exceptions. Ce que vous avez déjà relevé n'est jamais réécrit.
+- **Récapitulatif des oublis avant signature** : « N éléments non renseignés » se déplie en
+  liste cliquable qui mène droit à la pièce concernée, plutôt qu'une barre de progression qui
+  dit qu'il reste du travail sans dire où. Rien n'est bloqué : on peut signer quand même.
 - Mode terrain plein écran : une pièce à la fois, onglets, sélecteur d'état en 5 gros boutons
   colorés (Neuf / Très bon / Bon / Usagé / Mauvais), commentaires, **photos par élément**
   (caméra du device, compression 1600 px JPEG 0,7), compteurs (avec photo), clés, barre de
@@ -160,6 +173,9 @@ npm run build      # build de production + PWA
 - Rappel des 10 jours pour compléter l'EDL d'entrée, écran « Transmettre une copie ».
 
 ### Documents & sauvegarde
+- **Recherche et tri** sur les biens, les locataires et les baux (nom, adresse, référence,
+  locataire…), insensibles aux accents — « chamalieres » trouve « Chamalières ». La barre
+  n'apparaît qu'à partir de six fiches : à deux biens, elle n'occuperait que de la place.
 - Bibliothèque de tous les PDF générés, filtrable par bien / bail / type, numérotation
   `TYPE-ANNEE-XXXX` (séquence remise à zéro chaque année).
 - Export sauvegarde ZIP (data.json + photos + PDF) / import avec détection de conflits
@@ -189,15 +205,28 @@ npm run build      # build de production + PWA
     d'office : la référence figure peut-être sur un document déjà imprimé.
   - Un **instantané ZIP hebdomadaire** (4 conservés) reste déposé à côté, jamais fusionné :
     une version vivante qui se met à jour seule mérite un filet figé.
-- Persistance du stockage demandée au navigateur (`navigator.storage.persist()`).
+- Persistance du stockage demandée au navigateur (`navigator.storage.persist()`), et
+  **espace occupé affiché** — avec alerte au-delà de 80 % : les photos d'états des lieux
+  s'accumulent sans qu'on les voie, et le quota se découvre sinon le jour où une écriture
+  échoue, en plein état des lieux.
+- **Import de sauvegarde vérifié avant toute écriture** : version du format et présence de
+  chaque collection. Une archive écrite par une version plus récente est refusée avec la
+  marche à suivre, et rien n'est modifié — plutôt que d'échouer à mi-parcours après avoir
+  vidé les tables.
+- **Mise à jour proposée, jamais imposée** : la nouvelle version s'installe au clic, et le
+  bandeau reste masqué en mode terrain. Une prise de contrôle automatique peut recharger la
+  page au milieu d'un état des lieux, devant le locataire.
 - **Diagnostic des pannes** : les échecs affichent un **code d'étape et la cause réelle**
   (stockage saturé, permission refusée…) plutôt qu'un message générique — indispensable sur
   tablette, où la console n'est pas consultable. Les toasts d'erreur restent affichés jusqu'à
   fermeture manuelle.
 
 ### Tableau de bord
-- Biens avec statut loué/vacant, alertes (diagnostics expirants, dépôt à restituer sous X
-  jours, sauvegarde ancienne), échéancier (fins de bail, révisions IRL).
+- Biens avec statut loué/vacant, alertes (EDL d'entrée signé sans bail signé, dépôt à restituer
+  avant l'échéance légale, sauvegarde ancienne), échéancier (fins de bail, révisions IRL).
+  Un logement est « loué » dès qu'un bail est enregistré pour lui, et l'état des lieux d'entrée
+  signé rend le bail actif : aucune échéance ne dépend d'un clic qu'on aurait oublié.
+  Les dates de validité des diagnostics ne sont pas suivies — c'est le dossier joint qui fait foi.
 
 ## Structure
 

@@ -1,19 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Users, Plus, Pencil, Trash2, ShieldQuestion } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, SearchX, ShieldQuestion } from 'lucide-react';
 import { db } from '@/lib/db';
+import { estBailEnCours } from '@/lib/bail';
+import { comparerDatesDesc, comparerTexte, correspond } from '@/lib/recherche';
 import type { Locataire } from '@/types';
 import {
+  BarreListe,
   Badge,
   Button,
   Card,
   ConfirmModal,
   EmptyState,
   PageHeader,
+  SEUIL_BARRE_LISTE,
   useToast,
+  type OptionTri,
 } from '@/components/ui';
 import { perimetreSuppressionLocataire, supprimerLocataireEtDonnees, type PerimetreSuppression } from '@/lib/rgpd';
 import { LocataireFormModal } from './LocataireFormModal';
+
+type TriLocataire = 'nom' | 'recent' | 'baux';
+
+const TRIS: OptionTri<TriLocataire>[] = [
+  { valeur: 'nom', label: 'Nom (A → Z)' },
+  { valeur: 'recent', label: 'Modifié récemment' },
+  { valeur: 'baux', label: 'Locataires en cours d’abord' },
+];
 
 export function LocatairesPage() {
   const locataires = useLiveQuery(() => db.locataires.orderBy('nom').toArray());
@@ -21,6 +34,8 @@ export function LocatairesPage() {
   const toast = useToast();
   const [modale, setModale] = useState<{ ouvert: boolean; locataire?: Locataire }>({ ouvert: false });
   const [suppression, setSuppression] = useState<Locataire | null>(null);
+  const [recherche, setRecherche] = useState('');
+  const [tri, setTri] = useState<TriLocataire>('nom');
   /** Ce que la suppression effacera réellement (annoncé avant confirmation). */
   const [perimetre, setPerimetre] = useState<PerimetreSuppression | null>(null);
 
@@ -39,6 +54,42 @@ export function LocatairesPage() {
     };
   }, [suppression]);
 
+  const visibles = useMemo(() => {
+    const liste = (locataires ?? []).filter((l) =>
+      correspond(
+        recherche,
+        l.nom,
+        l.prenom,
+        l.email,
+        l.telephone,
+        l.adresseActuelle,
+        l.garant?.nom,
+        l.garant?.prenom,
+      ),
+    );
+    const enCours = new Set(
+      (baux ?? []).filter(estBailEnCours).flatMap((b) => b.locataireIds ?? []),
+    );
+    return liste.sort((a, b) => {
+      switch (tri) {
+        case 'recent':
+          return comparerDatesDesc(a.updatedAt, b.updatedAt);
+        case 'baux': {
+          const rang = (id: string) => (enCours.has(id) ? 0 : 1);
+          return (
+            rang(a.id) - rang(b.id) ||
+            comparerTexte(a.nom ?? '', b.nom ?? '') ||
+            comparerTexte(a.prenom ?? '', b.prenom ?? '')
+          );
+        }
+        default:
+          return (
+            comparerTexte(a.nom ?? '', b.nom ?? '') || comparerTexte(a.prenom ?? '', b.prenom ?? '')
+          );
+      }
+    });
+  }, [locataires, baux, recherche, tri]);
+
   const ouvrir = (locataire?: Locataire) => setModale({ ouvert: true, locataire });
 
   const bauxDuLocataire = (locataireId: string) =>
@@ -46,7 +97,7 @@ export function LocatairesPage() {
 
   const supprimerDefinitivement = async (l: Locataire) => {
     const lies = bauxDuLocataire(l.id);
-    const actifs = lies.filter((b) => ['signe', 'actif', 'genere'].includes(b.statut));
+    const actifs = lies.filter(estBailEnCours);
     if (actifs.length > 0) {
       toast('error', 'Suppression bloquée : un bail actif ou en cours est lié à ce locataire.');
       return;
@@ -93,8 +144,31 @@ export function LocatairesPage() {
           }
         />
       ) : (
+        <>
+          {locataires.length >= SEUIL_BARRE_LISTE && (
+            <BarreListe
+              recherche={recherche}
+              onRecherche={setRecherche}
+              tri={tri}
+              onTri={setTri}
+              optionsTri={TRIS}
+              placeholder="Rechercher un locataire (nom, e-mail, téléphone…)"
+              affiches={visibles.length}
+              total={locataires.length}
+              nom="locataire"
+              nomPluriel="locataires"
+            />
+          )}
+          {visibles.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              titre="Aucun locataire ne correspond"
+              message="Vérifiez l'orthographe, ou effacez la recherche pour retrouver toute la liste."
+              action={<Button variant="secondary" onClick={() => setRecherche('')}>Afficher toute la liste</Button>}
+            />
+          ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {locataires.map((l) => {
+          {visibles.map((l) => {
             const lies = bauxDuLocataire(l.id);
             return (
               <Card key={l.id}>
@@ -134,6 +208,8 @@ export function LocatairesPage() {
             );
           })}
         </div>
+          )}
+        </>
       )}
 
       <LocataireFormModal

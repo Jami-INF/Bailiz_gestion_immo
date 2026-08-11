@@ -80,7 +80,7 @@ export async function exporterSauvegarde(): Promise<Blob> {
   }
 
   const data: DonneesExport = {
-    version: 1,
+    version: VERSION_SAUVEGARDE,
     exporteLe: nowISO(),
     biens,
     locataires,
@@ -110,13 +110,74 @@ export interface ResumeImport {
   documents: number;
 }
 
+/** Version de format que cette version de l'application sait relire et écrire. */
+export const VERSION_SAUVEGARDE = 1;
+
+/** Collections attendues dans `data.json`, toutes obligatoires. */
+const COLLECTIONS = [
+  'biens',
+  'locataires',
+  'baux',
+  'inventaires',
+  'edls',
+  'documents',
+  'photos',
+] as const;
+
+/**
+ * Contrôle du contenu de `data.json` **avant** toute écriture en base.
+ *
+ * L'import écrase ou fusionne des données irremplaçables : il ne doit jamais
+ * commencer sur un fichier dont la forme n'a pas été vérifiée. Un `data.json`
+ * tronqué passait jusqu'ici le simple test de version, puis échouait au milieu
+ * de `bulkPut` — en mode « remplacer », les tables avaient déjà été vidées.
+ *
+ * Les messages disent quoi faire : « mettez à jour l'application » n'est pas la
+ * même réponse que « ce fichier n'est pas une sauvegarde Bailiz ».
+ */
+export function validerSauvegarde(brut: unknown): DonneesExport {
+  if (typeof brut !== 'object' || brut === null) {
+    throw new Error("Archive invalide : data.json ne contient pas de sauvegarde Bailiz.");
+  }
+  const data = brut as Partial<DonneesExport>;
+
+  if (typeof data.version !== 'number') {
+    throw new Error(
+      "Archive invalide : aucun numéro de version dans data.json. Ce fichier n'a probablement pas été produit par Bailiz.",
+    );
+  }
+  if (data.version > VERSION_SAUVEGARDE) {
+    throw new Error(
+      `Cette sauvegarde a été créée par une version plus récente de Bailiz (format ${data.version}, cette application lit le format ${VERSION_SAUVEGARDE}). Mettez l'application à jour avant de l'importer — l'importer telle quelle perdrait des informations.`,
+    );
+  }
+  if (data.version < VERSION_SAUVEGARDE) {
+    throw new Error(
+      `Format de sauvegarde ${data.version} non pris en charge (cette application lit le format ${VERSION_SAUVEGARDE}).`,
+    );
+  }
+
+  const manquantes = COLLECTIONS.filter((c) => !Array.isArray(data[c]));
+  if (manquantes.length > 0) {
+    throw new Error(
+      `Archive incomplète ou corrompue : ${manquantes.join(', ')} manquant(s) dans data.json. Rien n'a été modifié ; réessayez avec une autre sauvegarde.`,
+    );
+  }
+
+  return data as DonneesExport;
+}
+
 export async function lireSauvegarde(fichier: Blob): Promise<{ zip: JSZip; data: DonneesExport }> {
   const zip = await JSZip.loadAsync(await fichier.arrayBuffer());
   const dataFile = zip.file('data.json');
   if (!dataFile) throw new Error('Archive invalide : data.json introuvable.');
-  const data = JSON.parse(await dataFile.async('string')) as DonneesExport;
-  if (data.version !== 1) throw new Error(`Version de sauvegarde non prise en charge : ${data.version}`);
-  return { zip, data };
+  let brut: unknown;
+  try {
+    brut = JSON.parse(await dataFile.async('string'));
+  } catch {
+    throw new Error("Archive illisible : data.json n'est pas un fichier JSON valide.");
+  }
+  return { zip, data: validerSauvegarde(brut) };
 }
 
 /** Détecte les conflits d'identifiants entre la sauvegarde et la base locale. */

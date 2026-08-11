@@ -7,7 +7,7 @@ import { nowISO } from '@/lib/ids';
 import type { EtatDesLieux, SignatureBloc } from '@/types';
 import { ETAT_LABELS, COMPTEUR_LABELS } from '@/types';
 import { formatHash } from '@/lib/crypto';
-import { progressionEDL } from '@/lib/etat';
+import { elementsNonRenseignes } from '@/lib/etat';
 import { decrireErreur } from '@/lib/erreurs';
 import {
   rendrePdfAvecHash,
@@ -48,7 +48,7 @@ export function EdlSignaturePage() {
     );
   }
 
-  const prog = progressionEDL(edl.pieces);
+  const oublis = elementsNonRenseignes(edl.pieces);
 
   const signer = async (bloc: SignatureBloc) => {
     setEnCours(true);
@@ -89,6 +89,14 @@ export function EdlSignaturePage() {
       // Un EDL de sortie signé clôt le bail.
       if (edl.type === 'sortie') {
         await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
+      } else if (bail.statut !== 'actif' && bail.statut !== 'termine') {
+        /*
+         * Un EDL d'entrée signé, c'est la remise des clés : le logement est
+         * loué. Le bail restait sinon « généré » jusqu'à ce que l'utilisateur
+         * pense à cliquer « Marquer le logement loué » — et le tableau de bord
+         * annonçait le logement vacant, sans fin de bail ni révision à venir.
+         */
+        await db.baux.put({ ...bail, statut: 'actif', updatedAt: nowISO() });
       }
       setResultat({ hash, blob });
       /*
@@ -186,11 +194,31 @@ export function EdlSignaturePage() {
       >
         <ArrowLeft size={16} /> Retour à l'état des lieux
       </button>
-      {prog.renseignes < prog.total && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Attention : {prog.total - prog.renseignes} élément(s) n'ont pas encore d'état renseigné.
-          Ils apparaîtront « non renseigné » sur le PDF.
-        </p>
+      {oublis.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-medium">
+            Attention : {oublis.length} élément(s) n'ont pas encore d'état renseigné. Ils
+            apparaîtront « non renseigné » sur le PDF.
+          </p>
+          {/* Les nommer, pas seulement les compter : on ne retourne pas relever
+              un oubli sans savoir lequel ni dans quelle pièce. */}
+          <ul className="mt-2 space-y-0.5 text-xs">
+            {oublis.slice(0, 12).map((o) => (
+              <li key={o.elementId}>
+                {o.pieceNom} — {o.elementNom}
+              </li>
+            ))}
+            {oublis.length > 12 && <li>… et {oublis.length - 12} autre(s).</li>}
+          </ul>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="mt-2"
+            onClick={() => navigate(`/edl/${edl.id}`)}
+          >
+            <ArrowLeft size={14} /> Retourner les compléter
+          </Button>
+        </div>
       )}
       <Card>
         {enCours ? (

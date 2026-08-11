@@ -181,6 +181,13 @@ export interface Bail {
   jourPaiement: number; // 1-28
   modePaiement: string;
   revisionIRL: { trimestreReference: string; valeurIndice: number; revisable: boolean };
+  /**
+   * Révisions annuelles du loyer effectivement demandées, dans l'ordre où elles
+   * ont été notifiées. Le loyer courant s'en déduit (`loyerCourant`) — `loyerHC`
+   * reste le loyer d'origine, celui du contrat imprimé et signé, pour que le
+   * bail se régénère à l'identique. Absent = aucune révision notifiée.
+   */
+  revisionsLoyer?: RevisionLoyer[];
   complementLoyer?: { montant: number; justification: string };
   dernierLoyerAncienLocataire?: number;
   /**
@@ -225,6 +232,26 @@ export interface Bail {
   pdfHash?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Révision annuelle du loyer selon l'IRL, telle qu'elle a été notifiée au
+ * locataire. Conservée intégralement : le courrier suivant repart de cet indice
+ * et de ce loyer, et l'historique justifie le loyer courant en cas de litige.
+ */
+export interface RevisionLoyer {
+  /** Date de la demande (génération du courrier). */
+  date: string;
+  /** Date à laquelle le loyer révisé s'applique — jamais rétroactive. */
+  dateApplication: string;
+  /** Trimestre et indice de référence retenus comme base du calcul. */
+  trimestreReference: string;
+  indiceReference: number;
+  /** Trimestre et indice nouvellement publiés par l'INSEE. */
+  nouveauTrimestre: string;
+  nouvelIndice: number;
+  ancienLoyer: number;
+  nouveauLoyer: number;
 }
 
 export interface AnnexeChecklistItem {

@@ -1,3 +1,4 @@
+import { addMonths } from 'date-fns';
 import type { ClasseDPE, LigneVetuste, TypeBail } from '@/types';
 
 /** Nombre de jours dans le mois d'une date donnée. */
@@ -156,11 +157,31 @@ export function totalRetenues(lignes: LigneRetenue[]): number {
 }
 
 /**
- * Délai légal de restitution du dépôt de garantie :
- * 1 mois si l'EDL de sortie est conforme à l'entrée, 2 mois sinon.
+ * Délai légal de restitution du dépôt de garantie (art. 22 de la loi du 6
+ * juillet 1989) : un mois si l'état des lieux de sortie est conforme à celui
+ * d'entrée, deux mois sinon.
+ *
+ * Exprimé en **mois**, comme la loi : compter 30 ou 60 jours décalait
+ * l'échéance jusqu'à deux jours selon le mois de la remise des clés — et la
+ * majoration de retard court par mois commencé.
  */
-export function delaiRestitutionJours(retenues: boolean): number {
-  return retenues ? 60 : 30;
+export function delaiRestitutionMois(retenues: boolean): number {
+  return retenues ? 2 : 1;
+}
+
+/** Date limite de restitution, comptée depuis la remise des clés. */
+export function dateLimiteRestitution(remiseDesCles: Date, retenues: boolean): Date {
+  return addMonths(remiseDesCles, delaiRestitutionMois(retenues));
+}
+
+/** Taille de fichier lisible (Mo au-delà du millier de Ko), pour le stockage occupé. */
+export function formatOctets(octets: number): string {
+  if (octets < 1024) return `${octets} o`;
+  const ko = octets / 1024;
+  if (ko < 1024) return `${Math.round(ko)} Ko`;
+  const mo = ko / 1024;
+  if (mo < 1024) return `${mo.toFixed(mo < 10 ? 1 : 0)} Mo`;
+  return `${(mo / 1024).toFixed(1)} Go`;
 }
 
 export function formatEuros(montant: number): string {

@@ -47,6 +47,35 @@ export function progressionEDL(pieces: PieceEDL[]): ProgressionEDL {
   return { total, renseignes, pct: total === 0 ? 0 : Math.round((renseignes / total) * 100) };
 }
 
+export interface ElementNonRenseigne {
+  pieceId: string;
+  pieceNom: string;
+  elementId: string;
+  elementNom: string;
+}
+
+/**
+ * Éléments dont l'état n'a pas encore été statué, dans l'ordre des pièces.
+ *
+ * Un élément marqué « manquant » compte comme renseigné : c'est une décision,
+ * pas un oubli. Sert au récapitulatif cliquable avant signature — une barre de
+ * progression dit qu'il reste du travail, elle ne dit pas *où*.
+ */
+export function elementsNonRenseignes(pieces: PieceEDL[]): ElementNonRenseigne[] {
+  return [...pieces]
+    .sort((a, b) => a.ordre - b.ordre)
+    .flatMap((piece) =>
+      piece.elements
+        .filter((el) => el.etat === undefined && !el.manquant)
+        .map((el) => ({
+          pieceId: piece.id,
+          pieceNom: piece.nom,
+          elementId: el.id,
+          elementNom: el.nom,
+        })),
+    );
+}
+
 /** Liste des éléments dégradés d'un EDL de sortie (pour la synthèse comparative). */
 export function elementsDegrades(edlSortie: EtatDesLieux) {
   return edlSortie.pieces.flatMap((piece) =>

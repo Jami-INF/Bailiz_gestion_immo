@@ -10,6 +10,13 @@ interface Props {
   bien: Bien;
   locataires: Locataire[];
   parametres: Parametres;
+  /**
+   * Trimestre servant de base au calcul : celui du contrat pour la première
+   * révision, celui de la révision précédente ensuite. Lire
+   * `bail.revisionIRL.trimestreReference` citait indéfiniment le trimestre
+   * d'origine, faux dès la deuxième année.
+   */
+  ancienTrimestre: string;
   ancienIndice: number;
   nouvelIndice: number;
   nouveauTrimestre: string;
@@ -49,8 +56,8 @@ export function CourrierIrlPdf(p: Props) {
           l'INSEE.
         </Text>
         <Text style={s.p}>
-          Indice de référence prévu au bail ({p.bail.revisionIRL.trimestreReference}) :{' '}
-          {p.ancienIndice}. Nouvel indice ({p.nouveauTrimestre}) : {p.nouvelIndice}.
+          Indice de référence ({p.ancienTrimestre}) : {p.ancienIndice}. Nouvel indice ({p.nouveauTrimestre}) :{' '}
+          {p.nouvelIndice}.
         </Text>
         <Text style={s.p}>
           Le nouveau loyer mensuel hors charges est calculé ainsi :{' '}
