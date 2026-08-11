@@ -131,9 +131,17 @@ Vous obtenez trois valeurs :
 > foi. N'utilisez pas `ftp.bailiz.fr` : le `CNAME` existe dans la zone et résoudrait, mais l'hôte
 > canonique du cluster est celui qu'OVH documente et maintient.
 
-Le home étant `/home/bailiza` et le répertoire courant après connexion étant ce home, la cible du
-miroir est **`www/`** — un chemin **relatif**. Un chemin absolu (`/www/`) casserait si le compte
-était chrooté ; le relatif fonctionne dans les deux cas.
+Le compte SFTP a pour **répertoire cible `.`** — la racine du compte, c'est-à-dire
+`/home/bailiza`, qui **contient** `www`. La cible du miroir est donc **`www/`**, en chemin
+**relatif** : un chemin absolu (`/www/`) casserait si le compte était chrooté, le relatif
+fonctionne dans les deux cas.
+
+> **Ce réglage est vérifié à chaque exécution, et ce n'est pas une précaution de confort.** La
+> troisième passe du miroir emporte `--delete`. Visant `www/`, elle ne peut nettoyer que
+> l'intérieur du site. Mais si le répertoire cible du compte était un jour changé en `./www`, la
+> connexion aboutirait *dans* le docroot, la même commande viserait le dossier **parent** et
+> **supprimerait le site**. Le workflow sonde donc le point d'arrivée avant d'écrire quoi que ce
+> soit, et s'arrête si `www` n'y figure pas.
 
 ### SFTP, et pas FTPS
 
@@ -277,29 +285,53 @@ jobs:
           ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
           test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
 
-          # Le script lftp ci-dessous ne contient QUE des commandes : pas un
-          # commentaire. lftp traite les apostrophes comme des délimiteurs de
-          # chaîne, et une apostrophe française isolée dans un commentaire
-          # (« l'ordre », « qu'il ») suffirait à lui faire avaler les lignes
-          # suivantes. Les explications restent donc ici, côté shell.
+          # Réglages de connexion dans `~/.lftprc` plutôt que dans chaque appel :
+          # ils servent deux fois (sonde puis transfert), et les sortir du script
+          # évite d'imbriquer des guillemets dans des guillemets.
           #
-          # - `sftp:connect-program` : lftp parle SFTP au travers de ssh, et
-          #   sshpass lui fournit le mot de passe lu dans SSHPASS. Les
-          #   authentifications par clé sont écartées — le runner n'en a aucune,
-          #   et les essayer ne ferait que retarder l'échec.
-          # - Cible `www/`, en relatif : la connexion aboutit dans le home
-          #   (/home/bailiza), qui contient `www`. Un chemin absolu casserait si
-          #   le compte était chrooté.
+          # `sftp:connect-program` : lftp parle SFTP au travers de ssh, et
+          # sshpass lui fournit le mot de passe lu dans SSHPASS. Les
+          # authentifications par clé sont écartées — le runner n'en a aucune, et
+          # les essayer ne ferait que retarder l'échec.
+          cat > ~/.lftprc <<'RC'
+          set sftp:connect-program "sshpass -e ssh -a -x -o PreferredAuthentications=password -o PubkeyAuthentication=no"
+          set sftp:auto-confirm yes
+          set net:max-retries 3
+          set net:timeout 20
+          set cmd:fail-exit true
+          RC
+
+          # --- Sonde, avant tout transfert ---
+          #
+          # La troisième passe emporte `--delete`. Visant `www/`, elle ne peut
+          # nettoyer que l'intérieur du site. Mais si la connexion aboutissait
+          # DÉJÀ dans `www` (selon le répertoire cible du compte SFTP), la même
+          # commande viserait le dossier parent et **supprimerait le docroot**.
+          # On vérifie donc où l'on atterrit avant d'écrire quoi que ce soit.
+          echo "Point d'arrivée sur le serveur :"
+          ARRIVEE=$(lftp -c "open sftp://$UTILISATEUR@$HOTE; pwd; cls -1;")
+          echo "$ARRIVEE"
+
+          echo "$ARRIVEE" | grep -qx 'www/\?' || {
+            echo "::error::Le dossier 'www' est absent du point d'arrivée. \
+          Le compte SFTP aboutit peut-être déjà dans le docroot : dans ce cas la cible \
+          du miroir doit devenir '.' et non 'www/'. Transfert interrompu — \
+          un miroir avec --delete au mauvais endroit effacerait le site."
+            exit 1
+          }
+
+          # --- Transfert ---
+          #
+          # Le script lftp ne contient QUE des commandes : pas un commentaire.
+          # lftp traite les apostrophes comme des délimiteurs de chaîne, et une
+          # apostrophe française isolée (« l'ordre », « qu'il ») suffirait à lui
+          # faire avaler les lignes suivantes.
+          #
           # - Passe 1, les assets sans suppression : un HTML mis en ligne avant
           #   le CSS qu'il référence afficherait une page nue quelques secondes.
           # - Passe 2, le HTML, qui référence des assets désormais présents.
           # - Passe 3, suppression de ce qui a disparu du build.
           lftp -c "
-            set sftp:connect-program \"sshpass -e ssh -a -x -o PreferredAuthentications=password -o PubkeyAuthentication=no\";
-            set sftp:auto-confirm yes;
-            set net:max-retries 3;
-            set net:timeout 20;
-            set cmd:fail-exit true;
             open sftp://$UTILISATEUR@$HOTE;
             mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
             mirror -R --parallel=4 _site/ www/;
@@ -532,6 +564,7 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 | Un job **Jekyll** échoue sur les fichiers `.astro` | GitHub Pages est réglé sur « Deploy from a branch » : le workflow automatique `pages-build-deployment` lance Jekyll sur la racine du dépôt, et lit les `---` des fichiers `.astro` comme du front matter YAML | **Aucun correctif dans le code.** Settings → Pages → Source → **GitHub Actions**. Ne pas mettre « None » : cf. §8 |
 | `npm ci --prefix site` ou le build vitrine échoue en CI, mais passe en local | Version de Node du runner inférieure à celle exigée par Astro (`>=22.12.0`) | `node-version: 22` dans le workflow. Le vérifier après chaque montée de version majeure d'Astro : `node -p "require('./site/node_modules/astro/package.json').engines"` |
 | `403 Forbidden` à la racine | Fichiers déposés à côté de `www/` et non dedans | Vérifier la cible du miroir : `www/` relatif, jamais `/www/` |
+| `Le dossier 'www' est absent du point d'arrivée` | Le répertoire cible du compte SFTP a changé — la connexion aboutit déjà dans le docroot | Remettre le répertoire cible à `.` dans le Manager, ou basculer la cible du miroir sur `.` dans le workflow |
 | `500 Internal Server Error` | Une directive de `.htaccess` non supportée | Commenter les blocs `<IfModule>` un par un pour isoler |
 | Redirections et cache sans effet | `mod_rewrite` / `mod_headers` inactifs | Vérifier l'offre ; sans eux, le site fonctionne mais perd §7 |
 | Boucle de redirection HTTPS | Certificat pas encore actif | Attendre la fin de la génération Let's Encrypt (§2) |
