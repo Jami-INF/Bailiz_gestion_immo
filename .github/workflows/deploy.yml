@@ -65,44 +65,53 @@ jobs:
           echo "À déployer : $(du -sh _site | cut -f1)"
 
       # --- Transfert --------------------------------------------------------
-      - name: Installer lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
+      - name: Installer lftp et sshpass
+        run: sudo apt-get update && sudo apt-get install -y lftp sshpass
 
+      # Transfert en SFTP (port 22) et non en FTPS : ce cluster OVH n'annonce
+      # pas AUTH TLS sur le port 21 (« server does not support or allow SSL »).
+      # Le FTP simple est exclu — il transmettrait le mot de passe en clair.
       - name: Envoyer sur OVH
         env:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
-          # `LFTP_PASSWORD` + `--env-password` : le mot de passe ne passe ni par
-          # la ligne de commande (donc pas par `ps`), ni par le script lftp — où
-          # il aurait fallu l'entourer de guillemets, un mot de passe contenant
-          # `"` ou `,` produisant alors une commande malformée.
-          LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
+          # `sshpass -e` lit le mot de passe dans SSHPASS : il ne passe ni par
+          # la ligne de commande (donc pas par `ps`), ni par le script lftp.
+          SSHPASS: ${{ secrets.OVH_FTP_PASSWORD }}
         run: |
+          # Empreinte du serveur relevée avant la connexion : sans cela, ssh
+          # s'arrête sur une demande de confirmation qui n'aura jamais de
+          # réponse dans un environnement non interactif.
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
+
+          # Le script lftp ci-dessous ne contient QUE des commandes : pas un
+          # commentaire. lftp traite les apostrophes comme des délimiteurs de
+          # chaîne, et une apostrophe française isolée dans un commentaire
+          # (« l'ordre », « qu'il ») suffirait à lui faire avaler les lignes
+          # suivantes. Les explications restent donc ici, côté shell.
+          #
+          # - `sftp:connect-program` : lftp parle SFTP au travers de ssh, et
+          #   sshpass lui fournit le mot de passe lu dans SSHPASS. Les
+          #   authentifications par clé sont écartées — le runner n'en a aucune,
+          #   et les essayer ne ferait que retarder l'échec.
+          # - Cible `www/`, en relatif : la connexion aboutit dans le home
+          #   (/home/bailiza), qui contient `www`. Un chemin absolu casserait si
+          #   le compte était chrooté.
+          # - Passe 1, les assets sans suppression : un HTML mis en ligne avant
+          #   le CSS qu'il référence afficherait une page nue quelques secondes.
+          # - Passe 2, le HTML, qui référence des assets désormais présents.
+          # - Passe 3, suppression de ce qui a disparu du build.
           lftp -c "
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            # Le certificat présenté par le serveur FTP d'OVH ne correspond pas
-            # au nom d'hôte utilisé. La connexion reste chiffrée : seule la
-            # vérification du nom est levée.
-            set ssl:verify-certificate no;
+            set sftp:connect-program \"sshpass -e ssh -a -x -o PreferredAuthentications=password -o PubkeyAuthentication=no\";
+            set sftp:auto-confirm yes;
             set net:max-retries 3;
             set net:timeout 20;
             set cmd:fail-exit true;
-            open -u \"$UTILISATEUR\" --env-password \"$HOTE\";
-
-            # Chemin relatif : après connexion, le répertoire courant est le
-            # home de l'utilisateur (/home/bailiza), qui contient 'www'.
-            # Un chemin absolu casserait si le compte était chrooté.
-
-            # Passe 1 — les assets d'abord, sans rien supprimer. Un HTML mis en
-            # ligne avant le CSS qu'il référence donne une page nue pendant
-            # quelques secondes ; l'ordre le supprime.
+            open sftp://$UTILISATEUR@$HOTE;
             mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
-
-            # Passe 2 — le HTML, qui référence des assets désormais présents.
             mirror -R --parallel=4 _site/ www/;
-
-            # Passe 3 — nettoyage des fichiers disparus du build.
             mirror -R --delete --parallel=4 _site/ www/;
           "
 

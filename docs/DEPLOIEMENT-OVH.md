@@ -16,7 +16,7 @@
 | Hébergement mutualisé 100 Mo | ✅ Inclus, rattaché au domaine — **cluster129** |
 | Zone DNS | ✅ Correcte, rien à modifier (§1) |
 | Certificats SSL apex + www | ✅ Actifs, Let's Encrypt (§2) |
-| Accès FTPS et SFTP | ✅ `ftp.cluster129.hosting.ovh.net`, home `/home/bailiza` (§4) |
+| Accès **SFTP** (port 22) | ✅ `ftp.cluster129.hosting.ovh.net`, home `/home/bailiza`. **FTPS ne fonctionne pas sur ce cluster** (§4) |
 | Espace nécessaire | 2,7 Mo assemblés (2,5 Mo app + 0,2 Mo vitrine) sur 100 Mo |
 | Secrets GitHub | ✅ Posés (§4) |
 
@@ -122,7 +122,7 @@ Vous obtenez trois valeurs :
 | Valeur | Pour bailiz.fr — ✅ confirmé |
 |---|---|
 | Serveur | **`ftp.cluster129.hosting.ovh.net`** |
-| Port FTPS / SFTP | 21 / 22 |
+| Protocole retenu | **SFTP, port 22** — FTPS échoue sur ce cluster (voir plus bas) |
 | Utilisateur principal | `bailiza` |
 | Répertoire home | `/home/bailiza`, qui contient `www/` |
 
@@ -135,18 +135,34 @@ Le home étant `/home/bailiza` et le répertoire courant après connexion étant
 miroir est **`www/`** — un chemin **relatif**. Un chemin absolu (`/www/`) casserait si le compte
 était chrooté ; le relatif fonctionne dans les deux cas.
 
-### FTPS ou SFTP ?
+### SFTP, et pas FTPS
 
-Les deux sont disponibles sur cette offre. Le workflow utilise **FTPS** (port 21, TLS explicite),
-et c'est délibéré : avec lftp, l'authentification **par mot de passe** en SFTP passe par un pseudo-
-terminal ssh et peut se bloquer sur une invite dans un environnement non interactif. FTPS
-l'authentifie proprement, et la connexion est tout aussi chiffrée.
+Le Manager annonce les deux, mais **FTPS ne fonctionne pas sur ce cluster**. Une tentative sur le
+port 21 avec `ftp:ssl-force` échoue à la connexion :
 
-SFTP redeviendra le meilleur choix le jour où le déploiement passera à une **clé SSH** plutôt qu'à
-un mot de passe. Il faudra alors remplacer le bloc `open` par
-`open sftp://$UTILISATEUR@$HOTE` avec `set sftp:auto-confirm yes`.
+```
+Login failed: ftp:ssl-force is set and server does not support or allow SSL
+```
 
-Dans tous les cas, **jamais de FTP simple** : il transmettrait le mot de passe en clair.
+Le serveur n'annonce pas `AUTH TLS`. Comme le FTP simple est exclu — il transmettrait le mot de
+passe en clair — **le transfert se fait en SFTP** (port 22).
+
+Deux ajustements que cela impose dans le workflow :
+
+1. **`sshpass`** est installé à côté de `lftp`. lftp parle SFTP au travers de `ssh`, et `ssh` ne
+   sait pas lire un mot de passe autrement que sur un terminal ; `sshpass -e` le lui fournit
+   depuis la variable `SSHPASS`, sans jamais le faire apparaître sur une ligne de commande.
+2. **L'empreinte du serveur est relevée avant la connexion** (`ssh-keyscan` vers
+   `~/.ssh/known_hosts`). Sans elle, `ssh` s'arrête sur une demande de confirmation qui n'obtiendra
+   jamais de réponse, et le job expire au lieu d'échouer franchement.
+
+> **Note de sécurité.** `ssh-keyscan` accorde sa confiance à la première réponse obtenue, à chaque
+> exécution : cela évite l'invite, mais ne vérifie rien. Pour une vérification réelle, relever
+> l'empreinte une fois depuis un poste de confiance, la stocker dans un secret `OVH_SSH_HOSTKEY` et
+> écrire ce secret dans `known_hosts` au lieu de la scanner.
+
+Le jour où le déploiement passera à une **clé SSH**, `sshpass` et le secret de mot de passe
+disparaissent : c'est la trajectoire à viser.
 
 ### Secrets GitHub
 
@@ -240,44 +256,53 @@ jobs:
           echo "À déployer : $(du -sh _site | cut -f1)"
 
       # --- Transfert --------------------------------------------------------
-      - name: Installer lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
+      - name: Installer lftp et sshpass
+        run: sudo apt-get update && sudo apt-get install -y lftp sshpass
 
+      # Transfert en SFTP (port 22) et non en FTPS : ce cluster OVH n'annonce
+      # pas AUTH TLS sur le port 21 (« server does not support or allow SSL »).
+      # Le FTP simple est exclu — il transmettrait le mot de passe en clair.
       - name: Envoyer sur OVH
         env:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
-          # `LFTP_PASSWORD` + `--env-password` : le mot de passe ne passe ni par
-          # la ligne de commande (donc pas par `ps`), ni par le script lftp — où
-          # il aurait fallu l'entourer de guillemets, un mot de passe contenant
-          # `"` ou `,` produisant alors une commande malformée.
-          LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
+          # `sshpass -e` lit le mot de passe dans SSHPASS : il ne passe ni par
+          # la ligne de commande (donc pas par `ps`), ni par le script lftp.
+          SSHPASS: ${{ secrets.OVH_FTP_PASSWORD }}
         run: |
+          # Empreinte du serveur relevée avant la connexion : sans cela, ssh
+          # s'arrête sur une demande de confirmation qui n'aura jamais de
+          # réponse dans un environnement non interactif.
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
+
+          # Le script lftp ci-dessous ne contient QUE des commandes : pas un
+          # commentaire. lftp traite les apostrophes comme des délimiteurs de
+          # chaîne, et une apostrophe française isolée dans un commentaire
+          # (« l'ordre », « qu'il ») suffirait à lui faire avaler les lignes
+          # suivantes. Les explications restent donc ici, côté shell.
+          #
+          # - `sftp:connect-program` : lftp parle SFTP au travers de ssh, et
+          #   sshpass lui fournit le mot de passe lu dans SSHPASS. Les
+          #   authentifications par clé sont écartées — le runner n'en a aucune,
+          #   et les essayer ne ferait que retarder l'échec.
+          # - Cible `www/`, en relatif : la connexion aboutit dans le home
+          #   (/home/bailiza), qui contient `www`. Un chemin absolu casserait si
+          #   le compte était chrooté.
+          # - Passe 1, les assets sans suppression : un HTML mis en ligne avant
+          #   le CSS qu'il référence afficherait une page nue quelques secondes.
+          # - Passe 2, le HTML, qui référence des assets désormais présents.
+          # - Passe 3, suppression de ce qui a disparu du build.
           lftp -c "
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            # Le certificat présenté par le serveur FTP d'OVH ne correspond pas
-            # au nom d'hôte utilisé. La connexion reste chiffrée : seule la
-            # vérification du nom est levée.
-            set ssl:verify-certificate no;
+            set sftp:connect-program \"sshpass -e ssh -a -x -o PreferredAuthentications=password -o PubkeyAuthentication=no\";
+            set sftp:auto-confirm yes;
             set net:max-retries 3;
             set net:timeout 20;
             set cmd:fail-exit true;
-            open -u \"$UTILISATEUR\" --env-password \"$HOTE\";
-
-            # Chemin relatif : après connexion, le répertoire courant est le
-            # home de l'utilisateur (/home/bailiza), qui contient 'www'.
-            # Un chemin absolu casserait si le compte était chrooté.
-
-            # Passe 1 — les assets d'abord, sans rien supprimer. Un HTML mis en
-            # ligne avant le CSS qu'il référence donne une page nue pendant
-            # quelques secondes ; l'ordre le supprime.
+            open sftp://$UTILISATEUR@$HOTE;
             mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
-
-            # Passe 2 — le HTML, qui référence des assets désormais présents.
             mirror -R --parallel=4 _site/ www/;
-
-            # Passe 3 — nettoyage des fichiers disparus du build.
             mirror -R --delete --parallel=4 _site/ www/;
           "
 
@@ -516,7 +541,10 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 | Le PDF ne s'affiche plus | CSP trop stricte | Console → `Refused to load` → ajuster `site/public/.htaccess` |
 | La vitrine reste sur une vieille version | HTML mis en cache | Vérifier `Cache-Control: no-cache` sur `.html` (§7) |
 | Le service worker sert une page périmée | Ancien SW encore enregistré | DevTools → Application → Service Workers → *Unregister*, puis recharger |
-| lftp : `Fatal error: Certificate verification` | Certificat FTP OVH non concordant | `set ssl:verify-certificate no` doit être présent |
+| lftp : `server does not support or allow SSL` | FTPS indisponible sur ce cluster | Passer en SFTP (§4) — c'est ce que fait le workflow |
+| lftp : le job reste bloqué puis expire | `ssh` attend la confirmation de l'empreinte du serveur | Vérifier que l'étape `ssh-keyscan` s'est exécutée et a écrit dans `~/.ssh/known_hosts` |
+| lftp : `Login incorrect` en SFTP | SFTP non activé pour cet utilisateur | Manager → FTP-SSH → l'utilisateur doit avoir SSH coché |
+| Un commentaire ajouté dans le script `lftp -c` casse le transfert | lftp traite l'apostrophe comme un délimiteur de chaîne | Ne mettre **aucun** commentaire dans le script lftp : les explications restent côté shell |
 | lftp : `Login failed` | Mauvais secret, ou utilisateur FTP non propagé | Tester d'abord la connexion depuis un client FTP local |
 
 ---
