@@ -4,9 +4,18 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
 export default defineConfig({
-  // Base relative : indispensable pour GitHub Pages où l'app est servie
-  // sous /<nom-du-repo>/ et non à la racine du domaine.
-  base: './',
+  /*
+   * L'application est servie sous `bailiz.fr/app/`, la vitrine occupant la
+   * racine (cf. `docs/CDC-site-vitrine-seo.md` §3.5). Un sous-répertoire et non
+   * un sous-domaine : IndexedDB est cloisonné par origine, et c'est là que
+   * vivent les baux, les états des lieux et les photos. Une seule origine pour
+   * tout le domaine, c'est la garantie qu'aucune réorganisation ultérieure des
+   * chemins ne fera perdre leurs données aux utilisateurs.
+   *
+   * Chemin absolu et non plus relatif : `./` était imposé par GitHub Pages, qui
+   * servait l'application sous `/<nom-du-repo>/`.
+   */
+  base: '/app/',
   plugins: [
     react(),
     VitePWA({
@@ -34,8 +43,8 @@ export default defineConfig({
         theme_color: '#334155',
         background_color: '#f8fafc',
         display: 'standalone',
-        start_url: './',
-        scope: './',
+        start_url: '/app/',
+        scope: '/app/',
         icons: [
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           { src: 'icon-maskable.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },

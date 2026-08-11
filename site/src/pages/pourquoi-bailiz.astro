@@ -1,0 +1,81 @@
+---
+import Base from '../layouts/Base.astro';
+
+const titre = 'Pourquoi Bailiz : sans compte, hors ligne, vos données chez vous';
+const description =
+  "Pourquoi Bailiz n'a ni compte, ni serveur, ni abonnement — et ce que ce choix change concrètement pour vous, avantages comme contreparties.";
+---
+
+<Base titre={titre} description={description}>
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Pourquoi Bailiz est fait comme ça</h1>
+      <p class="accroche">
+        Pas de compte, pas de serveur, pas d'abonnement. Ce sont des choix d'architecture — avec
+        leurs avantages et leurs contreparties.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Sans compte</h2>
+      <p>
+        Créer un compte pour rédiger un bail n'a aucune justification technique : c'est une
+        façon de collecter une adresse e-mail. Bailiz s'ouvre et s'utilise. Rien à confirmer,
+        rien à retenir, rien à récupérer si vous l'oubliez.
+      </p>
+
+      <h2>Sans serveur</h2>
+      <p>
+        Il n'y a pas de base de données quelque part avec vos locataires dedans. Tout est
+        enregistré dans votre navigateur. Cela règle d'un coup la question de la sécurité des
+        données : il n'y a rien à pirater, rien à revendre, rien à perdre dans une fuite.
+      </p>
+      <p>
+        <strong>La contrepartie est réelle</strong>, et il vaut mieux la connaître avant : vos
+        données ne suivent pas d'un appareil à l'autre, et vider les données de votre navigateur
+        les efface. L'export d'une sauvegarde n'est pas une commodité, c'est votre filet.
+      </p>
+
+      <h2>Hors ligne</h2>
+      <p>
+        Un état des lieux se fait souvent là où le réseau ne passe pas : cave, parking, cage
+        d'escalier, immeuble ancien. Bailiz s'installe comme une application et fonctionne
+        entièrement sans connexion une fois chargé. Ce n'est pas une option de confort, c'est la
+        condition pour que l'outil serve au moment où on en a besoin.
+      </p>
+
+      <h2>Le document fait foi, pas l'outil</h2>
+      <p>
+        Bailiz ne cherche pas à devenir le dépositaire de votre gestion locative. Il produit des
+        documents que vous imprimez, signez et conservez — et qui restent valables même si
+        l'application disparaît demain. C'est ce qui explique deux décisions qui peuvent
+        surprendre :
+      </p>
+      <ul>
+        <li>
+          le <strong>bail se signe sur papier</strong>, ce qui le laisse modifiable et
+          regénérable sans jamais produire de version périmée ;
+        </li>
+        <li>
+          l'<strong>état des lieux se signe sur écran</strong>, parce qu'il se remplit sur place
+          et que la loi l'admet — et il est alors verrouillé.
+        </li>
+      </ul>
+
+      <h2>Gratuit, et sans intention cachée</h2>
+      <p>
+        Il n'y a ni offre payante, ni version limitée, ni publicité, ni revente de données.
+        Bailiz coûte un hébergement statique : il n'y a pas de modèle économique à financer.
+        Le <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">code source est public</a>,
+        ce qui rend chacune de ces affirmations vérifiable.
+      </p>
+
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Essayer maintenant</a>
+        <a class="bouton bouton--secondaire" href="/confidentialite/">Lire la politique de confidentialité</a>
+      </div>
+    </div>
+  </section>
+</Base>

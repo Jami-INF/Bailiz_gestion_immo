@@ -1,0 +1,230 @@
+---
+/*
+ * Landing — CDC §5. L'ordre des blocs est l'argumentaire, il n'est pas
+ * cosmétique : promesse → réassurance → outils → fonctionnement → données →
+ * conformité → objections.
+ *
+ * Le bloc « preuve visuelle » (capture de l'app + aperçu du PDF) manque encore :
+ * les captures n'existent pas. Mieux vaut une page sans image qu'une image
+ * inventée sur une page qui vend l'honnêteté.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Bailiz — Bail meublé et état des lieux gratuits, sans compte';
+const description =
+  "Rédigez un bail meublé conforme et réalisez vos états des lieux avec photos. PDF prêt à imprimer, gratuit, sans inscription. Vos données restent sur votre appareil.";
+
+const FAQ = [
+  {
+    q: 'Bailiz est-il vraiment gratuit ?',
+    r: "Oui, entièrement et sans limite d'usage. Il n'y a ni offre payante, ni version d'essai, ni fonctionnalité réservée. Le code source est public.",
+  },
+  {
+    q: 'Faut-il créer un compte ?',
+    r: "Non. Il n'y a pas de compte, pas de mot de passe, pas d'adresse e-mail à donner. Vous ouvrez le site et vous commencez.",
+  },
+  {
+    q: 'Où sont enregistrées mes données ?',
+    r: "Dans votre navigateur, sur votre appareil. Bailiz n'a pas de serveur de base de données : rien de ce que vous saisissez n'est envoyé ni stocké ailleurs.",
+  },
+  {
+    q: 'Que se passe-t-il si je change d’ordinateur ?',
+    r: "Vos données ne suivent pas toutes seules, puisqu'elles sont sur votre appareil. Bailiz permet d'exporter une sauvegarde complète (archive ZIP) et de la réimporter sur un autre appareil. Une sauvegarde vers votre propre Google Drive est également disponible, si vous l'activez.",
+  },
+  {
+    q: 'Le bail produit est-il valable ?',
+    r: "Il suit la trame du bail type imposée par le décret n°2015-587 et rappelle les mentions obligatoires. C'est un modèle solide, à relire et à adapter à votre situation : Bailiz ne remplace pas un conseil juridique.",
+  },
+  {
+    q: 'Peut-on signer en ligne ?',
+    r: "L'état des lieux se signe sur écran, sur place, avec horodatage — la signature électronique y est admise. Le bail, lui, s'imprime et se signe sur papier : c'est un choix assumé, qui vous laisse le modifier et le régénérer autant de fois que nécessaire.",
+  },
+  {
+    q: 'Faut-il une connexion Internet ?',
+    r: "Seulement au premier chargement. Ensuite Bailiz fonctionne hors ligne, y compris installé sur tablette — utile pour un état des lieux en cave, au parking ou dans un immeuble mal couvert.",
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Bailiz',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    url: 'https://bailiz.fr/',
+    description,
+    inLanguage: 'fr-FR',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    author: { '@type': 'Person', name: 'Jami Infante' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map((e) => ({
+      '@type': 'Question',
+      name: e.q,
+      acceptedAnswer: { '@type': 'Answer', text: e.r },
+    })),
+  },
+];
+---
+
+<Base titre={titre} description={description} schema={schema}>
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Bail meublé et état des lieux, gratuits et sans compte</h1>
+      <p class="accroche">
+        Remplissez, générez, imprimez. Un PDF conforme en quelques minutes — et vos données
+        restent sur votre appareil.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
+        <a class="bouton bouton--secondaire" href="/app/#/edl">Faire un état des lieux</a>
+      </div>
+      <p class="mention">Aucune inscription, aucune carte bancaire, aucune limite.</p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <ul class="reassurance">
+        <li>
+          <strong>Sans compte</strong>
+          <span>Pas d'inscription, pas de mot de passe, pas d'e-mail à donner.</span>
+        </li>
+        <li>
+          <strong>Hors ligne</strong>
+          <span>Fonctionne sans connexion, une fois la page chargée.</span>
+        </li>
+        <li>
+          <strong>Vos données restent chez vous</strong>
+          <span>Tout est enregistré dans votre navigateur, jamais sur un serveur.</span>
+        </li>
+        <li>
+          <strong>Code source public</strong>
+          <span>Vérifiable par n'importe qui, à tout moment.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe">
+      <h2>Deux outils, deux documents</h2>
+      <div class="cartes">
+        <article class="carte">
+          <h3>Bail meublé</h3>
+          <ul>
+            <li>Trame du bail type (décret n°2015-587)</li>
+            <li>Loyer, charges, dépôt de garantie, IRL, zone tendue</li>
+            <li>Bailleur particulier, indivision ou SCI</li>
+            <li>Colocation, garant physique ou garantie Visale</li>
+            <li>Les champs vides deviennent des pointillés à remplir à la main</li>
+          </ul>
+          <a class="bouton bouton--secondaire" href="/bail-meuble/">En savoir plus</a>
+        </article>
+
+        <article class="carte">
+          <h3>État des lieux</h3>
+          <ul>
+            <li>Entrée et sortie, pièce par pièce, avec photos</li>
+            <li>Vaut inventaire du mobilier</li>
+            <li>Signature sur tablette, horodatée</li>
+            <li>Comparaison entrée / sortie automatique</li>
+            <li>Calcul des retenues sur dépôt avec grille de vétusté</li>
+          </ul>
+          <a class="bouton bouton--secondaire" href="/etat-des-lieux/">En savoir plus</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Comment ça marche</h2>
+      <ol class="etapes">
+        <li>
+          <h3>Choisissez l'outil</h3>
+          <p>Pas de configuration préalable, pas de tableau de bord à remplir avant de commencer.</p>
+        </li>
+        <li>
+          <h3>Saisissez les informations</h3>
+          <p>Un seul écran, avec l'aperçu du document qui se construit à mesure.</p>
+        </li>
+        <li>
+          <h3>Générez le PDF</h3>
+          <p>Prêt à imprimer ou à envoyer. Modifiable et regénérable autant de fois que nécessaire.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Où vont mes données ?</h2>
+      <p>
+        Nulle part. Bailiz n'a pas de serveur de base de données : tout ce que vous saisissez —
+        logements, locataires, baux, états des lieux, photos, PDF — est{' '}
+        <strong>enregistré dans votre navigateur</strong>, sur votre appareil.
+      </p>
+      <ul>
+        <li>Aucun compte, aucun cookie, aucun traceur, aucune publicité.</li>
+        <li>Aucune requête vers un service tiers : ni police de caractères distante, ni analytique.</li>
+        <li>Vous exportez vos données quand vous voulez, en une archive que vous conservez.</li>
+        <li>
+          Une sauvegarde vers <em>votre</em> Google Drive existe, désactivée par défaut et
+          révocable à tout moment.
+        </li>
+      </ul>
+      <p>
+        Ce n'est pas une promesse à croire sur parole :
+        <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">le code source est public</a>,
+        et le détail figure sur la <a href="/confidentialite/">page confidentialité</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Conformité</h2>
+      <ul>
+        <li>Bail meublé : trame du bail type, décret n°2015-587 modifié.</li>
+        <li>État des lieux et signature électronique : décret n°2016-382.</li>
+        <li>Pièces exigibles d'un candidat : liste limitative du décret n°2015-1437.</li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur :
+          relisez vos documents et, en cas de doute, faites-les vérifier.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Votre document, dans cinq minutes</h2>
+      <p>Sans inscription. Sans installation. Sans engagement.</p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
+        <a class="bouton bouton--secondaire" href="/app/#/edl">Faire un état des lieux</a>
+      </div>
+    </div>
+  </section>
+</Base>

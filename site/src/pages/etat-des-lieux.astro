@@ -1,0 +1,155 @@
+---
+import Base from '../layouts/Base.astro';
+
+const titre = "État des lieux d'entrée et de sortie sur tablette — gratuit, hors ligne";
+const description =
+  "Réalisez vos états des lieux pièce par pièce avec photos, signature sur écran et comparaison entrée/sortie. Fonctionne hors ligne, gratuit, sans compte.";
+
+const FAQ = [
+  {
+    q: "L'état des lieux signé sur tablette est-il valable ?",
+    r: "Oui. La signature électronique est admise pour l'état des lieux (décret n°2016-382). Chaque signature est horodatée et l'empreinte du document est calculée (SHA-256), ce qui permet de démontrer qu'il n'a pas été modifié après coup.",
+  },
+  {
+    q: 'Faut-il une connexion sur place ?',
+    r: "Non. Une fois la page chargée une première fois, Bailiz fonctionne entièrement hors ligne — cave, parking, immeuble mal couvert. C'est la raison d'être de l'application installable.",
+  },
+  {
+    q: 'Faut-il faire un inventaire du mobilier séparé ?',
+    r: "Non : en meublé, l'état des lieux vaut inventaire du mobilier. Les éléments sont décrits pièce par pièce dans le même document.",
+  },
+  {
+    q: 'Peut-on corriger un état des lieux déjà signé ?',
+    r: "Il est verrouillé après signature, mais peut être rectifié si les deux parties re-signent. La version précédente est conservée et le nouveau document porte la mention « annule et remplace ».",
+  },
+  {
+    q: 'Comment sont calculées les retenues sur le dépôt de garantie ?',
+    r: "À partir de la comparaison entrée/sortie et d'une grille de vétusté que vous pouvez modifier dans les paramètres. Le décompte est produit avec le détail poste par poste.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema}>
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>État des lieux d'entrée et de sortie, avec photos</h1>
+      <p class="accroche">
+        Pièce par pièce, sur tablette, hors ligne, signé sur place. Puis la comparaison
+        entrée/sortie et le décompte du dépôt de garantie.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/edl">Faire un état des lieux</a>
+      </div>
+      <p class="mention">Gratuit, sans compte. Fonctionne sans connexion.</p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que contient le document</h2>
+      <ul>
+        <li>
+          la description pièce par pièce, à partir de la trame du logement — réutilisée d'un
+          état des lieux à l'autre, et enrichie par ce que vous ajoutez sur le terrain ;
+        </li>
+        <li>
+          <strong>l'inventaire du mobilier</strong> : en meublé, l'état des lieux en tient lieu,
+          il n'y a pas de document séparé à produire ;
+        </li>
+        <li>les relevés de compteurs et les clés remises ;</li>
+        <li>les photos, compressées à la capture et rattachées à la pièce concernée ;</li>
+        <li>
+          les signatures des deux parties, horodatées, avec l'empreinte SHA-256 du document.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil fait pour vous</h2>
+      <ul>
+        <li>
+          <strong>Conçu pour le terrain</strong> : saisie sur tablette, cibles tactiles larges,
+          photos prises depuis l'appareil, aucun besoin de réseau.
+        </li>
+        <li>
+          <strong>La sortie repart de l'entrée</strong> : chaque pièce et chaque élément sont
+          rappelés avec leur état constaté à l'entrée. Vous constatez les écarts, vous ne
+          ressaisissez rien.
+        </li>
+        <li>
+          <strong>Comparaison automatique</strong> entrée/sortie, et calcul des retenues sur le
+          dépôt de garantie avec application d'une grille de vétusté modifiable.
+        </li>
+        <li>
+          <strong>Verrouillage après signature</strong>, avec possibilité de rectifier si les
+          deux parties re-signent : la version précédente est conservée et le nouveau document
+          porte la mention « annule et remplace ».
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Pas de signature à distance.</strong> L'état des lieux se signe sur place, les
+          deux parties présentes, sur le même écran.
+        </li>
+        <li>
+          <strong>Pas de synchronisation entre appareils.</strong> Ce que vous saisissez sur la
+          tablette reste sur la tablette, sauf export explicite de votre part.
+        </li>
+        <li>
+          <strong>Pas d'arbitrage.</strong> Le calcul des retenues est une aide au chiffrage,
+          pas une décision opposable : il reste à justifier auprès du locataire.
+        </li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il
+          ne constitue pas un conseil juridique et n'engage pas la responsabilité de son
+          éditeur.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Préparez votre état des lieux</h2>
+      <p>Installez Bailiz sur votre tablette : il fonctionnera même sans réseau.</p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/edl">Faire un état des lieux</a>
+        <a class="bouton bouton--secondaire" href="/bail-meuble/">Voir le bail meublé</a>
+      </div>
+    </div>
+  </section>
+</Base>

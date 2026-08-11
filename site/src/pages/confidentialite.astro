@@ -1,0 +1,100 @@
+---
+/*
+ * Page de preuve, pas formalité (CDC §12). Elle reprend le contenu de
+ * `src/features/legal/MentionsLegalesPage.tsx`, corrigé sur deux points :
+ * l'hébergeur (OVH et non plus GitHub) et la mesure d'audience (journaux
+ * serveur — la formule « aucune mesure d'audience » n'était plus exacte).
+ *
+ * La version dans l'application reste, et pointera ici : une seule source de
+ * vérité, celle qui est lisible sans entrer dans l'outil.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Confidentialité — vos données ne quittent pas votre appareil | Bailiz';
+const description =
+  "Bailiz ne collecte, ne transmet et ne stocke aucune donnée sur un serveur. Détail de ce qui est enregistré, où, et ce que vous contrôlez.";
+---
+
+<Base titre={titre} description={description}>
+  <section>
+    <div class="enveloppe prose">
+      <h1>Politique de confidentialité</h1>
+      <p>
+        <strong>Bailiz ne collecte, ne transmet et ne stocke aucune donnée sur un serveur.</strong>{' '}
+        Ce n'est pas un engagement de bonne foi : c'est une conséquence de l'architecture, et
+        elle est vérifiable dans le{' '}
+        <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">code source public</a>.
+      </p>
+
+      <h2>Ce que vous saisissez</h2>
+      <p>
+        Toutes les données que vous entrez — logements, locataires, baux, états des lieux,
+        photos, PDF générés — sont enregistrées <strong>uniquement dans votre navigateur</strong>
+        (IndexedDB), sur votre appareil. Elles ne le quittent jamais, sauf action explicite de
+        votre part :
+      </p>
+      <ul>
+        <li>export d'une archive ZIP que vous enregistrez où vous voulez ;</li>
+        <li>envoi d'un PDF par e-mail, depuis votre propre messagerie ;</li>
+        <li>sauvegarde vers un dossier que vous désignez.</li>
+      </ul>
+      <p>
+        Conséquence à connaître : <strong>vos données ne suivent pas d'un appareil à l'autre</strong>,
+        et vider les données de votre navigateur les efface. L'export régulier n'est pas une
+        option de confort, c'est votre sauvegarde.
+      </p>
+
+      <h2>Ce que Bailiz n'utilise pas</h2>
+      <ul>
+        <li>Aucun compte, aucun mot de passe, aucune adresse e-mail.</li>
+        <li>Aucun cookie, aucun traceur, aucune publicité.</li>
+        <li>
+          Aucune requête vers un service tiers : la police de caractères est auto-hébergée, il
+          n'y a ni CDN externe, ni script d'analytique. Votre adresse IP n'est transmise à
+          personne d'autre que l'hébergeur du site.
+        </li>
+      </ul>
+
+      <h2>Mesure de fréquentation</h2>
+      <p>
+        Bailiz n'utilise aucune mesure d'audience par script. La fréquentation du site est
+        estimée à partir des <strong>journaux de connexion de l'hébergeur</strong>, conservés
+        pour une durée limitée — ce que fait tout serveur web pour fonctionner. Aucun
+        identifiant n'est déposé sur votre appareil, et l'application elle-même n'envoie rien.
+      </p>
+
+      <h2>Sauvegarde Google Drive (optionnelle)</h2>
+      <p>
+        Si vous l'activez dans les Paramètres, l'archive de sauvegarde est envoyée sur{' '}
+        <strong>votre propre</strong> Google Drive, via une autorisation limitée aux seuls
+        fichiers créés par l'application. Google agit alors comme votre prestataire de stockage.
+        Vous pouvez révoquer cet accès à tout moment, depuis le bouton « Déconnecter » ou depuis
+        votre compte Google (Sécurité → Applications tierces). Cette fonction est{' '}
+        <strong>désactivée par défaut</strong>.
+      </p>
+
+      <h2>Vos locataires et le RGPD</h2>
+      <p>
+        En saisissant les données personnelles de vos locataires, <strong>vous</strong> en êtes
+        le responsable de traitement. À ce titre : conservation limitée à la durée du bail et
+        aux délais de prescription, et suppression quand elle n'est plus justifiée. Les
+        personnes concernées exercent leurs droits directement auprès de vous, pas auprès de
+        Bailiz — qui n'a accès à rien.
+      </p>
+      <p>
+        L'application prend cette responsabilité au sérieux : la suppression définitive d'un
+        locataire efface aussi ses baux, ses états des lieux, ses photos et les PDF archivés qui
+        portent son nom. Le périmètre exact vous est annoncé avant confirmation.
+      </p>
+
+      <h2>Hébergement</h2>
+      <p>
+        Le site est hébergé en France par <strong>OVH SAS</strong>, 2 rue Kellermann, 59100
+        Roubaix. L'hébergeur ne fait que servir les fichiers de l'application : aucune donnée
+        saisie dans Bailiz ne lui est transmise.
+      </p>
+
+      <p><a href="/mentions-legales/">Voir aussi les mentions légales</a>.</p>
+    </div>
+  </section>
+</Base>

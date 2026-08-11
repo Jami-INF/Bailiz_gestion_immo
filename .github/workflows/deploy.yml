@@ -1,37 +1,36 @@
-name: Deploy to GitHub Pages
+name: Déploiement bailiz.fr
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-# Permissions requises par l'action de déploiement Pages.
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Un seul déploiement à la fois ; on n'annule pas un run en cours.
+# Un seul déploiement à la fois ; on n'annule pas un run en cours, sous peine
+# d'interrompre un transfert FTP au milieu.
 concurrency:
-  group: pages
+  group: deploiement
   cancel-in-progress: false
 
 jobs:
-  build:
+  deployer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
+      # --- Application ------------------------------------------------------
       - run: npm ci
       - run: npm run lint
       # `test:coverage` et non `test` : les seuils de couverture font partie de
-      # la barrière. Sans cela, une régression peut supprimer des tests sans
-      # que rien ne s'en aperçoive.
+      # la barrière. Sans cela, une régression peut supprimer des tests sans que
+      # rien ne s'en aperçoive.
       - run: npm run test:coverage
       - run: npm run build
+
       - name: Rapport de couverture
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,16 +38,88 @@ jobs:
           name: couverture
           path: coverage/
           retention-days: 7
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # --- Site vitrine -----------------------------------------------------
+      - run: npm ci --prefix site
+      - run: npm run build --prefix site
+
+      # --- Assemblage -------------------------------------------------------
+      # Un seul dossier à transférer, et c'est une protection autant qu'une
+      # commodité : un miroir avec `--delete` lancé sur la seule vitrine
+      # effacerait `/app/`, qui n'existe pas dans `site/dist`.
+      - name: Assembler le site complet
+        run: |
+          rm -rf _site
+          cp -r site/dist _site
+          cp -r dist _site/app
+          test -f _site/index.html || { echo "::error::vitrine absente"; exit 1; }
+          test -f _site/app/index.html || { echo "::error::application absente"; exit 1; }
+          test -f _site/.htaccess || { echo "::error::.htaccess absent"; exit 1; }
+          echo "À déployer : $(du -sh _site | cut -f1)"
+
+      # --- Transfert --------------------------------------------------------
+      - name: Installer lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Envoyer sur OVH
+        env:
+          HOTE: ${{ secrets.OVH_FTP_HOST }}
+          UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
+          # `LFTP_PASSWORD` + `--env-password` : le mot de passe ne passe ni par
+          # la ligne de commande (donc pas par `ps`), ni par le script lftp — où
+          # il aurait fallu l'entourer de guillemets, un mot de passe contenant
+          # `"` ou `,` produisant alors une commande malformée.
+          LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
+        run: |
+          lftp -c "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            # Le certificat présenté par le serveur FTP d'OVH ne correspond pas
+            # au nom d'hôte utilisé. La connexion reste chiffrée : seule la
+            # vérification du nom est levée.
+            set ssl:verify-certificate no;
+            set net:max-retries 3;
+            set net:timeout 20;
+            set cmd:fail-exit true;
+            open -u \"$UTILISATEUR\" --env-password \"$HOTE\";
+
+            # Chemin relatif : après connexion, le répertoire courant est le
+            # home de l'utilisateur (/home/bailiza), qui contient 'www'.
+            # Un chemin absolu casserait si le compte était chrooté.
+
+            # Passe 1 — les assets d'abord, sans rien supprimer. Un HTML mis en
+            # ligne avant le CSS qu'il référence donne une page nue pendant
+            # quelques secondes ; l'ordre le supprime.
+            mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
+
+            # Passe 2 — le HTML, qui référence des assets désormais présents.
+            mirror -R --parallel=4 _site/ www/;
+
+            # Passe 3 — nettoyage des fichiers disparus du build.
+            mirror -R --delete --parallel=4 _site/ www/;
+          "
+
+      # --- Contrôle ---------------------------------------------------------
+      # Le déploiement n'est pas réussi parce que le transfert s'est terminé,
+      # mais parce que le site répond correctement.
+      - name: Vérifier la mise en ligne
+        run: |
+          sleep 5
+          echo "— HTML servi sans JavaScript"
+          curl -sS --fail --max-time 20 https://bailiz.fr/ | grep -q "<h1>" \
+            || { echo "::error::la vitrine ne renvoie pas de <h1>"; exit 1; }
+
+          echo "— application présente"
+          curl -sS --fail --max-time 20 -o /dev/null https://bailiz.fr/app/ \
+            || { echo "::error::/app/ ne répond pas"; exit 1; }
+
+          echo "— application en noindex"
+          curl -sS --max-time 20 https://bailiz.fr/app/ | grep -q 'content="noindex,follow"' \
+            || echo "::warning::le noindex de /app/ est absent"
+
+          echo "— redirection www vers l'apex"
+          curl -sS --max-time 20 -o /dev/null -w '%{http_code} %{redirect_url}\n' \
+            https://www.bailiz.fr/ | grep -q '^301 https://bailiz.fr/' \
+            || echo "::warning::www ne redirige pas en 301 — .htaccess ignoré ?"
+
+          echo "Déploiement vérifié."

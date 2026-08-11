@@ -1,0 +1,79 @@
+# Bailiz — configuration Apache (hébergement mutualisé OVH)
+# Déposé à la racine du site par le build (Astro recopie `public/` tel quel).
+# Cf. docs/CDC-site-vitrine-seo.md §9.3
+
+# ---------------------------------------------------------------------------
+# Forme canonique de l'URL : HTTPS, sans www
+# ---------------------------------------------------------------------------
+RewriteEngine On
+
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://bailiz.fr/$1 [R=301,L]
+
+RewriteCond %{HTTP_HOST} ^www\.bailiz\.fr$ [NC]
+RewriteRule ^(.*)$ https://bailiz.fr/$1 [R=301,L]
+
+# ---------------------------------------------------------------------------
+# Page d'erreur
+# ---------------------------------------------------------------------------
+ErrorDocument 404 /404.html
+
+# ---------------------------------------------------------------------------
+# Cache
+#
+# Deux régimes opposés, et c'est volontaire :
+#   - le HTML de la vitrine ne doit JAMAIS être mis en cache. Une correction de
+#     contenu (un tarif, une mention légale) doit être visible immédiatement ;
+#   - les assets versionnés par le hash de leur contenu peuvent l'être un an :
+#     leur nom change dès que leur contenu change.
+#
+# `/app/sw.js` et `/app/index.html` sont explicitement exclus du cache long :
+# un service worker mis en cache est une mise à jour d'application qui n'arrive
+# jamais.
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  <FilesMatch "^(sw\.js|manifest\.webmanifest|registerSW\.js)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Assets au nom haché : Astro (`/_astro/`) et Vite (`/app/assets/`).
+  <FilesMatch "\.(css|js|woff2|svg|png|jpg|webp|avif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # ------------------------------------------------------------------------
+  # En-têtes de sécurité
+  #
+  # ATTENTION avant d'activer la CSP : l'application génère ses PDF dans le
+  # navigateur et manipule des `blob:` et des images `data:`. La directive
+  # ci-dessous les autorise, mais elle DOIT être validée sur un parcours
+  # complet (bail → PDF, EDL → photos → signature) avant mise en production.
+  # Une CSP trop stricte ne se voit pas en développement : elle casse chez
+  # l'utilisateur.
+  # ------------------------------------------------------------------------
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), payment=(), interest-cohort=()"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com; frame-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# Compression
+# ---------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Les woff2 et les PNG sont déjà compressés : les repasser en gzip coûte du CPU
+# pour quelques octets.
+<IfModule mod_mime.c>
+  AddType font/woff2 .woff2
+</IfModule>

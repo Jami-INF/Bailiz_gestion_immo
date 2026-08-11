@@ -1,6 +1,10 @@
 node_modules
 dist
 dev-dist
+# Types générés par Astro pour le site vitrine (`site/`).
+.astro
+# Assemblage vitrine + application produit par la CI avant l'envoi sur OVH.
+_site
 *.local
 *.tsbuildinfo
 .DS_Store

@@ -1,0 +1,65 @@
+---
+import Base from '../layouts/Base.astro';
+
+const titre = 'Mentions légales | Bailiz';
+const description =
+  "Éditeur, hébergeur et conditions d'utilisation de Bailiz, application gratuite de rédaction de baux et d'états des lieux.";
+---
+
+<Base titre={titre} description={description}>
+  <section>
+    <div class="enveloppe prose">
+      <h1>Mentions légales</h1>
+
+      <h2>Éditeur</h2>
+      <p>
+        Bailiz est une application web personnelle et gratuite, créée et éditée par{' '}
+        <strong>Jami Infante</strong>, développeur.
+      </p>
+      <p>
+        Contact : <a href="mailto:jamiinfante@gmail.com">jamiinfante@gmail.com</a><br />
+        Directeur de la publication : Jami Infante.
+      </p>
+      <p>
+        Code source :
+        <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">
+          github.com/Jami-INF/Bailiz_gestion_immo
+        </a>
+      </p>
+
+      <h2>Hébergement</h2>
+      <p>
+        <strong>OVH SAS</strong> — 2 rue Kellermann, 59100 Roubaix, France —
+        <a href="https://www.ovhcloud.com" rel="noopener">ovhcloud.com</a>.
+      </p>
+
+      <h2>Conditions d'utilisation</h2>
+      <p>
+        Bailiz est mis à disposition gratuitement, sans compte et sans limite d'usage. Aucune
+        garantie de disponibilité n'est offerte, et le service peut évoluer ou être interrompu
+        sans préavis.
+      </p>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il
+          ne constitue pas un conseil juridique et n'engage pas la responsabilité de son
+          éditeur. Il vous appartient de relire les documents générés, de les adapter à votre
+          situation et, en cas de doute, de les faire vérifier par un professionnel.
+        </p>
+      </div>
+
+      <h2>Données personnelles</h2>
+      <p>
+        Bailiz ne collecte aucune donnée sur un serveur. Le détail figure sur la{' '}
+        <a href="/confidentialite/">page confidentialité</a>.
+      </p>
+
+      <h2>Propriété intellectuelle</h2>
+      <p>
+        Le code source de Bailiz est publié sur GitHub sous la licence qui y figure. Les
+        documents que vous générez vous appartiennent : Bailiz n'en conserve aucune copie et ne
+        revendique aucun droit dessus.
+      </p>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,110 @@
+---
+/*
+ * Gabarit unique de la vitrine. Il porte tout ce que le CDC §8 exige sur chaque
+ * page : titre et description uniques, canonique absolu, Open Graph, langue.
+ * Une page qui oublierait l'un des trois serait une page mal indexée — d'où le
+ * choix de les rendre obligatoires par la signature des props plutôt que
+ * facultatifs avec une valeur par défaut.
+ */
+import '../styles/global.css';
+
+interface Props {
+  titre: string;
+  description: string;
+  /** Données structurées JSON-LD propres à la page (CDC §8). */
+  schema?: Record<string, unknown> | Record<string, unknown>[];
+  /** Pages sans valeur d'indexation (404). `follow` reste : les liens comptent. */
+  noindex?: boolean;
+}
+
+const { titre, description, schema, noindex = false } = Astro.props;
+
+const canonique = new URL(Astro.url.pathname, Astro.site).href;
+const imagePartage = new URL('/og.png', Astro.site).href;
+
+const NAV = [
+  { href: '/bail-meuble/', texte: 'Bail meublé' },
+  { href: '/etat-des-lieux/', texte: 'État des lieux' },
+  { href: '/pourquoi-bailiz/', texte: 'Pourquoi Bailiz' },
+];
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titre}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonique} />
+    {noindex && <meta name="robots" content="noindex,follow" />}
+
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#334155" />
+
+    <!--
+      Préchargement de la fonte : elle porte le LCP (le titre du héros). Sans
+      cela, le navigateur ne la découvre qu'après avoir analysé le CSS.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/inter-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Bailiz" />
+    <meta property="og:title" content={titre} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonique} />
+    <meta property="og:image" content={imagePartage} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {
+      schema && (
+        <script
+          type="application/ld+json"
+          set:html={JSON.stringify(schema)}
+        />
+      )
+    }
+  </head>
+
+  <body>
+    <header class="entete">
+      <div class="enveloppe entete__contenu">
+        <a class="marque" href="/">Bailiz</a>
+        <nav aria-label="Navigation principale">
+          {NAV.map((l) => <a href={l.href}>{l.texte}</a>)}
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="pied">
+      <div class="enveloppe">
+        <nav aria-label="Pied de page">
+          <a href="/bail-meuble/">Bail meublé</a>
+          <a href="/etat-des-lieux/">État des lieux</a>
+          <a href="/pourquoi-bailiz/">Pourquoi Bailiz</a>
+          <a href="/mentions-legales/">Mentions légales</a>
+          <a href="/confidentialite/">Confidentialité</a>
+          <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">
+            Code source
+          </a>
+        </nav>
+        <p>
+          Bailiz est une application gratuite, sans compte et sans publicité, éditée par Jami
+          Infante. Les documents produits sont des modèles conformes aux textes en vigueur ;
+          ils ne constituent pas un conseil juridique.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

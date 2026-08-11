@@ -5,6 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#334155" />
+    <!--
+      L'application n'a rien à faire dans un index de recherche : rendue en
+      JavaScript, son seul contenu visible d'un robot est un tableau de bord
+      vide. Elle concurrencerait la vitrine (bailiz.fr) sur les requêtes de
+      marque en offrant une bien plus mauvaise première visite.
+      `follow` est conservé : les liens sortants restent suivis.
+      Cf. docs/CDC-site-vitrine-seo.md §8.
+    -->
+    <meta name="robots" content="noindex,follow" />
     <title>Bailiz — Gestion locative LMNP</title>
   </head>
   <body>

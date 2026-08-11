@@ -1,0 +1,393 @@
+/*
+ * Feuille de style unique de la vitrine — pas de Tailwind ici.
+ *
+ * L'application a besoin de Tailwind : elle a des centaines de composants. La
+ * vitrine a cinq pages, et son budget est de **zéro JavaScript** avec un LCP
+ * sous 2 s (CDC §8). Un fichier de CSS écrit à la main, servi en une requête,
+ * y répond mieux qu'une chaîne de build supplémentaire.
+ *
+ * Les couleurs reprennent la palette `accent-*` de l'application
+ * (`tailwind.config.js`, échelle slate) : la vitrine et l'outil doivent être
+ * manifestement le même produit (CDC §13).
+ */
+
+/*
+ * Inter auto-hébergée, comme dans l'application : aucune requête vers un tiers,
+ * donc aucune adresse IP transmise à Google Fonts. Sur une page qui vend le
+ * respect des données, c'est une condition, pas une optimisation.
+ *
+ * Sous-ensemble `latin` seulement : le site est intégralement en français, et
+ * `latin-ext` (85 ko) ne couvrirait que des caractères qui n'y figurent pas.
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/inter-latin.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --c-50: #f8fafc;
+  --c-100: #f1f5f9;
+  --c-200: #e2e8f0;
+  --c-300: #cbd5e1;
+  --c-400: #94a3b8;
+  --c-500: #64748b;
+  --c-600: #475569;
+  --c-700: #334155;
+  --c-800: #1e293b;
+  --c-900: #0f172a;
+
+  --largeur: 68rem;
+  --rayon: 0.75rem;
+  --pas: 1rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--c-800);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--c-900);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+}
+h2 {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-weight: 700;
+}
+h3 {
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--c-700);
+  text-underline-offset: 0.2em;
+}
+
+/* Un focus visible n'est pas optionnel : c'est le seul repère au clavier. */
+:focus-visible {
+  outline: 3px solid var(--c-700);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.enveloppe {
+  max-width: var(--largeur);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+section {
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.section--grise {
+  background: var(--c-50);
+  border-block: 1px solid var(--c-200);
+}
+
+/* --- En-tête ------------------------------------------------------------ */
+
+.entete {
+  border-bottom: 1px solid var(--c-200);
+}
+
+.entete__contenu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1rem;
+}
+
+.marque {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--c-900);
+  text-decoration: none;
+  letter-spacing: -0.03em;
+}
+
+.entete nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.entete nav a {
+  text-decoration: none;
+  color: var(--c-600);
+}
+
+.entete nav a:hover {
+  color: var(--c-900);
+}
+
+/*
+ * Sous 640 px, les trois libellés de navigation se coupent chacun en deux
+ * lignes et écrasent le logo. Plutôt qu'un menu déroulant — qui coûterait du
+ * JavaScript sur une page qui n'en a aucun —, l'en-tête passe sur deux rangs :
+ * marque, puis navigation sur une ligne, libellés insécables.
+ */
+@media (max-width: 640px) {
+  .entete__contenu {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .entete nav {
+    gap: 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .entete nav a {
+    white-space: nowrap;
+  }
+}
+
+/* --- Boutons ------------------------------------------------------------ */
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44 px : la cible tactile minimale retenue dans l'application. */
+  min-height: 44px;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--rayon);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.bouton--principal {
+  background: var(--c-800);
+  color: #fff;
+}
+
+.bouton--principal:hover {
+  background: var(--c-900);
+}
+
+.bouton--secondaire {
+  background: #fff;
+  color: var(--c-800);
+  border-color: var(--c-300);
+}
+
+.bouton--secondaire:hover {
+  border-color: var(--c-500);
+}
+
+/* --- Héros -------------------------------------------------------------- */
+
+.heros {
+  padding-block: clamp(3rem, 8vw, 5.5rem);
+}
+
+.heros p.accroche {
+  font-size: clamp(1.0625rem, 2.5vw, 1.25rem);
+  color: var(--c-600);
+  max-width: 44ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.mention {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--c-500);
+}
+
+/* --- Réassurance -------------------------------------------------------- */
+
+.reassurance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1.5rem 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.reassurance strong {
+  display: block;
+  color: var(--c-900);
+}
+
+.reassurance span {
+  font-size: 0.9375rem;
+  color: var(--c-600);
+}
+
+/* --- Cartes ------------------------------------------------------------- */
+
+.cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: 1.25rem;
+}
+
+.carte {
+  background: #fff;
+  border: 1px solid var(--c-200);
+  border-radius: var(--rayon);
+  padding: 1.5rem;
+}
+
+.carte ul {
+  margin: 0 0 1.25rem;
+  padding-left: 1.1rem;
+  font-size: 0.9375rem;
+  color: var(--c-600);
+}
+
+.carte li {
+  margin-bottom: 0.35rem;
+}
+
+/* --- Étapes ------------------------------------------------------------- */
+
+.etapes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.5rem;
+  counter-reset: etape;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.etapes li {
+  counter-increment: etape;
+}
+
+.etapes li::before {
+  content: counter(etape);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border-radius: 50%;
+  background: var(--c-800);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+/* --- FAQ ---------------------------------------------------------------- */
+
+.faq {
+  max-width: 46rem;
+}
+
+.faq details {
+  border-bottom: 1px solid var(--c-200);
+  padding-block: 1rem;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--c-900);
+  list-style-position: outside;
+}
+
+.faq details p {
+  margin: 0.75rem 0 0;
+  color: var(--c-600);
+}
+
+.faq details p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Texte long --------------------------------------------------------- */
+
+.prose {
+  max-width: 46rem;
+}
+
+.prose ul {
+  color: var(--c-600);
+  padding-left: 1.25rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+}
+
+/* --- Pied de page ------------------------------------------------------- */
+
+.pied {
+  border-top: 1px solid var(--c-200);
+  background: var(--c-50);
+  padding-block: 2.5rem;
+  font-size: 0.9375rem;
+  color: var(--c-500);
+}
+
+.pied nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.pied a {
+  color: var(--c-600);
+}
+
+.avertissement {
+  border: 1px solid var(--c-200);
+  border-radius: var(--rayon);
+  background: var(--c-50);
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  color: var(--c-600);
+  margin-top: 1.5rem;
+}
+
+.avertissement p:last-child {
+  margin-bottom: 0;
+}

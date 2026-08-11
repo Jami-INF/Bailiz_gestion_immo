@@ -1,0 +1,29 @@
+---
+/*
+ * Une 404 doit proposer une sortie, pas constater l'échec (CDC §8).
+ * Elle est en `noindex` : c'est une page d'erreur, pas un contenu.
+ */
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  titre="Page introuvable | Bailiz"
+  description="Cette page n'existe pas ou a été déplacée."
+  noindex
+>
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Cette page n'existe pas</h1>
+      <p class="accroche">
+        Elle a peut-être été déplacée. Voici les deux endroits utiles :
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
+        <a class="bouton bouton--secondaire" href="/app/#/edl">Faire un état des lieux</a>
+      </div>
+      <p class="mention">
+        Ou revenir à <a href="/">l'accueil</a>.
+      </p>
+    </div>
+  </section>
+</Base>

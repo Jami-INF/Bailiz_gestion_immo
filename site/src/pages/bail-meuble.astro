@@ -1,0 +1,175 @@
+---
+/*
+ * Page outil — gabarit CDC §6. Elle doit se suffire à elle-même : un visiteur
+ * arrivé de Google ici doit produire son bail sans jamais passer par l'accueil.
+ *
+ * Le bloc « ce que Bailiz ne fait pas » n'est pas une précaution : c'est ce qui
+ * évite la déception, et c'est le signal de sérieux le moins cher à produire.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Modèle de bail meublé à remplir et imprimer — gratuit, sans inscription';
+const description =
+  "Rédigez un bail meublé conforme au bail type (décret n°2015-587) et imprimez-le. Gratuit, sans compte, sans limite. Vos données restent sur votre appareil.";
+
+const FAQ = [
+  {
+    q: 'Le bail généré est-il conforme ?',
+    r: "Il suit la trame du bail type imposée par le décret n°2015-587 modifié, parties I à XI, et reprend les mentions obligatoires. C'est un modèle solide, à relire et à adapter : Bailiz ne remplace pas un conseil juridique.",
+  },
+  {
+    q: 'Puis-je signer le bail en ligne ?',
+    r: "Non, et c'est un choix. Le bail s'imprime et se signe sur papier. En contrepartie il reste modifiable et regénérable à volonté : aucune version figée, aucun document périmé qui traîne.",
+  },
+  {
+    q: 'Et si je ne connais pas encore toutes les informations ?',
+    r: "Les champs laissés vides deviennent des zones pointillées. Vous pouvez imprimer un bail partiellement rempli et finir à la main sur place.",
+  },
+  {
+    q: 'La colocation est-elle prise en charge ?',
+    r: "Oui, avec plusieurs locataires sur un même bail, la clause de solidarité et l'assurance des colocataires.",
+  },
+  {
+    q: 'Et si je loue via une SCI ?',
+    r: "Le bailleur peut être une personne physique, une indivision (tous les coïndivisaires figurent au bail) ou une personne morale — SCI, SARL de famille : dénomination, forme, capital, RCS, siège et représentant légal signataire.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema}>
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Modèle de bail meublé à remplir et imprimer</h1>
+      <p class="accroche">
+        Un bail conforme au bail type, rempli en quelques minutes et prêt à imprimer. Gratuit,
+        sans inscription.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger mon bail</a>
+      </div>
+      <p class="mention">Aucun compte. Vos données restent sur votre appareil.</p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que contient le bail généré</h2>
+      <p>
+        Le document suit la trame du bail type meublé (décret n°2015-587 modifié, parties I à
+        XI) et intègre les mentions que la loi impose depuis :
+      </p>
+      <ul>
+        <li>désignation des parties : bailleur particulier, indivision ou personne morale ;</li>
+        <li>
+          désignation du logement : type d'habitat, période de construction, surface habitable,
+          nombre de pièces, équipements, annexes, régime de copropriété ;
+        </li>
+        <li>identifiant fiscal du logement (décret n°2023-796) ;</li>
+        <li>
+          classe DPE, avec rappel des seuils de décence issus de la loi Climat et résilience ;
+        </li>
+        <li>accès aux technologies de l'information, zone tendue ;</li>
+        <li>
+          loyer, modalités de révision et IRL, charges au forfait ou en provisions, dernier
+          loyer acquitté par l'ancien locataire ;
+        </li>
+        <li>dépôt de garantie, y compris en toutes lettres ;</li>
+        <li>durée, prise d'effet, clause résolutoire, rubrique travaux ;</li>
+        <li>honoraires « néant », SIRET du loueur en meublé le cas échéant ;</li>
+        <li>
+          QR code vers le dossier technique en ligne, pour que le locataire consulte les
+          diagnostics.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil fait pour vous</h2>
+      <ul>
+        <li>
+          <strong>Un seul écran</strong>, avec l'aperçu du PDF en direct : bailleur → logement →
+          locataire(s) → durée → loyer et charges → clauses et travaux.
+        </li>
+        <li>
+          <strong>Des avertissements, jamais des blocages</strong> : DPE en classe G, dépôt
+          supérieur à deux mois, durée atypique… les incohérences s'affichent, mais rien ne vous
+          empêche de produire le document.
+        </li>
+        <li>
+          <strong>Les montants en toutes lettres</strong> et les calculs de charges sont écrits
+          pour vous.
+        </li>
+        <li>
+          <strong>Modifiable à l'infini</strong> : rouvrir le bail le pré-remplit, et
+          l'enregistrement régénère le PDF sous la même référence — aucun doublon.
+        </li>
+        <li>
+          <strong>Garant</strong> : caution personne physique avec acte de cautionnement
+          pré-rempli, ou garantie Visale (le contrat est alors émis par Action Logement).
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Pas de signature électronique du bail.</strong> Il s'imprime et se signe sur
+          papier. C'est ce qui lui permet de rester modifiable et regénérable sans jamais
+          produire de version périmée.
+        </li>
+        <li>
+          <strong>Pas de génération des diagnostics.</strong> DPE, ERP, gaz, électricité restent
+          à obtenir auprès d'un diagnostiqueur ; Bailiz les annexe et les référence.
+        </li>
+        <li>
+          <strong>Pas de conseil juridique.</strong> Le modèle est conforme, votre situation
+          peut ne pas l'être : relisez, et faites vérifier en cas de doute.
+        </li>
+        <li>
+          <strong>Pas d'envoi ni de stockage en ligne.</strong> Le PDF est produit dans votre
+          navigateur et reste chez vous.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Rédigez votre bail maintenant</h2>
+      <p>Gratuit, sans compte, sans limite.</p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger mon bail</a>
+        <a class="bouton bouton--secondaire" href="/etat-des-lieux/">Voir l'état des lieux</a>
+      </div>
+    </div>
+  </section>
+</Base>
