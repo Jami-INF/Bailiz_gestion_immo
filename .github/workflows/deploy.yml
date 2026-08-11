@@ -91,12 +91,23 @@ jobs:
           ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
           test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
 
-          # Options ssh communes. `keyboard-interactive` autant que `password` :
-          # beaucoup de serveurs, dont ceux d'OVH, présentent l'invite de mot de
-          # passe par ce second mécanisme. Ne demander que `password` suffit à se
-          # faire répondre « Permission denied » avec des identifiants pourtant
-          # valides. `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
-          OPTIONS_SSH="-o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
+          # Un retour à la ligne collé par mégarde en fin de secret suffit à
+          # faire rejeter le mot de passe, sans que rien ne le laisse deviner :
+          # le serveur répond « Permission denied » comme pour un mot de passe
+          # faux. Seuls CR et LF sont retirés — un espace peut être légitime.
+          BRUT="$SSHPASS"
+          SSHPASS="$(printf '%s' "$SSHPASS" | tr -d '\r\n')"
+          export SSHPASS
+          export LFTP_PASSWORD="$SSHPASS"
+          [ "$BRUT" = "$SSHPASS" ] \
+            || echo "::warning::Le secret OVH_FTP_PASSWORD contenait un retour à la ligne ; il a été retiré. À corriger dans les secrets du dépôt."
+          unset BRUT
+
+          # Options ssh communes. Ce cluster annonce « publickey,password » : le
+          # mot de passe est accepté, les clés ne servent à rien ici (le runner
+          # n'en a aucune) et les écarter évite un aller-retour inutile.
+          # `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
+          OPTIONS_SSH="-o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
 
           # --- Authentification, testée à part ---
           #

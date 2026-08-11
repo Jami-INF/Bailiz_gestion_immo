@@ -313,12 +313,23 @@ jobs:
           ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
           test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
 
-          # Options ssh communes. `keyboard-interactive` autant que `password` :
-          # beaucoup de serveurs, dont ceux d'OVH, présentent l'invite de mot de
-          # passe par ce second mécanisme. Ne demander que `password` suffit à se
-          # faire répondre « Permission denied » avec des identifiants pourtant
-          # valides. `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
-          OPTIONS_SSH="-o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
+          # Un retour à la ligne collé par mégarde en fin de secret suffit à
+          # faire rejeter le mot de passe, sans que rien ne le laisse deviner :
+          # le serveur répond « Permission denied » comme pour un mot de passe
+          # faux. Seuls CR et LF sont retirés — un espace peut être légitime.
+          BRUT="$SSHPASS"
+          SSHPASS="$(printf '%s' "$SSHPASS" | tr -d '\r\n')"
+          export SSHPASS
+          export LFTP_PASSWORD="$SSHPASS"
+          [ "$BRUT" = "$SSHPASS" ] \
+            || echo "::warning::Le secret OVH_FTP_PASSWORD contenait un retour à la ligne ; il a été retiré. À corriger dans les secrets du dépôt."
+          unset BRUT
+
+          # Options ssh communes. Ce cluster annonce « publickey,password » : le
+          # mot de passe est accepté, les clés ne servent à rien ici (le runner
+          # n'en a aucune) et les écarter évite un aller-retour inutile.
+          # `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
+          OPTIONS_SSH="-o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
 
           # --- Authentification, testée à part ---
           #
@@ -625,6 +636,41 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 | `GetPass() failed -- assume anonymous login` | lftp réclame un mot de passe qu'il n'a pas, et ne peut pas le demander | Définir `LFTP_PASSWORD` et utiliser `open -u "$UTILISATEUR" --env-password` |
 | `Permission denied, please try again.` alors que les identifiants sont bons | Le serveur présente l'invite en `keyboard-interactive`, exclu par `PreferredAuthentications=password` seul | Ajouter `,keyboard-interactive` |
 | Échec d'authentification, cause indéterminée | — | Lire la sortie de l'étape « Test d'authentification SFTP » : elle isole les identifiants de la configuration lftp |
+| `Permission denied (publickey,password)` | Le serveur répond et propose bien le mot de passe : ce sont les identifiants qui sont rejetés | Réinitialiser le mot de passe dans le Manager, le recoller dans le secret, tester en local (voir plus bas) |
+| Le secret contient un retour à la ligne | Copier-coller depuis un gestionnaire de mots de passe | Le workflow le retire et émet un avertissement — mais corriger le secret |
+| FileZilla expire alors que la CI atteint le serveur | Port 22 filtré par le réseau local ou le FAI | Sans conséquence pour la CI ; tester depuis un autre réseau ou en partage de connexion mobile |
+
+### Trancher un refus d'authentification
+
+Le serveur `ftp.cluster129.hosting.ovh.net` **répond sur le port 22** et annonce accepter
+`publickey,password` — la vérification a été faite. Un refus vient donc des identifiants, ou du
+fait que le compte n'a pas réellement droit au SFTP malgré l'interrupteur du Manager.
+
+Test décisif, depuis un poste quelconque :
+
+```bash
+sftp -o PreferredAuthentications=password bailiza@ftp.cluster129.hosting.ovh.net
+```
+
+| Réponse | Conclusion |
+|---|---|
+| Invite de mot de passe puis `sftp>` | Les identifiants sont bons : le secret du dépôt est en cause (mot de passe erroné ou retour à la ligne) |
+| `Permission denied` | Mot de passe faux, ou SFTP non accordé par l'offre. Réinitialiser le mot de passe dans le Manager, réessayer ; si le refus persiste, l'offre ne donne pas le SFTP |
+| Expiration du délai | Le port 22 est filtré **sur ce réseau**. Sans rapport avec la CI, qui atteint le serveur — refaire le test depuis un autre réseau |
+
+**Si le SFTP n'est pas accordé par l'offre**, il n'y a plus de canal chiffré vers cet hébergement,
+et trois issues :
+
+1. **Monter d'offre OVH** pour une formule incluant SSH.
+2. **FTP simple, avec un utilisateur dédié** limité à `www` et un mot de passe propre à lui. Le
+   mot de passe circulerait en clair : c'est un vrai recul, acceptable seulement parce que le
+   compte ne donnerait accès qu'à des fichiers déjà publics. À ne pas faire avec le compte
+   principal.
+3. **Déplacer l'hébergement sur Cloudflare Pages** (le repli du §3.4). Déploiement piloté par
+   Git — plus de transfert de fichiers, plus de mot de passe, déploiements atomiques et retour
+   arrière en un clic. Le domaine reste chez OVH, seule la zone DNS change. Coût : réécrire le
+   `.htaccess` en `_headers` et `_redirects`, et renoncer à la mention « hébergé en France » —
+   qui relève de la confiance perçue, non de la confidentialité réelle (§3.4).
 | Un commentaire ajouté dans le script `lftp -c` casse le transfert | lftp traite l'apostrophe comme un délimiteur de chaîne | Ne mettre **aucun** commentaire dans le script lftp : les explications restent côté shell |
 | lftp : `Login failed` | Mauvais secret, ou utilisateur FTP non propagé | Tester d'abord la connexion depuis un client FTP local |
 
