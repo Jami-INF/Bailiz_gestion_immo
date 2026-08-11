@@ -576,7 +576,32 @@ Les contrôles natifs (cases à cocher, boutons radio) reçoivent `accent-color`
 document : sans cela ils prenaient la couleur d'accentuation du système, et l'écran affichait deux
 couleurs d'action concurrentes, dont une qui changeait d'un poste à l'autre.
 
-### 13.3 Les documents produits
+### 13.3 L'articulation entre les deux surfaces
+
+Traitée le 11 août 2026. Jusque-là, la vitrine et l'application coexistaient sans se connaître.
+
+| Ce qui a changé | Détail |
+|---|---|
+| **Retour vers le site** | Le bloc de marque de la barre latérale et le pied de page mènent à `bailiz.fr`. L'application n'est plus une porte à sens unique |
+| **En fenêtre autonome, ce retour disparaît** | Suivre un lien hors du `scope` d'une PWA installée éjecte vers le navigateur du système. `useModeAutonome` (`src/hooks/useStatuts.ts`) détecte le cas et rend le même bloc sans lien, à dimensions identiques |
+| **Un seul glyphe** | `Logo` (`src/components/ui/Marque.tsx`) reprend le dessin du favicon, repris à l'identique dans l'en-tête de la vitrine. L'application affichait auparavant une icône `Building2` de Lucide : trois dessins pour un produit |
+| **Même signature** | Glyphe de 36 px, mot-logo en 1,25 rem extra-gras, même interlettrage des deux côtés |
+| **Positionnement unifié** | Baseline, `<title>` et manifeste PWA passent de « Gestion locative LMNP » à « Baux et états des lieux », conformément au §3.6 |
+| **Entrée par l'outil** | L'état vide du tableau de bord propose « Rédiger un bail » au lieu de « Créez votre premier bien » — le formulaire de bail sait créer le logement en cours de route |
+| **Impasse corrigée** | `/app/#/edl`, destination du second bouton de la landing, n'offrait **aucune action** : une consigne renvoyant ailleurs, sans lien pour y aller. Il propose désormais « Rédiger un bail » ou « Choisir un bail » selon ce qui existe déjà |
+| **Légal remis d'aplomb** | La page interne annonçait encore GitHub Pages comme hébergeur et « aucune mesure d'audience » — deux affirmations devenues fausses. Corrigées, et renvoyant aux pages publiques comme référence |
+
+**Pourquoi la page légale reste dupliquée** : l'application doit rester utilisable hors ligne, où
+`bailiz.fr/mentions-legales/` n'est pas atteignable. Le contenu reste donc complet dans l'app, avec
+un renvoi vers la version de référence. C'est un doublon assumé, pas un oubli — et il impose de
+répercuter toute correction aux deux endroits.
+
+**Deux fausses pistes écartées après vérification** : l'avertissement juridique est mémorisé en
+base (`disclaimerAccepte`), il ne s'affiche qu'une fois — pas de double friction avec la vitrine.
+Et la fonte Inter est bien servie deux fois sous deux URL, mais la mutualiser romprait le précache
+hors-ligne de l'application pour 48 Ko chargés une seule fois.
+
+### 13.4 Les documents produits
 
 La palette du PDF suit la même échelle neutre. Le document est le produit : il aurait été
 incohérent qu'il conserve les gris froids d'origine quand l'interface qui le fabrique n'en a plus.

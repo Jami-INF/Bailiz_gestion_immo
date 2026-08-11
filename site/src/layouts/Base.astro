@@ -76,7 +76,20 @@ const NAV = [
   <body>
     <header class="entete">
       <div class="enveloppe entete__contenu">
-        <a class="marque" href="/">Bailiz</a>
+        <!--
+          Même glyphe que la barre latérale de l'application
+          (`src/components/ui/Marque.tsx`) et que le favicon : c'est le seul
+          élément qui dise, au passage de la vitrine à l'outil, que c'est le
+          même produit.
+        -->
+        <a class="marque" href="/">
+          <svg viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+            <rect width="512" height="512" rx="112" fill="var(--m-700)" />
+            <path d="M256 96 96 224v192h112v-96h96v96h112V224Z" fill="var(--c-50)" />
+            <rect x="232" y="272" width="48" height="48" rx="8" fill="var(--m-700)" />
+          </svg>
+          Bailiz
+        </a>
         <nav aria-label="Navigation principale">
           {NAV.map((l) => <a href={l.href}>{l.texte}</a>)}
         </nav>

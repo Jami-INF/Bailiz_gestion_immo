@@ -6,6 +6,7 @@ export { ToastProvider, useToast } from './Toast';
 export { Badge } from './Badge';
 export { Stepper } from './Stepper';
 export { Card, PageHeader, EmptyState } from './Layout';
+export { Logo } from './Marque';
 export { BarreListe, SEUIL_BARRE_LISTE, type OptionTri } from './BarreListe';
 export { Section } from './Section';
 export { CarteRepliable } from './CarteRepliable';

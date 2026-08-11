@@ -18,7 +18,7 @@ import {
   RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
-import { useEnLigne, usePersistanceStockage } from '@/hooks/useStatuts';
+import { useEnLigne, useModeAutonome, usePersistanceStockage } from '@/hooks/useStatuts';
 import { appliquerMiseAJour, miseAJourDisponible, sAbonnerMiseAJour } from '@/lib/majApp';
 import { format, isToday } from 'date-fns';
 import { db, getParametres } from '@/lib/db';
@@ -46,7 +46,7 @@ import {
   lancerConnexionParRedirection,
 } from '@/lib/gdrive';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
-import { Button, Modal, useToast } from '@/components/ui';
+import { Button, Logo, Modal, useToast } from '@/components/ui';
 import { LimiteErreur } from './LimiteErreur';
 
 const nav = [
@@ -450,6 +450,14 @@ export function AppLayout() {
     window.localStorage.setItem('bailiz.navRepliee', navRepliee ? '1' : '0');
   }, [navRepliee]);
 
+  /*
+   * Installée, l'application ne propose plus de retour vers la vitrine : le
+   * lien sortirait du `scope` et ouvrirait le navigateur du système. Le bloc de
+   * marque devient alors une simple `<div>`, de dimensions identiques.
+   */
+  const autonome = useModeAutonome();
+  const ElementMarque = autonome ? 'div' : 'a';
+
   // Mode terrain EDL : plein écran sans navigation latérale
   const pleinEcran = /^\/edl\/[^/]+/.test(location.pathname);
   // Formulaire de bail (avec aperçu du document) : conteneur élargi
@@ -465,18 +473,36 @@ export function AppLayout() {
             navRepliee ? 'sm:w-16' : 'sm:w-60'
           }`}
         >
+          {/*
+            Bloc de marque calé sur l'en-tête de la vitrine : même glyphe, même
+            graisse, même interlettrage. Cliquable, il ramène à bailiz.fr —
+            l'application était jusqu'ici une porte à sens unique.
+
+            Sauf en fenêtre autonome : cf. `useModeAutonome`. On rend alors le
+            même bloc, sans lien, pour que la barre ne change pas de hauteur
+            selon le mode d'affichage.
+          */}
           <div
-            className={`hidden items-center gap-2 py-5 sm:flex ${navRepliee ? 'justify-center px-0' : 'px-5'}`}
+            className={`hidden py-5 sm:block ${navRepliee ? 'px-0' : 'px-5'}`}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-700 text-white">
-              <Building2 size={18} />
-            </div>
-            {!navRepliee && (
-              <div>
-                <div className="text-base font-bold text-accent-900">Bailiz</div>
-                <div className="text-xs text-accent-500">Gestion locative LMNP</div>
-              </div>
-            )}
+            <ElementMarque
+              className={`flex items-center gap-2.5 rounded-lg ${
+                navRepliee ? 'justify-center' : ''
+              } ${autonome ? '' : 'hover:opacity-80'}`}
+              {...(autonome
+                ? {}
+                : { href: '/', title: 'Retour à la présentation de Bailiz — bailiz.fr' })}
+            >
+              <Logo taille={36} />
+              {!navRepliee && (
+                <div>
+                  <div className="text-xl font-extrabold tracking-tight text-accent-900">
+                    Bailiz
+                  </div>
+                  <div className="text-xs text-accent-500">Baux et états des lieux</div>
+                </div>
+              )}
+            </ElementMarque>
           </div>
           <nav className={`flex justify-around sm:flex-col sm:gap-1 ${navRepliee ? 'sm:px-2' : 'sm:px-3'}`}>
             {nav.map(({ to, label, icon: Icon }) => (
@@ -560,6 +586,14 @@ export function AppLayout() {
           </LimiteErreur>
           {!pleinEcran && (
             <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-accent-200 pt-4 text-xs text-accent-500">
+              {!autonome && (
+                <>
+                  <a href="/" className="hover:text-accent-800 hover:underline">
+                    bailiz.fr
+                  </a>
+                  <span aria-hidden>·</span>
+                </>
+              )}
               <Link to="/mentions-legales" className="hover:text-accent-800 hover:underline">
                 Mentions légales & confidentialité
               </Link>

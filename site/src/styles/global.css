@@ -147,12 +147,26 @@ section {
   padding-block: 1rem;
 }
 
+/*
+ * Calé sur le bloc de marque de l'application : glyphe de 36 px, mot-logo en
+ * 1,25 rem extra-gras, même interlettrage. Les deux surfaces doivent présenter
+ * la même signature.
+ */
 .marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--c-900);
   text-decoration: none;
   letter-spacing: -0.03em;
+}
+
+.marque svg {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
 }
 
 .entete nav {

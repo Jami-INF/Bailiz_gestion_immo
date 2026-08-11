@@ -35,10 +35,10 @@ export default defineConfig({
         // et donc précachée comme le reste par `globPatterns`.
       },
       manifest: {
-        name: 'Bailiz — Gestion locative LMNP',
+        name: 'Bailiz — Baux et états des lieux',
         short_name: 'Bailiz',
         description:
-          'Baux meublés et états des lieux pour bailleur LMNP — 100 % hors-ligne',
+          'Bail meublé et états des lieux avec photos, hors ligne et sans compte',
         lang: 'fr',
         theme_color: '#22524E',
         background_color: '#FAFAF9',

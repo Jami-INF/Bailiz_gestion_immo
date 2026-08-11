@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarClock,
   ClipboardList,
+  FileText,
   HardDriveDownload,
   Plus,
 } from 'lucide-react';
@@ -143,16 +144,29 @@ export function TableauDeBordPage() {
       />
 
       {biens.length === 0 ? (
+        /*
+         * Premier écran de quelqu'un qui arrive de bailiz.fr, où on lui a promis
+         * « choisissez un outil, remplissez, générez ». L'entrée se fait donc
+         * par le document et non par la fiche du logement — que le formulaire de
+         * bail sait de toute façon créer en cours de route.
+         */
         <EmptyState
-          icon={Building2}
-          titre="Créez votre premier bien pour commencer"
-          message="Bailiz vous accompagne de l'entrée à la sortie du locataire : bail meublé conforme, inventaire, états des lieux comparatifs, le tout 100 % hors-ligne sur cet appareil."
+          icon={FileText}
+          titre="Commencez par le bail"
+          message="Le logement et le locataire se saisissent directement dans le formulaire, rien n'est à préparer avant. L'état des lieux d'entrée se lance ensuite depuis la fiche du bail, et celui de sortie reprendra l'entrée ligne à ligne pour calculer les retenues sur le dépôt."
           action={
-            <Link to="/biens/nouveau">
-              <Button>
-                <Plus size={16} /> Créer un bien
-              </Button>
-            </Link>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link to="/baux/nouveau">
+                <Button>
+                  <FileText size={16} /> Rédiger un bail
+                </Button>
+              </Link>
+              <Link to="/biens/nouveau">
+                <Button variant="secondary">
+                  <Plus size={16} /> Créer un logement
+                </Button>
+              </Link>
+            </div>
           }
         />
       ) : (

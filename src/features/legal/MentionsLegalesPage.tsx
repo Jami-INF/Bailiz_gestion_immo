@@ -22,6 +22,27 @@ export function MentionsLegalesPage() {
     <div>
       <PageHeader titre="Mentions légales & politique de confidentialité" />
       <div className="space-y-4 text-sm leading-relaxed text-accent-700">
+        {/*
+          Cette page fait doublon avec bailiz.fr/mentions-legales/ et
+          /confidentialite/, et c'est voulu : l'application doit rester utilisable
+          hors ligne, où les pages du site ne sont pas atteignables. Le renvoi
+          désigne la version qui fait référence, sans priver personne du contenu.
+        */}
+        <Card>
+          <p>
+            Version de référence, tenue à jour et consultable sans ouvrir
+            l'application :{' '}
+            <LienExterne href="https://bailiz.fr/mentions-legales/">
+              bailiz.fr/mentions-legales
+            </LienExterne>{' '}
+            et{' '}
+            <LienExterne href="https://bailiz.fr/confidentialite/">
+              bailiz.fr/confidentialite
+            </LienExterne>
+            .
+          </p>
+        </Card>
+
         <Card>
           <h2 className="mb-2 font-semibold text-accent-900">Éditeur du site</h2>
           <p>
@@ -44,9 +65,9 @@ export function MentionsLegalesPage() {
         <Card>
           <h2 className="mb-2 font-semibold text-accent-900">Hébergement</h2>
           <p>
-            Le site est hébergé en tant que site statique par GitHub Pages — GitHub, Inc., 88
-            Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis (
-            <LienExterne href="https://pages.github.com">pages.github.com</LienExterne>).
+            Le site est hébergé en France par <span className="font-medium text-accent-900">OVH
+            SAS</span> — 2 rue Kellermann, 59100 Roubaix (
+            <LienExterne href="https://www.ovhcloud.com">ovhcloud.com</LienExterne>).
             L'hébergeur ne fait que servir les fichiers de l'application : aucune donnée saisie
             dans Bailiz ne lui est transmise.
           </p>
@@ -65,7 +86,12 @@ export function MentionsLegalesPage() {
               explicite de votre part (export ZIP, envoi d'un PDF par e-mail, dossier de
               sauvegarde que vous choisissez).
             </li>
-            <li>Aucun compte, aucun cookie, aucun traceur, aucune mesure d'audience.</li>
+            <li>
+              Aucun compte, aucun cookie, aucun traceur, aucune mesure d'audience par script.
+              La fréquentation du site de présentation est estimée à partir des journaux de
+              connexion de l'hébergeur, conservés pour une durée limitée ; l'application, elle,
+              n'envoie rien.
+            </li>
             <li>
               Sauvegarde Google Drive (optionnelle) : si vous l'activez dans les Paramètres,
               l'archive de sauvegarde est envoyée sur <span className="font-medium">votre propre</span>{' '}
@@ -82,12 +108,9 @@ export function MentionsLegalesPage() {
               leurs droits directement auprès de vous.
             </li>
             <li>
-              Comme tout hébergeur web, GitHub Pages peut journaliser techniquement les
-              adresses IP des visiteurs lors du chargement des fichiers du site (voir la{' '}
-              <LienExterne href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">
-                politique de confidentialité de GitHub
-              </LienExterne>
-              ). Cela ne concerne pas le contenu que vous saisissez dans l'application.
+              Comme tout hébergeur web, OVH journalise techniquement les adresses IP des
+              visiteurs lors du chargement des fichiers du site. Cela ne concerne pas le contenu
+              que vous saisissez dans l'application, qui ne quitte jamais votre appareil.
             </li>
           </ul>
         </Card>

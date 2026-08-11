@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 /** Suivi de l'état de connexion réseau. */
 export function useEnLigne(): boolean {
@@ -74,4 +74,32 @@ export function useQuotaStockage(): QuotaStockage | undefined {
     };
   }, []);
   return quota;
+}
+
+/**
+ * Vrai quand l'application tourne en fenêtre autonome, c'est-à-dire installée.
+ *
+ * Ce que cela change : le lien de retour vers bailiz.fr **disparaît**. Dans une
+ * PWA installée, suivre un lien hors du `scope` fait sortir de la fenêtre vers
+ * le navigateur du système. Quelqu'un qui a installé l'outil n'a rien à faire
+ * de la page de présentation, et lui proposer une sortie qui ouvre un autre
+ * navigateur est un piège plutôt qu'un service.
+ *
+ * `useSyncExternalStore` et non un `useEffect` : le mode d'affichage peut
+ * changer sans rechargement (installation depuis l'onglet), et la valeur doit
+ * être lue au premier rendu pour éviter que le lien n'apparaisse une fraction
+ * de seconde avant de disparaître.
+ */
+export function useModeAutonome() {
+  return useSyncExternalStore(
+    (rappel) => {
+      const requete = window.matchMedia('(display-mode: standalone)');
+      requete.addEventListener('change', rappel);
+      return () => requete.removeEventListener('change', rappel);
+    },
+    () => window.matchMedia('(display-mode: standalone)').matches,
+    // Rendu serveur ou test sans `matchMedia` : on suppose l'onglet, cas où le
+    // lien de retour a un sens.
+    () => false,
+  );
 }
