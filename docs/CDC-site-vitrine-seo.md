@@ -399,7 +399,7 @@ Pas de multisite, pas de sous-domaine à déclarer : deux dossiers, une seule or
 | `Cache-Control: no-cache, must-revalidate` | HTML de la vitrine — une correction de contenu doit être visible immédiatement |
 | `Cache-Control: public, max-age=31536000, immutable` | `/app/assets/*` et assets hashés de la vitrine |
 | `Cache-Control: no-cache` | `/app/sw.js`, `/app/index.html`, `/app/manifest.webmanifest` — sinon une mise à jour de l'app peut rester invisible |
-| `Content-Security-Policy` | Restrictive : `default-src 'self'`, pas de tiers. À valider contre le besoin réel de l'app (blobs PDF, `data:` images) avant mise en production |
+| `Content-Security-Policy` | Restrictive : `default-src 'self'`. Seule exception, Google Identity Services (`accounts.google.com/gsi/`) pour la sauvegarde Drive — `script-src`, `style-src`, `connect-src`, `frame-src`. À valider contre le besoin réel de l'app (blobs PDF, `data:` images) avant mise en production |
 | `Referrer-Policy: strict-origin-when-cross-origin`, `X-Content-Type-Options: nosniff`, `Permissions-Policy` | Tout le site |
 | `mod_deflate` / Brotli | HTML, CSS, JS, SVG, JSON |
 | `ErrorDocument 404` | Page 404 de la vitrine |
