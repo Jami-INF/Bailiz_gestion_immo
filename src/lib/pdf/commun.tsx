@@ -13,68 +13,68 @@ export const pdfStyles = StyleSheet.create({
     paddingHorizontal: 48,
     fontSize: 10,
     fontFamily: 'Helvetica',
-    color: '#1e293b',
+    color: '#2B2925',
     lineHeight: 1.5,
   },
   entete: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#cbd5e1',
+    borderBottomColor: '#D5D2CC',
     paddingBottom: 7,
     marginBottom: 18,
   },
-  reference: { fontSize: 8, color: '#64748b', letterSpacing: 0.4, textTransform: 'uppercase' },
+  reference: { fontSize: 8, color: '#78746D', letterSpacing: 0.4, textTransform: 'uppercase' },
   // Bloc de titre centré, souligné d'un filet — en tête du document.
   titreBloc: {
     borderBottomWidth: 1.2,
-    borderBottomColor: '#0f172a',
+    borderBottomColor: '#1A1815',
     paddingBottom: 8,
     marginBottom: 16,
   },
   titre: {
     fontSize: 17,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
+    color: '#1A1815',
     textAlign: 'center',
     letterSpacing: 0.3,
     marginBottom: 4,
   },
-  sousTitre: { fontSize: 9, color: '#475569', textAlign: 'center', lineHeight: 1.4, marginBottom: 6 },
+  sousTitre: { fontSize: 9, color: '#5A5751', textAlign: 'center', lineHeight: 1.4, marginBottom: 6 },
   h2: {
     fontSize: 11.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
+    color: '#1A1815',
     marginTop: 16,
     marginBottom: 7,
     paddingBottom: 3,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#cbd5e1',
+    borderBottomColor: '#D5D2CC',
     letterSpacing: 0.2,
   },
-  h3: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#334155', marginTop: 9, marginBottom: 3 },
+  h3: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#413F3A', marginTop: 9, marginBottom: 3 },
   p: { marginBottom: 5, textAlign: 'justify' },
   // Bloc d'une partie (bailleur, locataire, garant) — aéré, présentation en liste.
   tiers: { marginBottom: 9 },
-  tiersLigne: { marginBottom: 2, paddingLeft: 12, color: '#334155' },
+  tiersLigne: { marginBottom: 2, paddingLeft: 12, color: '#413F3A' },
   /** Ligne comportant des zones à compléter à la main : interligne élargi. */
-  tiersLigneAComplecter: { marginBottom: 9, paddingLeft: 12, color: '#334155', lineHeight: 1.9 },
+  tiersLigneAComplecter: { marginBottom: 9, paddingLeft: 12, color: '#413F3A', lineHeight: 1.9 },
   gras: { fontFamily: 'Helvetica-Bold' },
-  petit: { fontSize: 8, color: '#64748b' },
+  petit: { fontSize: 8, color: '#78746D' },
   // Encadré clair (récapitulatifs, mises en avant).
   carte: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAFAF9',
     borderWidth: 0.5,
-    borderColor: '#e2e8f0',
+    borderColor: '#E8E6E2',
     borderRadius: 4,
     padding: 10,
     marginVertical: 8,
   },
-  tableau: { borderWidth: 0.5, borderColor: '#94a3b8', borderRadius: 2, marginVertical: 6 },
-  ligneTableau: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#cbd5e1' },
+  tableau: { borderWidth: 0.5, borderColor: '#918C85', borderRadius: 2, marginVertical: 6 },
+  ligneTableau: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#D5D2CC' },
   celluleEnTete: {
     fontFamily: 'Helvetica-Bold',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#F5F4F2',
     padding: 4,
     fontSize: 8.5,
   },
@@ -85,7 +85,7 @@ export const pdfStyles = StyleSheet.create({
     left: 48,
     right: 48,
     borderTopWidth: 0.5,
-    borderTopColor: '#cbd5e1',
+    borderTopColor: '#D5D2CC',
     paddingTop: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -93,7 +93,7 @@ export const pdfStyles = StyleSheet.create({
   blocSignature: {
     width: '47%',
     borderWidth: 0.5,
-    borderColor: '#94a3b8',
+    borderColor: '#918C85',
     borderRadius: 4,
     padding: 10,
     marginBottom: 8,
@@ -123,7 +123,7 @@ export function Rempl({
 }) {
   const vide = v === undefined || v === null || v === '' || v === 0;
   if (!vide) return <Text>{v}</Text>;
-  return brouillon ? <Text style={{ color: '#94a3b8' }}>{'.'.repeat(taille)}</Text> : <Text />;
+  return brouillon ? <Text style={{ color: '#918C85' }}>{'.'.repeat(taille)}</Text> : <Text />;
 }
 
 /**
@@ -138,7 +138,7 @@ export function CaseACocher({ children, cochee }: { children: ReactNode; cochee?
           width: 9,
           height: 9,
           borderWidth: 0.8,
-          borderColor: '#334155',
+          borderColor: '#413F3A',
           borderRadius: 1.5,
           marginRight: 7,
           marginTop: 1.5,
@@ -146,7 +146,7 @@ export function CaseACocher({ children, cochee }: { children: ReactNode; cochee?
           justifyContent: 'center',
         }}
       >
-        {cochee ? <Text style={{ fontSize: 7, lineHeight: 1, color: '#0f172a' }}>X</Text> : null}
+        {cochee ? <Text style={{ fontSize: 7, lineHeight: 1, color: '#1A1815' }}>X</Text> : null}
       </View>
       <Text style={{ flex: 1 }}>{children}</Text>
     </View>

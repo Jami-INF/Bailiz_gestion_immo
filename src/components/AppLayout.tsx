@@ -489,8 +489,11 @@ export function AppLayout() {
                   `flex min-h-touch flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium sm:flex-row sm:gap-3 sm:text-sm ${
                     navRepliee ? 'px-2 sm:justify-center sm:px-0' : 'px-2 sm:px-3'
                   } ${
+                    // L'élément actif porte la couleur de marque : c'est le
+                    // seul repère de position sur une barre réduite à des
+                    // icônes, et un gris de plus n'y suffisait pas.
                     isActive
-                      ? 'text-accent-900 sm:bg-accent-100'
+                      ? 'text-brand-700 sm:bg-brand-50'
                       : 'text-accent-500 hover:text-accent-800 sm:hover:bg-accent-50'
                   }`
                 }

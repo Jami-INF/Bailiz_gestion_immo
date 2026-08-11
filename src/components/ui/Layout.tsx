@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-accent-200 bg-white p-5 shadow-sm ${className}`}>
+    // Bordure et pas ombre : sur un écran qui empile dix cartes, dix ombres
+    // font un relief brouillon. La séparation suffit à découper.
+    <div className={`rounded-xl border border-accent-200 bg-white p-5 ${className}`}>
       {children}
     </div>
   );

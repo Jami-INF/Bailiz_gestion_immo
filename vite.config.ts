@@ -40,8 +40,8 @@ export default defineConfig({
         description:
           'Baux meublés et états des lieux pour bailleur LMNP — 100 % hors-ligne',
         lang: 'fr',
-        theme_color: '#334155',
-        background_color: '#f8fafc',
+        theme_color: '#22524E',
+        background_color: '#FAFAF9',
         display: 'standalone',
         start_url: '/app/',
         scope: '/app/',

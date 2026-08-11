@@ -40,6 +40,10 @@ const FAQ = [
     r: "L'état des lieux se signe sur écran, sur place, avec horodatage — la signature électronique y est admise. Le bail, lui, s'imprime et se signe sur papier : c'est un choix assumé, qui vous laisse le modifier et le régénérer autant de fois que nécessaire.",
   },
   {
+    q: 'Pourquoi ne pas simplement télécharger un modèle gratuit ?',
+    r: "Pour le bail seul, un modèle fait souvent l'affaire. La différence se joue à la sortie du locataire : comparer l'état des lieux d'entrée et celui de sortie, appliquer une grille de vétusté et justifier chaque retenue sur le dépôt de garantie. Un document à remplir ne calcule rien et ne garde aucun lien entre vos deux états des lieux.",
+  },
+  {
     q: 'Faut-il une connexion Internet ?',
     r: "Seulement au premier chargement. Ensuite Bailiz fonctionne hors ligne, y compris installé sur tablette — utile pour un état des lieux en cave, au parking ou dans un immeuble mal couvert.",
   },
@@ -106,6 +110,140 @@ const schema = [
           <span>Vérifiable par n'importe qui, à tout moment.</span>
         </li>
       </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe">
+      <h2>Le moment qui coûte cher, c'est la sortie</h2>
+      <div class="deux-colonnes">
+        <div class="prose">
+          <p>
+            Rédiger un bail, tout le monde sait le faire avec un modèle. Le problème arrive{' '}
+            <strong>dix-huit mois plus tard</strong>, quand le locataire rend les clés : il faut
+            comparer l'état du logement à celui de l'entrée, chiffrer ce qui relève de l'usure
+            normale et ce qui relève de la dégradation, et justifier chaque euro retenu sur le
+            dépôt de garantie.
+          </p>
+          <p>
+            C'est là que les litiges naissent, et c'est précisément ce qu'un document à remplir ne
+            peut pas faire pour vous. Bailiz garde le lien entre les deux états des lieux,
+            <strong>affiche les écarts ligne à ligne</strong> et applique une grille de vétusté au
+            chiffrage. Vous arrivez au rendez-vous de sortie avec un décompte justifié, pas avec
+            deux feuilles à comparer de mémoire.
+          </p>
+        </div>
+        <!--
+          Schéma, et non capture d'écran : il montre l'enchaînement, ce qu'une
+          capture d'un seul écran ne saurait faire. Inline et sans texte en
+          image — donc lisible par un moteur, net à toute résolution, et nul en
+          poids. Les captures réelles restent à produire.
+        -->
+        <svg
+          class="schema"
+          viewBox="0 0 420 260"
+          role="img"
+          aria-label="Enchaînement : le bail alimente l'état des lieux d'entrée, qui est comparé à celui de sortie pour produire le décompte du dépôt de garantie."
+        >
+          <defs>
+            <marker id="fleche" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6"
+                    markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="var(--c-400)" />
+            </marker>
+          </defs>
+          <g font-family="Inter, sans-serif" font-size="12">
+            <rect x="8" y="14" width="150" height="52" rx="10" fill="#fff" stroke="var(--c-300)" />
+            <text x="24" y="38" fill="var(--c-900)" font-weight="650">Bail</text>
+            <text x="24" y="55" fill="var(--c-500)" font-size="11">logement, loyer, dépôt</text>
+
+            <rect x="8" y="104" width="150" height="52" rx="10" fill="#fff" stroke="var(--c-300)" />
+            <text x="24" y="128" fill="var(--c-900)" font-weight="650">EDL d'entrée</text>
+            <text x="24" y="145" fill="var(--c-500)" font-size="11">pièces, photos, signature</text>
+
+            <rect x="8" y="194" width="150" height="52" rx="10" fill="#fff" stroke="var(--c-300)" />
+            <text x="24" y="218" fill="var(--c-900)" font-weight="650">EDL de sortie</text>
+            <text x="24" y="235" fill="var(--c-500)" font-size="11">reprend l'entrée</text>
+
+            <path d="M83 66 V104" stroke="var(--c-400)" fill="none" marker-end="url(#fleche)" />
+            <path d="M83 156 V194" stroke="var(--c-400)" fill="none" marker-end="url(#fleche)" />
+
+            <path d="M158 130 H210 V150" stroke="var(--c-400)" fill="none" />
+            <path d="M158 220 H210 V190" stroke="var(--c-400)" fill="none" />
+            <path d="M210 170 H244" stroke="var(--c-400)" fill="none" marker-end="url(#fleche)" />
+
+            <rect x="248" y="122" width="164" height="96" rx="10" fill="var(--m-50)"
+                  stroke="var(--m-600)" />
+            <text x="266" y="148" fill="var(--m-900)" font-weight="700">Décompte du dépôt</text>
+            <text x="266" y="169" fill="var(--m-800)" font-size="11">écarts entrée / sortie</text>
+            <text x="266" y="187" fill="var(--m-800)" font-size="11">vétusté appliquée</text>
+            <text x="266" y="205" fill="var(--m-800)" font-size="11">montant justifié</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Ce qu'un modèle à remplir ne fera pas</h2>
+      <p class="sous-titre">
+        Les modèles de bail et d'état des lieux gratuits ne manquent pas, et ils rendent service.
+        Voici ce qui change quand le document devient un outil.
+      </p>
+      <div class="tableau-comparatif">
+        <table>
+          <caption class="sr-only">
+            Comparaison entre un modèle de document à remplir et Bailiz
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Ce que vous devez faire</th>
+              <th scope="col">Avec un modèle à remplir</th>
+              <th scope="col">Avec Bailiz</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Rédiger le bail</th>
+              <td>Retrouver les mentions obligatoires par vous-même</td>
+              <td>Trame du bail type, mentions rappelées à la saisie</td>
+            </tr>
+            <tr>
+              <th scope="row">Corriger une erreur après impression</th>
+              <td>Tout retaper</td>
+              <td>Rouvrir, modifier, régénérer</td>
+            </tr>
+            <tr>
+              <th scope="row">Relouer l'an prochain</th>
+              <td>Repartir d'une page blanche</td>
+              <td>Le logement est déjà décrit, pièce par pièce</td>
+            </tr>
+            <tr>
+              <th scope="row">Faire l'état des lieux sur place</th>
+              <td>Papier, stylo, photos à recoller ensuite</td>
+              <td>Tablette, photos rattachées, signature horodatée</td>
+            </tr>
+            <tr>
+              <th scope="row">Comparer l'entrée et la sortie</th>
+              <td>Deux documents, à l'œil</td>
+              <td>Les écarts sont listés automatiquement</td>
+            </tr>
+            <tr>
+              <th scope="row">Chiffrer les retenues sur le dépôt</th>
+              <td>À votre appréciation</td>
+              <td>Grille de vétusté appliquée, décompte détaillé</td>
+            </tr>
+            <tr>
+              <th scope="row">Prouver que rien n'a bougé après signature</th>
+              <td>Rien à opposer</td>
+              <td>Empreinte SHA-256 du document signé</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mention">
+        Et ce qui ne change pas : c'est gratuit, sans compte, et vos données restent chez vous.
+      </p>
     </div>
   </section>
 

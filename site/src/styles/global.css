@@ -6,8 +6,8 @@
  * sous 2 s (CDC §8). Un fichier de CSS écrit à la main, servi en une requête,
  * y répond mieux qu'une chaîne de build supplémentaire.
  *
- * Les couleurs reprennent la palette `accent-*` de l'application
- * (`tailwind.config.js`, échelle slate) : la vitrine et l'outil doivent être
+ * Les couleurs reprennent la charte de l’application
+ * (`tailwind.config.js`) : la vitrine et l’outil doivent être
  * manifestement le même produit (CDC §13).
  */
 
@@ -29,20 +29,37 @@
     U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/*
+ * Jetons repris à l'identique de `tailwind.config.js`, qui fait foi. La vitrine
+ * et l'application doivent être manifestement le même produit : un écart de
+ * teinte au passage de la page d'accueil à l'outil se lit comme une sortie de
+ * site. Toute retouche là-bas se recopie ici.
+ */
 :root {
-  --c-50: #f8fafc;
-  --c-100: #f1f5f9;
-  --c-200: #e2e8f0;
-  --c-300: #cbd5e1;
-  --c-400: #94a3b8;
-  --c-500: #64748b;
-  --c-600: #475569;
-  --c-700: #334155;
-  --c-800: #1e293b;
-  --c-900: #0f172a;
+  /* Neutre tiède — « le papier ». */
+  --c-50: #fafaf9;
+  --c-100: #f5f4f2;
+  --c-200: #e8e6e2;
+  --c-300: #d5d2cc;
+  --c-400: #918c85; /* 3:1 sur blanc — bordures de composants (WCAG 1.4.11) */
+  --c-500: #78746d; /* 4,65:1 — plancher du texte discret */
+  --c-600: #5a5751;
+  --c-700: #413f3a;
+  --c-800: #2b2925;
+  --c-900: #1a1815;
+
+  /* Marque — « l'encre ». */
+  --m-50: #f1f7f6;
+  --m-100: #dfedeb;
+  --m-200: #bfdbd7;
+  --m-600: #2b6862; /* actions, 6,4:1 avec du blanc */
+  --m-700: #22524e; /* liens dans le texte, 8,8:1 */
+  --m-800: #1c423f;
+  --m-900: #15302e;
 
   --largeur: 68rem;
-  --rayon: 0.75rem;
+  --rayon: 0.875rem;
+  --rayon-sm: 0.625rem;
   --pas: 1rem;
 }
 
@@ -90,13 +107,13 @@ p {
 }
 
 a {
-  color: var(--c-700);
+  color: var(--m-700);
   text-underline-offset: 0.2em;
 }
 
 /* Un focus visible n'est pas optionnel : c'est le seul repère au clavier. */
 :focus-visible {
-  outline: 3px solid var(--c-700);
+  outline: 3px solid var(--m-600);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -186,7 +203,7 @@ section {
   /* 44 px : la cible tactile minimale retenue dans l'application. */
   min-height: 44px;
   padding: 0.625rem 1.25rem;
-  border-radius: var(--rayon);
+  border-radius: var(--rayon-sm);
   font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
@@ -194,22 +211,23 @@ section {
 }
 
 .bouton--principal {
-  background: var(--c-800);
+  background: var(--m-600);
   color: #fff;
 }
 
 .bouton--principal:hover {
-  background: var(--c-900);
+  background: var(--m-700);
 }
 
 .bouton--secondaire {
   background: #fff;
   color: var(--c-800);
-  border-color: var(--c-300);
+  border-color: var(--c-400);
 }
 
 .bouton--secondaire:hover {
   border-color: var(--c-500);
+  background: var(--c-50);
 }
 
 /* --- Héros -------------------------------------------------------------- */
@@ -284,6 +302,105 @@ section {
   margin-bottom: 0.35rem;
 }
 
+/* --- Deux colonnes : texte + schéma -------------------------------------- */
+
+.deux-colonnes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 2rem 3rem;
+  align-items: center;
+}
+
+.schema {
+  width: 100%;
+  height: auto;
+  max-width: 30rem;
+  justify-self: center;
+}
+
+.sous-titre {
+  color: var(--c-600);
+  max-width: 60ch;
+  margin-bottom: 2rem;
+}
+
+/* --- Tableau comparatif --------------------------------------------------- */
+
+/*
+ * Un tableau reste un tableau : il garde son `thead`, ses `th` de ligne et sa
+ * légende, pour qu'un lecteur d'écran annonce chaque cellule avec ses deux
+ * en-têtes. Le défilement horizontal est confié au conteneur, jamais au
+ * document — la page ne défile pas latéralement.
+ */
+.tableau-comparatif {
+  overflow-x: auto;
+  border: 1px solid var(--c-200);
+  border-radius: var(--rayon);
+  background: #fff;
+}
+
+.tableau-comparatif table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.tableau-comparatif th,
+.tableau-comparatif td {
+  padding: 0.875rem 1.25rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--c-200);
+}
+
+.tableau-comparatif tbody tr:last-child th,
+.tableau-comparatif tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableau-comparatif thead th {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-500);
+  background: var(--c-50);
+  white-space: nowrap;
+}
+
+/* La colonne Bailiz est celle qu'on veut faire lire : elle porte la marque. */
+.tableau-comparatif thead th:last-child {
+  color: var(--m-700);
+}
+
+.tableau-comparatif tbody th {
+  font-weight: 600;
+  color: var(--c-900);
+  width: 26%;
+}
+
+.tableau-comparatif tbody td {
+  color: var(--c-600);
+}
+
+.tableau-comparatif tbody td:last-child {
+  color: var(--c-900);
+  background: var(--m-50);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* --- Étapes ------------------------------------------------------------- */
 
 .etapes {
@@ -309,7 +426,7 @@ section {
   height: 2rem;
   margin-bottom: 0.75rem;
   border-radius: 50%;
-  background: var(--c-800);
+  background: var(--m-600);
   color: #fff;
   font-weight: 700;
   font-size: 0.9375rem;

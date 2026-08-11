@@ -527,13 +527,89 @@ estimée à partir des journaux de connexion de l'hébergeur, conservés pour un
 
 ## 13. Identité visuelle
 
-Réutiliser le design system de l'application (couleurs `accent-*`, Inter, arrondis, densité) :
-la vitrine et l'outil doivent être **manifestement le même produit**, sinon le clic vers `/app/`
-ressemble à une sortie de site. Pas de kit de composants tiers, pas de framework CSS externe :
-Tailwind avec la même configuration.
+### 13.1 La charte — « l'encre et le papier »
 
-À produire : une image de partage `og:image` (1200×630) et un jeu complet de favicons PNG à partir
-de `icon.svg`.
+Refondue le 11 août 2026. Elle vaut pour les deux surfaces : la vitrine et l'application doivent
+être **manifestement le même produit**, sinon le clic vers `/app/` se lit comme une sortie de site.
+
+**Source unique** : `tailwind.config.js`. Le site vitrine
+(`site/src/styles/global.css`) en reprend les valeurs en variables CSS — deux fichiers, recopiés à
+la main, parce que les faire dépendre l'un de l'autre imposerait une étape de build commune entre
+deux projets qui n'en partagent aucune.
+
+**Intention.** L'outil produit des documents destinés à être imprimés, signés, classés. Le
+vocabulaire visuel est celui d'un papier bien composé : surfaces neutres tièdes, texte très
+contrasté, beaucoup de blanc, une seule couleur d'action employée avec parcimonie.
+
+| Rôle | Choix | Pourquoi |
+|---|---|---|
+| Neutre (`accent-*`) | Graphite **tiède** | Le gris-bleu froid de Tailwind donnait l'allure d'un tableau de bord générique |
+| Marque (`brand-*`) | Teal profond désaturé, `#2B6862` | Le proptech français est massivement bleu ; s'en écarter aide à être reconnu, sans couleur déplacée sur un document juridique |
+| Sémantiques | `danger` / `warning` / `success` / `info` | Déclarées une fois, exposées aussi sous leurs noms Tailwind (`red`, `amber`…) : la centaine d'usages en place s'harmonise sans être réécrite |
+| Ombres | Quasi supprimées, teintées du neutre | L'élévation se dit par la bordure ; dix cartes à ombre font un relief brouillon |
+| Fonte | Inter, inchangée | Déjà auto-hébergée et précachée. En changer coûterait un woff2 de plus au budget hors-ligne pour un gain d'image seul |
+
+**Contrastes mesurés avant d'être retenus.** Toutes les paires de texte réellement employées
+atteignent AA, la plupart AAA. Deux seuils sont désormais tenus qui ne l'étaient pas :
+
+- `accent-500` (texte discret, libellés de remplacement) : **4,65:1** — l'ancien slate-500 était
+  sous le seuil ;
+- `accent-400` (bordures de champs) : **3,05:1**, ce qu'exige WCAG 1.4.11 pour les limites de
+  composants d'interface. L'ancien slate-300 plafonnait à 1,7:1.
+
+**Contrainte PWA respectée.** Aucun asset ajouté : la charte ne tient qu'à des valeurs de couleur
+et à des règles CSS. Le précache reste à 2,5 Mo, et l'application ne charge toujours **aucune
+ressource tierce** — condition de son fonctionnement hors ligne autant que de sa promesse de
+confidentialité.
+
+**Reste à faire** : le mode sombre. Les jetons sont nommés par rôle, ce qui le rend accessible plus
+tard ; le faire maintenant supposerait d'auditer une vingtaine d'écrans, et un mode sombre à moitié
+juste est pire que pas de mode sombre.
+
+### 13.2 Ce que porte la marque
+
+`brand-600` est réservé aux **actions principales** et à l'élément de navigation actif. C'est ce
+qui le rend repérable d'un coup d'œil sur un formulaire de bail long. Tout le reste — cartes,
+tableaux, textes — vit dans le neutre.
+
+Les contrôles natifs (cases à cocher, boutons radio) reçoivent `accent-color` au niveau du
+document : sans cela ils prenaient la couleur d'accentuation du système, et l'écran affichait deux
+couleurs d'action concurrentes, dont une qui changeait d'un poste à l'autre.
+
+### 13.3 Les documents produits
+
+La palette du PDF suit la même échelle neutre. Le document est le produit : il aurait été
+incohérent qu'il conserve les gris froids d'origine quand l'interface qui le fabrique n'en a plus.
+
+---
+
+## 13 bis. Positionnement concurrentiel
+
+Étude menée le 11 août 2026. Le marché français se partage en deux familles, et **aucune ne couvre
+la chaîne complète** :
+
+| Famille | Exemples | Ce qu'elle donne | Ce qui manque |
+|---|---|---|---|
+| **Sites de modèles** | jelouebien, bailpdf, immobilierloyer, igestionlocative, jedeclaremonmeuble | Un PDF ou Word gratuit, à remplir à la main. Très fort en référencement | Le document ne calcule rien, ne garde aucun lien d'un acte à l'autre, et tout est à retaper à chaque relocation |
+| **Applications d'état des lieux** | LEO, ImmoPad, EdlSoft, État des lieux Facile | Un EDL sur tablette, souvent hors ligne, avec photos et signature | Centrées sur le seul EDL, généralement avec compte, souvent en freemium, et sans lien avec le bail |
+
+**Le manche que personne ne tient : la sortie du locataire.** Comparer l'entrée et la sortie,
+appliquer une grille de vétusté, justifier chaque euro retenu sur le dépôt de garantie. C'est le
+moment où l'argent change de main et où naissent les litiges — et c'est précisément ce qu'un
+document à remplir ne peut pas faire.
+
+**Conséquence sur la landing** : l'argument principal n'est plus « rédigez un bail gratuitement »
+(tout le monde le propose), mais **la chaîne** bail → EDL d'entrée → EDL de sortie → décompte du
+dépôt. La section « Le moment qui coûte cher, c'est la sortie » ouvre désormais la page après le
+héros, suivie d'un tableau comparatif.
+
+**Règle de rédaction : aucun concurrent n'est nommé, et rien n'est affirmé à leur sujet.** La
+publicité comparative est licite en France, mais doit être objective et vérifiable (art. L122-1 du
+code de la consommation). La comparaison porte donc sur une **catégorie** — « un modèle à remplir »
+— et n'énonce que des faits sur Bailiz. C'est aussi plus honnête : les offres évoluent, une
+affirmation vraie aujourd'hui sur un concurrent nommé ne le sera pas dans six mois.
+
+Aucune formule du type « le seul à… » n'est employée : invérifiable, donc à proscrire.
 
 ---
 
@@ -556,14 +632,17 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 | Élément | État |
 |---|---|
 | Projet Astro `site/` (Astro 7, zéro dépendance tierce au runtime) | ✅ |
-| Landing `/` — tous les blocs du §5 sauf la preuve visuelle | ✅ |
+| Landing `/` — tous les blocs du §5 | ✅ |
+| Charte refondue, appliquée aux deux surfaces et aux PDF (§13) | ✅ |
+| Différenciation concurrentielle : section « la sortie » + tableau comparatif (§13 bis) | ✅ |
 | `/bail-meuble/`, `/etat-des-lieux/`, `/pourquoi-bailiz/` | ✅ |
 | `/mentions-legales/`, `/confidentialite/` (hébergeur OVH, mesure d'audience corrigée) | ✅ |
 | 404 en `noindex`, `robots.txt`, sitemap, canoniques, Open Graph, JSON-LD | ✅ |
 | `og.png`, `apple-touch-icon.png`, favicon (`npm run images`) | ✅ |
 | `.htaccess` (redirections, cache, en-têtes, CSP) | ✅ — CSP **à valider** sur un parcours PDF complet |
 | `<meta name="robots" content="noindex,follow">` dans `index.html` de l'app | ✅ |
-| **Captures d'écran et aperçu PDF sur la landing** (§5 bloc 3) | ❌ À produire |
+| Preuve visuelle : schéma SVG de l'enchaînement bail → EDL → décompte | ✅ — captures d'écran réelles toujours à produire |
+| Mode sombre de l'application | ❌ Reporté (§13.1) |
 | **`base: '/app/'` dans `vite.config.ts`** | ❌ À faire **au même commit que la bascule CI**, sinon le déploiement GitHub Pages actuel casse |
 | **Workflow de déploiement SFTP vers OVH** (§9.4) | ❌ En cours côté éditeur |
 | **Page de renvoi sur l'ancienne URL GitHub Pages** (§9.5) | ❌ À faire à la mise en ligne |

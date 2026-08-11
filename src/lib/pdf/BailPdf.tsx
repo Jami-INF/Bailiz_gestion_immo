@@ -24,7 +24,7 @@ import {
 function LigneGarde({ label, valeur }: { label: string; valeur: string }) {
   return (
     <View style={{ flexDirection: 'row', marginBottom: 3 }}>
-      <Text style={{ width: '38%', color: '#475569' }}>{label}</Text>
+      <Text style={{ width: '38%', color: '#5A5751' }}>{label}</Text>
       <Text style={[s.gras, { flex: 1 }]}>{valeur}</Text>
     </View>
   );

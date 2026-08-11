@@ -44,6 +44,29 @@ body {
 }
 
 /*
+ * Contrôles natifs : sans `accent-color`, une case cochée prend la couleur
+ * d'accentuation du système — bleu sous macOS, autre chose ailleurs. L'écran
+ * affichait donc deux couleurs d'action concurrentes, dont une qui changeait
+ * d'un poste à l'autre. Réglé ici plutôt que sur chaque composant : cela couvre
+ * aussi les contrôles rendus par le navigateur qu'aucune classe n'atteint.
+ */
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'],
+progress {
+  accent-color: theme('colors.brand.600');
+}
+
+/*
+ * Sélection de texte assortie à la marque. Détail, mais c'est le genre de
+ * détail qui distingue une interface composée d'une interface par défaut.
+ */
+::selection {
+  background: theme('colors.brand.100');
+  color: theme('colors.brand.900');
+}
+
+/*
  * Les champs de recherche portent leur propre bouton d'effacement (assez large
  * pour le doigt, présent sur tous les navigateurs). Masquer la croix native de
  * WebKit évite d'en afficher deux côte à côte.

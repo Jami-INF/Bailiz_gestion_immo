@@ -10,8 +10,15 @@ import {
   type ReactNode,
 } from 'react';
 
+/*
+ * `border-accent-400` et non 300 : la limite d'un champ est un composant
+ * d'interface, à 3:1 minimum (WCAG 1.4.11). Le libellé de remplacement passe en
+ * `accent-500`, qui atteint AA — un texte d'aide illisible n'aide personne.
+ * L'anneau de focus est doublé et prend la couleur de marque : sur un
+ * formulaire de bail long, savoir où l'on est compte plus que la discrétion.
+ */
 const baseField =
-  'w-full rounded-lg border border-accent-300 bg-white px-3 py-2 text-sm text-accent-900 placeholder:text-accent-400 focus:border-accent-700 focus:outline-none focus:ring-1 focus:ring-accent-700 disabled:bg-accent-100 disabled:text-accent-500 min-h-touch';
+  'w-full rounded-lg border border-accent-400 bg-white px-3 py-2 text-sm text-accent-900 placeholder:text-accent-500 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/25 disabled:border-accent-300 disabled:bg-accent-100 disabled:text-accent-500 min-h-touch';
 
 /**
  * Lien entre un `Field` et le contrôle qu'il étiquette. Hors d'un `Field`
@@ -75,7 +82,7 @@ export const Checkbox = forwardRef<
       <input
         ref={ref}
         type="checkbox"
-        className="h-5 w-5 shrink-0 rounded border-accent-300 text-accent-700 focus:ring-accent-700"
+        className="h-5 w-5 shrink-0 rounded border-accent-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         {...props}
       />
       <span>{label}</span>
