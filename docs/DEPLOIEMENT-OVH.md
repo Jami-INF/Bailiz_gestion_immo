@@ -155,7 +155,8 @@ Login failed: ftp:ssl-force is set and server does not support or allow SSL
 Le serveur n'annonce pas `AUTH TLS`. Comme le FTP simple est exclu — il transmettrait le mot de
 passe en clair — **le transfert se fait en SFTP** (port 22).
 
-Deux ajustements que cela impose dans le workflow :
+Quatre ajustements que cela impose dans le workflow — les deux derniers ont chacun coûté une
+exécution ratée :
 
 1. **`sshpass`** est installé à côté de `lftp`. lftp parle SFTP au travers de `ssh`, et `ssh` ne
    sait pas lire un mot de passe autrement que sur un terminal ; `sshpass -e` le lui fournit
@@ -163,6 +164,28 @@ Deux ajustements que cela impose dans le workflow :
 2. **L'empreinte du serveur est relevée avant la connexion** (`ssh-keyscan` vers
    `~/.ssh/known_hosts`). Sans elle, `ssh` s'arrête sur une demande de confirmation qui n'obtiendra
    jamais de réponse, et le job expire au lieu d'échouer franchement.
+3. **`LFTP_PASSWORD` en plus de `SSHPASS`**, alimentées par le même secret. En SFTP, lftp ne se
+   sert pas du mot de passe — c'est ssh qui authentifie — mais il **refuse de se connecter sans**.
+   Sans terminal pour le demander, il abandonne et bascule en anonyme :
+
+   ```
+   open: GetPass() failed -- assume anonymous login
+   ```
+
+   `open -u "$UTILISATEUR" --env-password` le lui donne et clôt le sujet.
+4. **`PreferredAuthentications=password,keyboard-interactive`**. C'est le piège le plus trompeur :
+   restreint à `password`, ssh se voit refuser l'accès avec des identifiants pourtant valides,
+   parce que le serveur présente son invite par `keyboard-interactive`. Le message ne dit rien de
+   la cause :
+
+   ```
+   Fatal error: max-retries exceeded (Permission denied, please try again.)
+   ```
+
+**Un test d'authentification isolé** précède désormais tout le reste : une connexion `sftp` nue,
+sans lftp. Les messages de lftp ne distinguent pas un mauvais mot de passe d'une méthode
+d'authentification inadaptée ou d'une erreur de sa propre configuration ; `sshpass -e sftp` le dit
+franchement, et fait échouer le job avant qu'il ne touche au serveur.
 
 > **Note de sécurité.** `ssh-keyscan` accorde sa confiance à la première réponse obtenue, à chaque
 > exécution : cela évite l'invite, mais ne vérifie rien. Pour une vérification réelle, relever
@@ -274,9 +297,14 @@ jobs:
         env:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
-          # `sshpass -e` lit le mot de passe dans SSHPASS : il ne passe ni par
-          # la ligne de commande (donc pas par `ps`), ni par le script lftp.
+          # Le même mot de passe, lu par deux programmes différents, chacun
+          # depuis sa propre variable — et jamais depuis une ligne de commande :
+          #   - SSHPASS      : `sshpass -e` le donne à ssh, qui authentifie ;
+          #   - LFTP_PASSWORD: `--env-password` le donne à lftp, qui ne s'en sert
+          #     pas en SFTP mais refuse de se connecter sans (« GetPass() failed
+          #     -- assume anonymous login »).
           SSHPASS: ${{ secrets.OVH_FTP_PASSWORD }}
+          LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
         run: |
           # Empreinte du serveur relevée avant la connexion : sans cela, ssh
           # s'arrête sur une demande de confirmation qui n'aura jamais de
@@ -285,16 +313,33 @@ jobs:
           ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
           test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
 
+          # Options ssh communes. `keyboard-interactive` autant que `password` :
+          # beaucoup de serveurs, dont ceux d'OVH, présentent l'invite de mot de
+          # passe par ce second mécanisme. Ne demander que `password` suffit à se
+          # faire répondre « Permission denied » avec des identifiants pourtant
+          # valides. `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
+          OPTIONS_SSH="-o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
+
+          # --- Authentification, testée à part ---
+          #
+          # lftp enveloppe ssh, et ses messages d'erreur ne disent pas si l'échec
+          # vient des identifiants, de la méthode d'authentification ou de sa
+          # propre configuration. Une connexion sftp nue tranche la question, et
+          # son diagnostic est directement lisible.
+          echo "Test d'authentification SFTP :"
+          sshpass -e sftp $OPTIONS_SSH -b /dev/null "$UTILISATEUR@$HOTE" || {
+            echo "::error::Authentification SFTP refusée. Vérifier les secrets \
+          OVH_FTP_USER et OVH_FTP_PASSWORD, et que SFTP est activé pour ce compte \
+          dans le Manager OVH (onglet FTP-SSH)."
+            exit 1
+          }
+          echo "Authentification acceptée."
+
           # Réglages de connexion dans `~/.lftprc` plutôt que dans chaque appel :
           # ils servent deux fois (sonde puis transfert), et les sortir du script
           # évite d'imbriquer des guillemets dans des guillemets.
-          #
-          # `sftp:connect-program` : lftp parle SFTP au travers de ssh, et
-          # sshpass lui fournit le mot de passe lu dans SSHPASS. Les
-          # authentifications par clé sont écartées — le runner n'en a aucune, et
-          # les essayer ne ferait que retarder l'échec.
-          cat > ~/.lftprc <<'RC'
-          set sftp:connect-program "sshpass -e ssh -a -x -o PreferredAuthentications=password -o PubkeyAuthentication=no"
+          cat > ~/.lftprc <<RC
+          set sftp:connect-program "sshpass -e ssh -a -x $OPTIONS_SSH"
           set sftp:auto-confirm yes
           set net:max-retries 3
           set net:timeout 20
@@ -309,7 +354,7 @@ jobs:
           # commande viserait le dossier parent et **supprimerait le docroot**.
           # On vérifie donc où l'on atterrit avant d'écrire quoi que ce soit.
           echo "Point d'arrivée sur le serveur :"
-          ARRIVEE=$(lftp -c "open sftp://$UTILISATEUR@$HOTE; pwd; cls -1;")
+          ARRIVEE=$(lftp -c "open -u \"$UTILISATEUR\" --env-password sftp://$HOTE:22; pwd; cls -1;")
           echo "$ARRIVEE"
 
           echo "$ARRIVEE" | grep -qx 'www/\?' || {
@@ -332,7 +377,7 @@ jobs:
           # - Passe 2, le HTML, qui référence des assets désormais présents.
           # - Passe 3, suppression de ce qui a disparu du build.
           lftp -c "
-            open sftp://$UTILISATEUR@$HOTE;
+            open -u \"$UTILISATEUR\" --env-password sftp://$HOTE:22;
             mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
             mirror -R --parallel=4 _site/ www/;
             mirror -R --delete --parallel=4 _site/ www/;
@@ -577,6 +622,9 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 | lftp : `server does not support or allow SSL` | FTPS indisponible sur ce cluster | Passer en SFTP (§4) — c'est ce que fait le workflow |
 | lftp : le job reste bloqué puis expire | `ssh` attend la confirmation de l'empreinte du serveur | Vérifier que l'étape `ssh-keyscan` s'est exécutée et a écrit dans `~/.ssh/known_hosts` |
 | lftp : `Login incorrect` en SFTP | SFTP non activé pour cet utilisateur | Manager → FTP-SSH → l'utilisateur doit avoir SSH coché |
+| `GetPass() failed -- assume anonymous login` | lftp réclame un mot de passe qu'il n'a pas, et ne peut pas le demander | Définir `LFTP_PASSWORD` et utiliser `open -u "$UTILISATEUR" --env-password` |
+| `Permission denied, please try again.` alors que les identifiants sont bons | Le serveur présente l'invite en `keyboard-interactive`, exclu par `PreferredAuthentications=password` seul | Ajouter `,keyboard-interactive` |
+| Échec d'authentification, cause indéterminée | — | Lire la sortie de l'étape « Test d'authentification SFTP » : elle isole les identifiants de la configuration lftp |
 | Un commentaire ajouté dans le script `lftp -c` casse le transfert | lftp traite l'apostrophe comme un délimiteur de chaîne | Ne mettre **aucun** commentaire dans le script lftp : les explications restent côté shell |
 | lftp : `Login failed` | Mauvais secret, ou utilisateur FTP non propagé | Tester d'abord la connexion depuis un client FTP local |
 

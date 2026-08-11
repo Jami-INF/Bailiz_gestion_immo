@@ -75,9 +75,14 @@ jobs:
         env:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
-          # `sshpass -e` lit le mot de passe dans SSHPASS : il ne passe ni par
-          # la ligne de commande (donc pas par `ps`), ni par le script lftp.
+          # Le même mot de passe, lu par deux programmes différents, chacun
+          # depuis sa propre variable — et jamais depuis une ligne de commande :
+          #   - SSHPASS      : `sshpass -e` le donne à ssh, qui authentifie ;
+          #   - LFTP_PASSWORD: `--env-password` le donne à lftp, qui ne s'en sert
+          #     pas en SFTP mais refuse de se connecter sans (« GetPass() failed
+          #     -- assume anonymous login »).
           SSHPASS: ${{ secrets.OVH_FTP_PASSWORD }}
+          LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
         run: |
           # Empreinte du serveur relevée avant la connexion : sans cela, ssh
           # s'arrête sur une demande de confirmation qui n'aura jamais de
@@ -86,16 +91,33 @@ jobs:
           ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
           test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
 
+          # Options ssh communes. `keyboard-interactive` autant que `password` :
+          # beaucoup de serveurs, dont ceux d'OVH, présentent l'invite de mot de
+          # passe par ce second mécanisme. Ne demander que `password` suffit à se
+          # faire répondre « Permission denied » avec des identifiants pourtant
+          # valides. `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
+          OPTIONS_SSH="-o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
+
+          # --- Authentification, testée à part ---
+          #
+          # lftp enveloppe ssh, et ses messages d'erreur ne disent pas si l'échec
+          # vient des identifiants, de la méthode d'authentification ou de sa
+          # propre configuration. Une connexion sftp nue tranche la question, et
+          # son diagnostic est directement lisible.
+          echo "Test d'authentification SFTP :"
+          sshpass -e sftp $OPTIONS_SSH -b /dev/null "$UTILISATEUR@$HOTE" || {
+            echo "::error::Authentification SFTP refusée. Vérifier les secrets \
+          OVH_FTP_USER et OVH_FTP_PASSWORD, et que SFTP est activé pour ce compte \
+          dans le Manager OVH (onglet FTP-SSH)."
+            exit 1
+          }
+          echo "Authentification acceptée."
+
           # Réglages de connexion dans `~/.lftprc` plutôt que dans chaque appel :
           # ils servent deux fois (sonde puis transfert), et les sortir du script
           # évite d'imbriquer des guillemets dans des guillemets.
-          #
-          # `sftp:connect-program` : lftp parle SFTP au travers de ssh, et
-          # sshpass lui fournit le mot de passe lu dans SSHPASS. Les
-          # authentifications par clé sont écartées — le runner n'en a aucune, et
-          # les essayer ne ferait que retarder l'échec.
-          cat > ~/.lftprc <<'RC'
-          set sftp:connect-program "sshpass -e ssh -a -x -o PreferredAuthentications=password -o PubkeyAuthentication=no"
+          cat > ~/.lftprc <<RC
+          set sftp:connect-program "sshpass -e ssh -a -x $OPTIONS_SSH"
           set sftp:auto-confirm yes
           set net:max-retries 3
           set net:timeout 20
@@ -110,7 +132,7 @@ jobs:
           # commande viserait le dossier parent et **supprimerait le docroot**.
           # On vérifie donc où l'on atterrit avant d'écrire quoi que ce soit.
           echo "Point d'arrivée sur le serveur :"
-          ARRIVEE=$(lftp -c "open sftp://$UTILISATEUR@$HOTE:22; pwd; cls -1;")
+          ARRIVEE=$(lftp -c "open -u \"$UTILISATEUR\" --env-password sftp://$HOTE:22; pwd; cls -1;")
           echo "$ARRIVEE"
 
           echo "$ARRIVEE" | grep -qx 'www/\?' || {
@@ -133,7 +155,7 @@ jobs:
           # - Passe 2, le HTML, qui référence des assets désormais présents.
           # - Passe 3, suppression de ce qui a disparu du build.
           lftp -c "
-            open sftp://$UTILISATEUR@$HOTE:22;
+            open -u \"$UTILISATEUR\" --env-password sftp://$HOTE:22;
             mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
             mirror -R --parallel=4 _site/ www/;
             mirror -R --delete --parallel=4 _site/ www/;
