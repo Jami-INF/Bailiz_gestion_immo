@@ -3,6 +3,7 @@ import type { Garant, Parametres } from '@/types';
 import { formatEuros } from '@/lib/calculs';
 import { montantEnLettres } from '@/lib/lettres';
 import { EntetePdf, PiedDePagePdf, Rempl, pdfStyles as s } from './commun';
+import { nomBailleur } from '@/lib/bailleur';
 
 interface Props {
   bailleur?: Parametres['bailleur'];
@@ -48,7 +49,7 @@ export function ActeCautionnementPage({
   dureeMois,
 }: Props) {
   const nomCaution = garant ? `${garant.prenom ?? ''} ${garant.nom ?? ''}`.trim() : '';
-  const nomBailleur = bailleur ? `${bailleur.prenom ?? ''} ${bailleur.nom ?? ''}`.trim() : '';
+  const designation = bailleur ? nomBailleur(bailleur) : '';
   // Les montants ne sont repris que si le loyer est réellement renseigné.
   const loyerConnu = typeof loyerHC === 'number' && loyerHC > 0;
   const charge = charges ?? 0;
@@ -72,7 +73,7 @@ export function ActeCautionnementPage({
         demeurant <Rempl v={garant?.adresse} brouillon taille={40} />.
       </Text>
       <Text style={s.p}>
-        <Text style={s.gras}>Le bailleur</Text> : <Rempl v={nomBailleur} brouillon taille={30} />,
+        <Text style={s.gras}>Le bailleur</Text> : <Rempl v={designation} brouillon taille={30} />,
         demeurant <Rempl v={bailleur?.adresse} brouillon taille={40} />.
       </Text>
       <Text style={s.p}>

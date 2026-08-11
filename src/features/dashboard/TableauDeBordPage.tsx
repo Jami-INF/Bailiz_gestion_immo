@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addMonths, addYears, differenceInDays, format, isAfter } from 'date-fns';
+import { addYears, differenceInDays, format, isAfter } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
   AlertTriangle,
@@ -11,7 +11,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { db } from '@/lib/db';
-import { estBailEnCours } from '@/lib/bail';
+import { estBailEnCours, termeDuBail } from '@/lib/bail';
 import { dateLimiteRestitution, formatOctets } from '@/lib/calculs';
 import { sauvegardeAncienne } from '@/lib/backup';
 import { useQuotaStockage } from '@/hooks/useStatuts';
@@ -93,12 +93,28 @@ export function TableauDeBordPage() {
   const echeances: { date: Date; texte: string; lien: string }[] = [];
   for (const bail of baux.filter(estBailEnCours)) {
     const bien = biens.find((x) => x.id === bail.bienId);
-    const fin = addMonths(new Date(bail.dateEffet), bail.dureeMois);
+    const terme = termeDuBail(bail);
+    const fin = terme.date;
+    /*
+     * Un meublé d'un an ne « finit » pas : il se reconduit tacitement faute de
+     * congé. Annoncer « fin de bail » laissait croire que le logement se
+     * libérait tout seul — et taisait la seule date qui engage vraiment, celle
+     * après laquelle il est trop tard pour donner congé.
+     */
     echeances.push({
       date: fin,
-      texte: `Fin de bail ${bail.reference} (${bien?.nom ?? '?'})`,
+      texte: terme.reconduction
+        ? `Reconduction tacite ${bail.reference} (${bien?.nom ?? '?'})`
+        : `Fin de plein droit ${bail.reference} (${bien?.nom ?? '?'}) — non renouvelable`,
       lien: `/baux/${bail.id}`,
     });
+    if (terme.limiteConge) {
+      echeances.push({
+        date: terme.limiteConge,
+        texte: `Dernier jour pour donner congé — ${bail.reference} (${bien?.nom ?? '?'})`,
+        lien: `/baux/${bail.id}`,
+      });
+    }
     if (bail.revisionIRL.revisable) {
       let anniversaire = addYears(new Date(bail.dateEffet), 1);
       while (!isAfter(anniversaire, new Date()) ) anniversaire = addYears(anniversaire, 1);

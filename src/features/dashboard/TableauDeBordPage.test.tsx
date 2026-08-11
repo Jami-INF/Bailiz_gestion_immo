@@ -38,12 +38,32 @@ describe('tableau de bord — état des logements', () => {
     expect(await screen.findByText('Vacant')).toBeInTheDocument();
   });
 
-  it('inscrit la fin de bail et la révision IRL à l’échéancier', async () => {
+  it('inscrit le terme du bail et la révision IRL à l’échéancier', async () => {
     await semer({ bail: { statut: 'genere', dateEffet: '2026-06-01T00:00:00.000Z', dureeMois: 36 } });
     rendre(<TableauDeBordPage />);
 
-    expect(await screen.findByText(/Fin de bail BAIL-2026-0001/)).toBeInTheDocument();
+    expect(await screen.findByText(/Reconduction tacite BAIL-2026-0001/)).toBeInTheDocument();
     expect(screen.getByText(/Révision IRL BAIL-2026-0001/)).toBeInTheDocument();
+  });
+
+  it('distingue la reconduction tacite de la fin de plein droit', async () => {
+    // Un meublé d'un an se reconduit faute de congé ; annoncer « fin de bail »
+    // laissait croire que le logement se libérait tout seul.
+    await semer({ bail: { statut: 'actif', typeBail: 'meuble_1an', dureeMois: 12 } });
+    rendre(<TableauDeBordPage />);
+
+    expect(await screen.findByText(/Reconduction tacite/)).toBeInTheDocument();
+    expect(screen.getByText(/Dernier jour pour donner congé/)).toBeInTheDocument();
+    expect(screen.queryByText(/Fin de plein droit/)).not.toBeInTheDocument();
+  });
+
+  it('n’annonce aucun congé à donner pour un bail qui s’arrête seul', async () => {
+    await semer({ bail: { statut: 'actif', typeBail: 'mobilite', dureeMois: 6, depotGarantie: 0 } });
+    rendre(<TableauDeBordPage />);
+
+    expect(await screen.findByText(/Fin de plein droit.*non renouvelable/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dernier jour pour donner congé/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reconduction tacite/)).not.toBeInTheDocument();
   });
 
   it('n’inscrit aucune échéance pour un brouillon', async () => {

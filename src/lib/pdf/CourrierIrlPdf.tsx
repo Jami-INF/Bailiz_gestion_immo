@@ -3,6 +3,7 @@ import type { Bail, Bien, Locataire, Parametres } from '@/types';
 import { formatEuros } from '@/lib/calculs';
 import { EntetePdf, PiedDePagePdf, formatDateFr, pdfStyles as s } from './commun';
 import { formatAdresse } from '@/lib/adresse';
+import { nomBailleur, signataireBailleur } from '@/lib/bailleur';
 
 interface Props {
   reference: string;
@@ -33,7 +34,7 @@ export function CourrierIrlPdf(p: Props) {
       <Page size="A4" style={s.page}>
         <EntetePdf reference={p.reference} docTitre="Révision annuelle du loyer (IRL)" />
         <View style={{ marginBottom: 16 }}>
-          <Text>{b.civilite === 'Mme' ? 'Mme' : 'M.'} {b.prenom} {b.nom}</Text>
+          <Text>{nomBailleur(b)}</Text>
           <Text>{b.adresse}</Text>
           <Text>{b.email} — {b.telephone}</Text>
         </View>
@@ -73,7 +74,7 @@ export function CourrierIrlPdf(p: Props) {
         </Text>
         <View style={{ alignItems: 'flex-end', marginTop: 24 }}>
           <Text>
-            {b.prenom} {b.nom}
+            {signataireBailleur(b)}
           </Text>
         </View>
         <PiedDePagePdf />

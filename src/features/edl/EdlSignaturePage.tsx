@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeft, CheckCircle2, Download, Mail, Scale } from 'lucide-react';
 import { db } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
+import { signataireBailleur } from '@/lib/bailleur';
 import type { EtatDesLieux, SignatureBloc } from '@/types';
 import { ETAT_LABELS, COMPTEUR_LABELS } from '@/types';
 import { formatHash } from '@/lib/crypto';
@@ -124,7 +125,7 @@ export function EdlSignaturePage() {
     const corps = encodeURIComponent(
       `Bonjour,\n\nConformément à l'article 3-2 de la loi du 6 juillet 1989, veuillez trouver ci-joint votre exemplaire de l'état des lieux ${
         edl.type === 'entree' ? "d'entrée" : 'de sortie'
-      } établi contradictoirement et signé ce jour (remise par voie dématérialisée).\n\nRéférence : ${edl.reference}\nEmpreinte SHA-256 du document : ${resultat.hash}\n\n(Pensez à joindre le fichier PDF « ${edl.reference}.pdf » téléchargé depuis l'application avant l'envoi.)\n\nCordialement,\n${parametres.bailleur.prenom} ${parametres.bailleur.nom}`,
+      } établi contradictoirement et signé ce jour (remise par voie dématérialisée).\n\nRéférence : ${edl.reference}\nEmpreinte SHA-256 du document : ${resultat.hash}\n\n(Pensez à joindre le fichier PDF « ${edl.reference}.pdf » téléchargé depuis l'application avant l'envoi.)\n\nCordialement,\n${signataireBailleur(parametres.bailleur)}`,
     );
     return (
       <div className="mx-auto max-w-lg px-4 py-10">
@@ -226,7 +227,7 @@ export function EdlSignaturePage() {
         ) : (
           <SignatureFlow
             libelleDocument={`État des lieux ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} ${edl.reference}`}
-            bailleurNom={`${parametres.bailleur.prenom} ${parametres.bailleur.nom}`.trim()}
+            bailleurNom={signataireBailleur(parametres.bailleur)}
             locatairesNoms={locataires.map((l) => `${l.prenom} ${l.nom}`)}
             onTermine={(bloc) => void signer(bloc)}
             recapitulatif={<RecapEdl edl={edl} />}

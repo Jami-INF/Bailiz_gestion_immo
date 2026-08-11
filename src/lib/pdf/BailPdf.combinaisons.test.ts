@@ -140,6 +140,50 @@ describe('BailPdf — toutes les combinaisons se rendent', () => {
   }
 });
 
+describe('BailPdf — qualité du bailleur', () => {
+  const bailleurs = {
+    'personne physique': parametres.bailleur,
+    indivision: {
+      ...parametres.bailleur,
+      qualite: 'indivision' as const,
+      coIndivisaires: [{ civilite: 'Mme', nom: 'Infante', prenom: 'Léa' }],
+    },
+    'personne morale': {
+      ...parametres.bailleur,
+      qualite: 'personne_morale' as const,
+      formeJuridique: 'SCI',
+      denomination: 'Les Tilleuls',
+      capitalSocial: 1000,
+      villeRCS: 'Clermont-Ferrand',
+      representant: { civilite: 'M', nom: 'Infante', prenom: 'Jami', fonction: 'gérant' },
+    },
+  };
+
+  for (const [libelle, bailleur] of Object.entries(bailleurs)) {
+    it(`rend la désignation des parties pour un bailleur ${libelle}`, async () => {
+      const element = createElement(BailPdf, {
+        bail: bail(),
+        bien: bien(),
+        locataires: [locataire(1)],
+        parametres: { ...parametres, bailleur },
+      }) as ReactElement<DocumentProps>;
+      expect(await rendre(element)).toBeGreaterThan(1000);
+    });
+  }
+
+  it('se rend avec un bailleur pas encore renseigné', async () => {
+    const vide = { ...parametres.bailleur, nom: '', prenom: '', adresse: '' };
+    const element = createElement(BailPdf, {
+      bail: bail(),
+      bien: bien(),
+      locataires: [locataire(1)],
+      parametres: { ...parametres, bailleur: vide },
+      brouillon: true,
+    }) as ReactElement<DocumentProps>;
+    expect(await rendre(element)).toBeGreaterThan(1000);
+  });
+});
+
 describe('BailPdf — cas dégradés', () => {
   it('se rend sans aucune mention facultative renseignée', async () => {
     // Le bail doit rester imprimable pour être complété à la main : c'est le

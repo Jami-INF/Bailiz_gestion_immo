@@ -7,6 +7,7 @@ import { formatEuros } from '@/lib/calculs';
 import { montantEnLettres } from '@/lib/lettres';
 import { urlExterneSure } from '@/lib/liens';
 import { formatAdresse } from '@/lib/adresse';
+import { bailleurRenseigne, designationBailleur, libelleAdresseBailleur, nomBailleur } from '@/lib/bailleur';
 import {
   CaseACocher,
   EntetePdf,
@@ -141,7 +142,7 @@ export function BailPdf({
         ) : null}
 
         <View style={s.carte}>
-          <LigneGarde label="Bailleur" valeur={`${b.prenom} ${b.nom}`.trim() || '—'} />
+          <LigneGarde label="Bailleur" valeur={nomBailleur(b) || '—'} />
           <LigneGarde label="Locataire(s)" valeur={nomsLocataires || '—'} />
           <LigneGarde label="Logement" valeur={adresseComplete || '—'} />
           <LigneGarde
@@ -188,15 +189,21 @@ export function BailPdf({
 
         {/* ============================ I ============================ */}
         <Text style={s.h2}>{num('parties')}. Désignation des parties</Text>
-        <Text style={s.h3}>Le bailleur</Text>
+        <Text style={s.h3}>{b.qualite === 'indivision' ? 'Les bailleurs' : 'Le bailleur'}</Text>
         <View style={s.tiers}>
-          <Text style={s.p}>
-            {b.civilite === 'Mme' ? 'Mme' : 'M.'} <Rempl v={`${b.prenom} ${b.nom}`.trim()} brouillon={brouillon} taille={40} /> —
-            personne physique, loueur en meublé non professionnel (LMNP)
-            {b.siret ? `, SIRET : ${b.siret}` : ''}.
-          </Text>
+          {/* Personne physique, indivision ou société : la rédaction change, et
+              c'est `designationBailleur` qui en décide (règle testée à part). */}
+          {designationBailleur(b).map((ligne, i) => (
+            <Text style={s.p} key={i}>
+              {i === 0 && !bailleurRenseigne(b) ? (
+                <Rempl v="" brouillon={brouillon} taille={60} />
+              ) : (
+                ligne
+              )}
+            </Text>
+          ))}
           <Text style={brouillon ? s.tiersLigneAComplecter : s.tiersLigne}>
-            Demeurant : <Rempl v={b.adresse} brouillon={brouillon} taille={55} />
+            {libelleAdresseBailleur(b)} : <Rempl v={b.adresse} brouillon={brouillon} taille={55} />
           </Text>
           <Text style={brouillon ? s.tiersLigneAComplecter : s.tiersLigne}>
             Mail : <Rempl v={b.email} brouillon={brouillon} taille={55} />
@@ -204,8 +211,9 @@ export function BailPdf({
           </Text>
         </View>
         <Text style={s.p}>
-          Le bailleur n'est pas représenté par un mandataire : la location est conclue en
-          direct, sans intermédiaire.
+          {b.qualite === 'personne_morale'
+            ? "Le bailleur agit par son représentant légal et n'a pas recours à un mandataire de gestion : la location est conclue en direct, sans intermédiaire."
+            : "Le bailleur n'est pas représenté par un mandataire : la location est conclue en direct, sans intermédiaire."}
         </Text>
         <Text style={s.h3}>Le(s) locataire(s)</Text>
         {locataires.map((l) => (

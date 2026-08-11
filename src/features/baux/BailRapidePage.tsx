@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { AlertTriangle, Building2, Pencil, Plus } from 'lucide-react';
 import type { Bail, ClasseDPE, Locataire, Parametres, SaisieBail, TypeBien } from '@/types';
-import { CLASSES_DPE, TYPES_BIEN, TYPE_BAIL_LABELS } from '@/types';
+import { CLASSES_DPE, QUALITE_BAILLEUR_LABELS, TYPES_BIEN, TYPE_BAIL_LABELS } from '@/types';
 import { db, getParametres, lireParametres, prochaineReference } from '@/lib/db';
+import { bailleurRenseigne, nomBailleur } from '@/lib/bailleur';
 import { nowISO } from '@/lib/ids';
 import { formatEuros } from '@/lib/calculs';
 import { decrireErreur } from '@/lib/erreurs';
@@ -238,8 +239,8 @@ export function BailRapidePage() {
       };
       const params = await getParametres();
       // Mémorise le bailleur saisi si les Paramètres sont vides.
-      const bailleurEnr = saisie.bailleur.nom.trim() ? saisie.bailleur : params.bailleur;
-      if (!params.bailleur.nom.trim() && saisie.bailleur.nom.trim()) {
+      const bailleurEnr = bailleurRenseigne(saisie.bailleur) ? saisie.bailleur : params.bailleur;
+      if (!bailleurRenseigne(params.bailleur) && bailleurRenseigne(saisie.bailleur)) {
         await db.parametres.put({ ...params, bailleur: saisie.bailleur });
       }
       const paramsPdf: Parametres = { ...params, bailleur: bailleurEnr };
@@ -389,6 +390,29 @@ export function BailRapidePage() {
         {/* ------------------------- Formulaire ------------------------- */}
         <div className="space-y-4">
           <Section titre="Bailleur" description="Pré-rempli depuis vos Paramètres si renseigné.">
+            {/*
+              Indivision et personne morale demandent une identité structurée
+              (coïndivisaires, dénomination, RCS, représentant légal) qui n'a pas
+              sa place dans un formulaire de bail : on la lit, on ne la ressaisit
+              pas. Le cas courant — bailleur personne physique — reste modifiable
+              ici, pour qu'un premier bail se produise sans détour par les
+              Paramètres.
+            */}
+            {saisie.bailleur.qualite !== 'personne_physique' ? (
+              <div className="rounded-lg border border-accent-200 bg-accent-50 p-3 text-sm">
+                <p className="font-medium text-accent-900">{nomBailleur(saisie.bailleur) || '—'}</p>
+                <p className="mt-0.5 text-accent-600">
+                  {QUALITE_BAILLEUR_LABELS[saisie.bailleur.qualite]} · {saisie.bailleur.adresse || 'adresse non renseignée'}
+                </p>
+                <Link
+                  to="/parametres"
+                  className="mt-2 inline-block font-medium text-accent-800 underline underline-offset-2"
+                >
+                  Modifier dans les Paramètres
+                </Link>
+              </div>
+            ) : (
+            <>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Civilité">
                 <Select value={saisie.bailleur.civilite} onChange={(e) => majBailleur({ civilite: e.target.value })}>
@@ -418,6 +442,8 @@ export function BailRapidePage() {
                 <Input value={saisie.bailleur.siret ?? ''} onChange={(e) => majBailleur({ siret: e.target.value })} />
               </Field>
             </div>
+            </>
+            )}
           </Section>
 
           <Section titre="Logement">

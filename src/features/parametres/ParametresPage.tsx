@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import {
@@ -7,17 +7,15 @@ import {
   HardDriveUpload,
   Plus,
   Ruler,
-  Save,
   Scale,
   ShieldCheck,
   Trash2,
-  UserRound,
 } from 'lucide-react';
-import { db, getParametres, lireParametres } from '@/lib/db';
+import { db, lireParametres } from '@/lib/db';
 import { genererEtArchiver } from '@/lib/pdf/generer';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
-import type { LigneVetuste, Parametres } from '@/types';
+import type { LigneVetuste } from '@/types';
 import {
   detecterConflits,
   exporterSauvegarde,
@@ -28,6 +26,8 @@ import {
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { formatOctets } from '@/lib/calculs';
 import { usePersistanceStockage, useQuotaStockage } from '@/hooks/useStatuts';
+import { BailleurPanel } from './BailleurPanel';
+import { EmpreintePanel } from './EmpreintePanel';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { FicheVisitePanel } from './FicheVisitePanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
@@ -35,11 +35,9 @@ import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import {
   Button,
   CarteRepliable,
-  Field,
   Input,
   Modal,
   PageHeader,
-  Select,
   useToast,
 } from '@/components/ui';
 
@@ -50,7 +48,6 @@ export function ParametresPage() {
   const parametres = useLiveQuery(() => lireParametres());
   const persiste = usePersistanceStockage();
   const quota = useQuotaStockage();
-  const [bailleur, setBailleur] = useState<Parametres['bailleur'] | null>(null);
   const fichierRef = useRef<HTMLInputElement>(null);
   const [importEnAttente, setImportEnAttente] = useState<{
     zip: Awaited<ReturnType<typeof lireSauvegarde>>['zip'];
@@ -58,19 +55,7 @@ export function ParametresPage() {
     conflits: number;
   } | null>(null);
 
-  useEffect(() => {
-    void getParametres().then((p) => setBailleur(p.bailleur));
-  }, []);
-
-  if (!parametres || !bailleur) return null;
-
-  const majBailleur = (m: Partial<Parametres['bailleur']>) =>
-    setBailleur((b) => ({ ...b!, ...m }));
-
-  const enregistrerBailleur = async () => {
-    await db.parametres.put({ ...parametres, bailleur });
-    toast('success', 'Coordonnées du bailleur enregistrées.');
-  };
+  if (!parametres) return null;
 
   const majGrille = (grille: LigneVetuste[]) => db.parametres.put({ ...parametres, grilleVetuste: grille });
 
@@ -127,80 +112,7 @@ export function ParametresPage() {
     <div>
       <PageHeader titre="Paramètres" />
       <div className="space-y-4">
-        <CarteRepliable
-          identifiant="bailleur"
-          titre="Bailleur"
-          icone={<UserRound size={18} />}
-          resume={
-            bailleur.nom.trim()
-              ? `${bailleur.civilite} ${bailleur.prenom} ${bailleur.nom}`.trim()
-              : 'Non renseigné — obligatoire pour produire un document'
-          }
-          resumeAlerte={!bailleur.nom.trim()}
-          defautOuvert={!bailleur.nom.trim()}
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Civilité">
-              <Select value={bailleur.civilite} onChange={(e) => majBailleur({ civilite: e.target.value })}>
-                <option value="M">M.</option>
-                <option value="Mme">Mme</option>
-              </Select>
-            </Field>
-            <Field label="Prénom">
-              <Input value={bailleur.prenom} onChange={(e) => majBailleur({ prenom: e.target.value })} />
-            </Field>
-            <Field label="Nom">
-              <Input value={bailleur.nom} onChange={(e) => majBailleur({ nom: e.target.value })} />
-            </Field>
-          </div>
-          <p className="mb-4 mt-1 text-xs text-accent-500">
-            Ces coordonnées figurent sur tous les documents générés (bail, états des lieux,
-            courriers) : renseignez-les avant de créer votre premier bail.
-          </p>
-          <div className="mt-4">
-            <Field label="Adresse complète">
-              <Input
-                value={bailleur.adresse}
-                onChange={(e) => majBailleur({ adresse: e.target.value })}
-                placeholder="5 place de Jaude, 63000 Clermont-Ferrand"
-              />
-            </Field>
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="E-mail">
-              <Input
-                type="email"
-                value={bailleur.email}
-                onChange={(e) => majBailleur({ email: e.target.value })}
-                placeholder="jean.martin@exemple.fr"
-              />
-            </Field>
-            <Field label="Téléphone">
-              <Input
-                type="tel"
-                value={bailleur.telephone}
-                onChange={(e) => majBailleur({ telephone: e.target.value })}
-                placeholder="06 12 34 56 78"
-              />
-            </Field>
-            <Field
-              label="SIRET LMNP (optionnel)"
-              hint="Numéro à 14 chiffres obtenu à l'immatriculation LMNP (INPI). Affiché sur le bail si renseigné."
-            >
-              <Input
-                value={bailleur.siret ?? ''}
-                onChange={(e) => majBailleur({ siret: e.target.value || undefined })}
-                placeholder="123 456 789 00012"
-                inputMode="numeric"
-              />
-            </Field>
-          </div>
-          <div className="mt-4">
-            <Button onClick={enregistrerBailleur}>
-              <Save size={16} /> Enregistrer
-            </Button>
-          </div>
-        </CarteRepliable>
+        <BailleurPanel parametres={parametres} />
 
         <CarteRepliable
           identifiant="sauvegarde"
@@ -374,6 +286,8 @@ export function ParametresPage() {
             <FileText size={16} /> Télécharger la fiche d'aide (PDF)
           </Button>
         </CarteRepliable>
+
+        <EmpreintePanel />
 
         <CarteRepliable
           identifiant="rgpd"

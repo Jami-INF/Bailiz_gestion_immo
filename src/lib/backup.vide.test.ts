@@ -77,8 +77,11 @@ describe('appareil configuré mais sans fiche', () => {
     id: 'singleton' as const,
     bailleur: {
       civilite: 'M',
+      // Le prénom suit le nom : « rien de configuré » veut dire aucune identité,
+      // pas « un prénom sans nom » — que `bailleurRenseigne` compte, à raison,
+      // comme une configuration commencée.
       nom: nomBailleur,
-      prenom: 'Jami',
+      prenom: nomBailleur.trim() ? 'Jami' : '   ',
       adresse: '38 rue Robert Noel, 63110 Beaumont',
       email: 'jami@exemple.fr',
       telephone: '0600000000',

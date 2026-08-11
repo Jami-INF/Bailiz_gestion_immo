@@ -3,6 +3,7 @@ import type { Bail, Bien, Locataire, Parametres } from '@/types';
 import { formatEuros, type LigneRetenue } from '@/lib/calculs';
 import { EntetePdf, PiedDePagePdf, formatDateFr, pdfStyles as s } from './commun';
 import { formatAdresse } from '@/lib/adresse';
+import { nomBailleur, signataireBailleur } from '@/lib/bailleur';
 
 interface Props {
   reference: string;
@@ -31,7 +32,7 @@ export function LettreRestitutionPdf(p: Props) {
       <Page size="A4" style={s.page}>
         <EntetePdf reference={p.reference} docTitre="Restitution du dépôt de garantie" />
         <View style={{ marginBottom: 12 }}>
-          <Text>{b.civilite === 'Mme' ? 'Mme' : 'M.'} {b.prenom} {b.nom}</Text>
+          <Text>{nomBailleur(b)}</Text>
           <Text>{b.adresse}</Text>
         </View>
         <View style={{ alignItems: 'flex-end', marginBottom: 12 }}>
@@ -122,7 +123,7 @@ export function LettreRestitutionPdf(p: Props) {
         </Text>
         <View style={{ alignItems: 'flex-end', marginTop: 20 }}>
           <Text>
-            {b.prenom} {b.nom}
+            {signataireBailleur(b)}
           </Text>
         </View>
         <PiedDePagePdf />

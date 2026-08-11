@@ -682,14 +682,48 @@ Toute la logique d'alertes est dans `TableauDeBordPage` (pas de lib dédiée) :
   (1 ou 2 **mois** calendaires selon dégradations, art. 22 — jamais 30/60 jours), alerte
   affichée à ≤ 45 jours de l'échéance (rouge à ≤ 7 jours) ;
 - sauvegarde > 30 jours.
-Échéancier : fins de bail (`dateEffet + dureeMois`) et prochain anniversaire de révision IRL
-des baux révisables. Si vous ajoutez un type d'alerte, suivez l'interface `Alerte` existante.
+Échéancier : terme du bail via `termeDuBail` et prochain anniversaire de révision IRL des baux
+révisables. **Distinguer reconduction et fin de plein droit est obligatoire** : un meublé d'un
+an se reconduit tacitement faute de congé, et annoncer « fin de bail » laissait croire que le
+logement se libérait tout seul — tout en taisant la seule date qui engage, celle après laquelle
+il est trop tard pour donner congé (trois mois avant le terme, art. 25-8). Les baux étudiant et
+mobilité, eux, s'arrêtent seuls : aucun congé à annoncer. Si vous ajoutez un type d'alerte, suivez l'interface `Alerte` existante.
 
 **Périmètre des baux suivis** : toujours `estBailEnCours` (`lib/bail.ts`), qui retient
 `genere | signe | actif`. Ne pas retester les statuts à la main : `genere` est l'état d'un bail
 qu'on vient d'enregistrer et il n'en sort que par une action manuelle — l'exclure affichait le
 logement « Vacant » et vidait l'échéancier. Signer l'EDL d'entrée bascule le bail en `actif`
 (`EdlSignaturePage`), le bouton « Marquer le logement loué » ne servant plus que de rattrapage.
+
+### 5.6 bis Qualité du bailleur (`lib/bailleur.ts`)
+
+Trois qualités : personne physique, **indivision**, **personne morale**. Ce n'est pas de la
+présentation — un logement détenu en indivision loué au nom d'un seul indivisaire expose le
+bail à la contestation des autres, et une société doit être désignée au contrat par sa
+dénomination, sa forme, son capital, son RCS et son représentant légal.
+
+Toute la règle est dans `lib/bailleur.ts`, jamais dans les vues ni dans les PDF :
+- `nomBailleur` — nom court (dénomination pour une société, énumération des indivisaires) ;
+- `signataireBailleur` — **qui signe** : une société ne signe pas, son gérant signe pour elle ;
+- `designationBailleur` — les lignes de la partie I du bail ;
+- `libelleAdresseBailleur` — « Demeurant » ou « Siège social » ;
+- `bailleurRenseigne` — remplace les tests sur le seul `nom`, qui considéraient une SCI
+  correctement configurée comme non renseignée.
+
+Le modèle reste **rétro-compatible** : `civilite`/`nom`/`prenom` portent toujours la personne
+physique (ou le premier indivisaire), les champs de société sont optionnels, et aucune
+migration Dexie n'est nécessaire. Le formulaire de bail n'édite que le cas personne physique
+et affiche un résumé lisible pour les deux autres : une identité structurée se saisit dans les
+Paramètres, pas au milieu d'un contrat.
+
+### 5.6 ter Vérificateur d'empreinte (`lib/empreinte.ts`, `EmpreintePanel`)
+
+Le pendant du SHA-256 imprimé au pied des documents signés : tant que personne ne peut le
+**recalculer**, cette empreinte n'est qu'une décoration. `verifierFichier` compare l'empreinte
+d'un PDF aux `documents.hash` et aux `edls.pdfHash`, **y compris les `rectifications`** — un
+document annulé et remplacé reste authentique, et le dire vaut mieux que « inconnu ». Une
+empreinte attendue peut être saisie à la main (lue sur un exemplaire papier), avec ou sans les
+espaces de `formatHash`. Le fichier n'est jamais transmis : tout est calculé localement.
 
 ### 5.7 Paramètres
 
@@ -883,6 +917,8 @@ La CI échoue sur toute **erreur** ESLint.
 
 | Fichier | Couvre |
 |---|---|
+| `lib/bailleur.test.ts` | désignation des trois qualités (physique, indivision à 2 et 3, société), signataire (gérant + fonction), libellé d'adresse, `bailleurRenseigne` sur une SCI sans nom de personne |
+| `lib/empreinte.test.ts` | normalisation (empreinte recopiée avec ses espaces), correspondance document / EDL / version rectifiée, détection d'une modification d'un octet, empreinte attendue divergente |
 | `lib/backup.validation.test.ts` | validation de `data.json` avant import : format plus récent (message « mettez l'application à jour »), format plus ancien, version absente, archive tronquée (collections nommées), JSON illisible, base intacte en cas de refus |
 | `lib/erreurs.test.ts` | traduction de chaque cause navigateur (quota, contrainte, base fermée, clonage, transaction) + repli nom/message |
 | `lib/pdf/BailPdf.combinaisons.test.ts` | rendu de 12 combinaisons (type de bail × colocation × régime juridique) + cas dégradés : aucune mention facultative, toutes les mentions, locataire non pourvu, encadrement sans loyer de référence |

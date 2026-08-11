@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image } from '@react-pdf/renderer';
 import type { Bail, Bien, EtatDesLieux, Locataire, Parametres } from '@/types';
 import { COMPTEUR_LABELS, ETAT_LABELS } from '@/types';
+import { nomBailleur } from '@/lib/bailleur';
 import {
   EntetePdf,
   PiedDePagePdf,
@@ -104,7 +105,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
 
         <Text style={s.h2}>Parties</Text>
         <Text style={s.p}>
-          Bailleur : {b.civilite === 'Mme' ? 'Mme' : 'M.'} {b.prenom} {b.nom}, {b.adresse}.
+          Bailleur : {nomBailleur(b)}, {b.adresse}.
         </Text>
         {locataires.map((l) => (
           <Text style={s.p} key={l.id}>

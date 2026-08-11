@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { db, getParametres } from './db';
 import { nowISO } from './ids';
+import { bailleurRenseigne } from './bailleur';
 import type { Photo } from '@/types';
 
 interface DonneesExport {
@@ -41,7 +42,7 @@ export async function baseSansDonnees(): Promise<boolean> {
    * neuf, et le garde-fou garde tout son sens.
    */
   const parametres = await db.parametres.get('singleton');
-  return !parametres?.bailleur.nom.trim();
+  return !bailleurRenseigne(parametres?.bailleur);
 }
 
 /** Exporte toutes les données + photos + PDF dans un fichier ZIP. */

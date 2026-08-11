@@ -1,4 +1,4 @@
-import { isAfter, isBefore } from 'date-fns';
+import { addMonths, isAfter, isBefore, subMonths } from 'date-fns';
 import type { Bail, RevisionLoyer } from '@/types';
 
 /**
@@ -56,6 +56,43 @@ export function baseRevisionIRL(bail: Bail): { loyer: number; indice: number; tr
     loyer: bail.loyerHC,
     indice: bail.revisionIRL.valeurIndice,
     trimestre: bail.revisionIRL.trimestreReference,
+  };
+}
+
+export interface TermeDuBail {
+  /** Terme du bail : `dateEffet + dureeMois`. */
+  date: Date;
+  /**
+   * Vrai si le bail se **reconduit tacitement** faute de congé — meublé d'un an.
+   * Faux s'il prend fin de plein droit : bail étudiant de neuf mois et bail
+   * mobilité, ni renouvelables ni reconductibles.
+   */
+  reconduction: boolean;
+  /**
+   * Date limite pour donner congé en tant que bailleur : trois mois avant le
+   * terme (art. 25-8). Absente quand le bail s'arrête de lui-même — il n'y a
+   * alors aucun congé à donner, et annoncer une échéance ferait croire le
+   * contraire.
+   */
+  limiteConge?: Date;
+}
+
+/**
+ * Ce qui arrive au terme du bail.
+ *
+ * L'échéancier annonçait « Fin de bail » pour tous les types, y compris le
+ * meublé d'un an — qui se **reconduit** faute de congé. Le message laissait
+ * croire que le logement se libérait tout seul, et masquait la seule échéance
+ * qui compte vraiment : la date après laquelle il est trop tard pour donner
+ * congé.
+ */
+export function termeDuBail(bail: Pick<Bail, 'dateEffet' | 'dureeMois' | 'typeBail'>): TermeDuBail {
+  const date = addMonths(new Date(bail.dateEffet), bail.dureeMois);
+  const reconduction = bail.typeBail === 'meuble_1an';
+  return {
+    date,
+    reconduction,
+    limiteConge: reconduction ? subMonths(date, 3) : undefined,
   };
 }
 

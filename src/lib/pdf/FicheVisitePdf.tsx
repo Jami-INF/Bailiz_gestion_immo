@@ -4,6 +4,7 @@ import type { Bien, ConditionSection, ModeleFicheVisite, Parametres } from '@/ty
 import { formatEuros } from '@/lib/calculs';
 import { formatAdresse } from '@/lib/adresse';
 import { ActeCautionnementPage } from './ActeCautionnementPdf';
+import { nomBailleur } from '@/lib/bailleur';
 import {
   CaseACocher,
   EntetePdf,
@@ -100,7 +101,7 @@ export function FicheVisitePdf({
   // pré-rempli avec ce que le logement connaît déjà. Le locataire, le garant et
   // la durée du bail restent des zones à compléter à la main.
   const acteCautionnement = visite.situations.includes('garant_physique');
-  const nomBailleur = `${bailleur.prenom} ${bailleur.nom}`.trim();
+  const designation = nomBailleur(bailleur);
 
   const sections = modele.sections
     .filter((sec) => sec.condition === 'toujours' || visite.situations.includes(sec.condition))
@@ -237,7 +238,7 @@ export function FicheVisitePdf({
               {modele.aApporter.trim() ? <Ligne label="À apporter">{modele.aApporter.trim()}</Ligne> : null}
               {modele.blocs.coordonneesBailleur && (
                 <Ligne label="Votre interlocuteur">
-                  {nomBailleur || 'le propriétaire'}
+                  {designation || 'le propriétaire'}
                   {bailleur.telephone ? ` — ${bailleur.telephone}` : ''}
                   {bailleur.email ? ` — ${bailleur.email}` : ''}
                 </Ligne>

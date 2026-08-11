@@ -96,6 +96,13 @@ npm run build      # build de production + PWA
   conservé et le locataire simplement retiré. La suppression reste bloquée si un bail actif y
   est lié.
 
+### Bailleur
+- **Trois qualités** : personne physique, **indivision** (tous les coïndivisaires figurent au
+  bail, qui rappelle qu'ils agissent conjointement) et **personne morale** (SCI, SARL de
+  famille : dénomination, forme, capital, RCS, siège social et représentant légal — c'est lui
+  qui signe, avec sa fonction). La désignation des parties du bail s'adapte, ainsi que tous
+  les courriers.
+
 ### Baux
 - **Un seul écran** avec **aperçu du PDF en direct** : bailleur → logement → locataire(s) →
   type & durée → loyer & charges → clauses & travaux. Le bien et les locataires peuvent être
@@ -213,6 +220,10 @@ npm run build      # build de production + PWA
   chaque collection. Une archive écrite par une version plus récente est refusée avec la
   marche à suivre, et rien n'est modifié — plutôt que d'échouer à mi-parcours après avoir
   vidé les tables.
+- **Vérificateur d'empreinte** (Paramètres) : déposez un PDF signé, l'application recalcule son
+  SHA-256 et dit à quel document il correspond — ou signale qu'il a été modifié. Les versions
+  rectifiées sont reconnues comme authentiques mais remplacées. Une empreinte lue sur un
+  exemplaire papier peut être saisie à la main. Le fichier ne quitte pas l'appareil.
 - **Mise à jour proposée, jamais imposée** : la nouvelle version s'installe au clic, et le
   bandeau reste masqué en mode terrain. Une prise de contrôle automatique peut recharger la
   page au milieu d'un état des lieux, devant le locataire.
@@ -223,7 +234,11 @@ npm run build      # build de production + PWA
 
 ### Tableau de bord
 - Biens avec statut loué/vacant, alertes (EDL d'entrée signé sans bail signé, dépôt à restituer
-  avant l'échéance légale, sauvegarde ancienne), échéancier (fins de bail, révisions IRL).
+  avant l'échéance légale, stockage saturé, sauvegarde ancienne), échéancier.
+- **Reconduction tacite distinguée de la fin de plein droit** : un meublé d'un an se reconduit
+  faute de congé — l'échéancier l'annonce comme tel et ajoute la date **limite pour donner
+  congé** (trois mois avant le terme). Les baux étudiant et mobilité s'arrêtent seuls : aucun
+  congé n'est annoncé.
   Un logement est « loué » dès qu'un bail est enregistré pour lui, et l'état des lieux d'entrée
   signé rend le bail actif : aucune échéance ne dépend d'un clic qu'on aurait oublié.
   Les dates de validité des diagnostics ne sont pas suivies — c'est le dossier joint qui fait foi.

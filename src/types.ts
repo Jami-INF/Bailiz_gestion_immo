@@ -481,18 +481,57 @@ export const FAMILLE_CLAUSE_LABELS: Record<FamilleClause, string> = {
   immeuble: "Vie de l'immeuble et troubles",
 };
 
+/**
+ * Qualité du bailleur. Elle change la **désignation des parties** du bail
+ * (partie I) : un logement détenu à deux ne peut pas être loué au nom d'un seul
+ * indivisaire, et une société doit être désignée par sa dénomination, sa forme,
+ * son capital, son RCS et son représentant légal.
+ */
+export type QualiteBailleur = 'personne_physique' | 'indivision' | 'personne_morale';
+
+/** Personne physique bailleresse : le bailleur seul, ou un coïndivisaire. */
+export interface PersonneBailleur {
+  civilite: string;
+  nom: string;
+  prenom: string;
+}
+
+export interface Bailleur extends PersonneBailleur {
+  qualite: QualiteBailleur;
+  /**
+   * Autres coïndivisaires (indivision uniquement). Le premier indivisaire est
+   * porté par `civilite`/`nom`/`prenom`, ce qui garde intactes les fiches
+   * enregistrées avant la prise en charge de l'indivision.
+   */
+  coIndivisaires?: PersonneBailleur[];
+  /** Personne morale : raison sociale (« SCI Les Tilleuls »). */
+  denomination?: string;
+  /** Forme juridique (SCI, SARL de famille, SAS…). */
+  formeJuridique?: string;
+  capitalSocial?: number;
+  /** Ville du greffe d'immatriculation (« RCS Clermont-Ferrand »). */
+  villeRCS?: string;
+  /**
+   * Représentant légal signataire. Une société ne signe pas : c'est son gérant
+   * ou son président, et sa qualité doit figurer au contrat.
+   */
+  representant?: PersonneBailleur & { fonction: string };
+  /** Adresse personnelle, ou siège social pour une personne morale. */
+  adresse: string;
+  email: string;
+  telephone: string;
+  siret?: string;
+}
+
+export const QUALITE_BAILLEUR_LABELS: Record<QualiteBailleur, string> = {
+  personne_physique: 'Personne physique (vous seul)',
+  indivision: 'Indivision (plusieurs propriétaires)',
+  personne_morale: 'Personne morale (SCI, SARL de famille…)',
+};
+
 export interface Parametres {
   id: 'singleton';
-  bailleur: {
-    civilite: string;
-    nom: string;
-    prenom: string;
-    adresse: string;
-    email: string;
-    telephone: string;
-    siret?: string;
-    qualite: 'personne_physique';
-  };
+  bailleur: Bailleur;
   grilleVetuste: LigneVetuste[]; // pré-remplie, modifiable
   /** Modèle de la fiche de visite — pré-rempli, modifiable (cf. `getParametres`). */
   ficheVisite?: ModeleFicheVisite;
