@@ -143,57 +143,64 @@ fonctionne dans les deux cas.
 > **supprimerait le site**. Le workflow sonde donc le point d'arrivée avant d'écrire quoi que ce
 > soit, et s'arrête si `www` n'y figure pas.
 
-### SFTP, et pas FTPS
+### ⚠️ Constat : cette offre n'a aucun canal de transfert chiffré
 
-Le Manager annonce les deux, mais **FTPS ne fonctionne pas sur ce cluster**. Une tentative sur le
-port 21 avec `ftp:ssl-force` échoue à la connexion :
+Établi par élimination, le 11 août 2026 :
 
-```
-Login failed: ftp:ssl-force is set and server does not support or allow SSL
-```
+| Essai | Résultat |
+|---|---|
+| FTPS (port 21, `AUTH TLS`) | ❌ `server does not support or allow SSL`. FileZilla le confirme : « Ce serveur ne gère pas FTP sur TLS » |
+| SFTP (port 22, mot de passe) | ❌ `Permission denied (publickey,password)` — réponse identique pour un utilisateur inventé, donc non concluante en soi |
+| **FTP simple (port 21)** | ✅ **Se connecte avec les mêmes identifiants** |
 
-Le serveur n'annonce pas `AUTH TLS`. Comme le FTP simple est exclu — il transmettrait le mot de
-passe en clair — **le transfert se fait en SFTP** (port 22).
+La connexion FTP réussie est la pièce décisive : **les identifiants sont bons**. Le refus SFTP ne
+vient donc ni du mot de passe, ni du secret du dépôt, mais du fait que **le compte n'a pas le droit
+SFTP**. Chez OVH, SSH/SFTP n'est ouvert qu'à partir des formules payantes ; l'interrupteur
+« SFTP : Activé » du Manager est un réglage par utilisateur, sans effet si l'offre ne l'accorde pas.
 
-Quatre ajustements que cela impose dans le workflow — les deux derniers ont chacun coûté une
-exécution ratée :
+Ce que cela impose comme choix est traité au §4 bis.
 
-1. **`sshpass`** est installé à côté de `lftp`. lftp parle SFTP au travers de `ssh`, et `ssh` ne
-   sait pas lire un mot de passe autrement que sur un terminal ; `sshpass -e` le lui fournit
-   depuis la variable `SSHPASS`, sans jamais le faire apparaître sur une ligne de commande.
-2. **L'empreinte du serveur est relevée avant la connexion** (`ssh-keyscan` vers
-   `~/.ssh/known_hosts`). Sans elle, `ssh` s'arrête sur une demande de confirmation qui n'obtiendra
-   jamais de réponse, et le job expire au lieu d'échouer franchement.
-3. **`LFTP_PASSWORD` en plus de `SSHPASS`**, alimentées par le même secret. En SFTP, lftp ne se
-   sert pas du mot de passe — c'est ssh qui authentifie — mais il **refuse de se connecter sans**.
-   Sans terminal pour le demander, il abandonne et bascule en anonyme :
+### Mode de transfert retenu : FTP simple, à contrecœur
 
-   ```
-   open: GetPass() failed -- assume anonymous login
-   ```
+Aucun canal chiffré n'étant disponible (constat ci-dessus), le déploiement se fait en **FTP simple**
+— décision prise en connaissance de cause, le 11 août 2026.
 
-   `open -u "$UTILISATEUR" --env-password` le lui donne et clôt le sujet.
-4. **`PreferredAuthentications=password,keyboard-interactive`**. C'est le piège le plus trompeur :
-   restreint à `password`, ssh se voit refuser l'accès avec des identifiants pourtant valides,
-   parce que le serveur présente son invite par `keyboard-interactive`. Le message ne dit rien de
-   la cause :
+**Ce que cela expose.** Le mot de passe circule en clair entre le runner GitHub et OVH. Qui le
+capterait pourrait remplacer le contenu de `/app/`, donc servir une version altérée d'une
+application qui manipule les données personnelles des locataires dans le navigateur. L'enjeu n'est
+pas la confidentialité de fichiers déjà publics : **c'est l'intégrité du code servi.**
 
-   ```
-   Fatal error: max-retries exceeded (Permission denied, please try again.)
-   ```
+**Atténuations en place.**
 
-**Un test d'authentification isolé** précède désormais tout le reste : une connexion `sftp` nue,
-sans lftp. Les messages de lftp ne distinguent pas un mauvais mot de passe d'une méthode
-d'authentification inadaptée ou d'une erreur de sa propre configuration ; `sshpass -e sftp` le dit
-franchement, et fait échouer le job avant qu'il ne touche au serveur.
+1. **Un compte FTP dédié au déploiement**, restreint au dossier du site, avec un mot de passe qui
+   ne sert à rien d'autre. Jamais le compte principal : sa compromission donnerait accès à tout
+   l'hébergement. Manager → FTP-SSH → *Ajouter un utilisateur*, répertoire cible `./www`.
+2. **L'empreinte SHA-256 du bundle applicatif est vérifiée après chaque déploiement.** Le
+   JavaScript servi par `bailiz.fr` doit être, octet pour octet, celui qui vient d'être construit.
+   Le job échoue sinon. Cela attrape un transfert incomplet aussi bien qu'une substitution.
+3. **`ftp:ssl-allow` reste actif** : lftp chiffrera de lui-même le jour où OVH annoncera `AUTH TLS`,
+   sans modification du workflow. Seule l'*exigence* de TLS a été retirée.
 
-> **Note de sécurité.** `ssh-keyscan` accorde sa confiance à la première réponse obtenue, à chaque
-> exécution : cela évite l'invite, mais ne vérifie rien. Pour une vérification réelle, relever
-> l'empreinte une fois depuis un poste de confiance, la stocker dans un secret `OVH_SSH_HOSTKEY` et
-> écrire ce secret dans `known_hosts` au lieu de la scanner.
+**À revoir dès que possible.** C'est une solution d'attente : monter d'offre OVH pour obtenir SSH,
+ou déplacer l'hébergement (§3.4). Le jour où un canal chiffré existe, le workflow revient au SFTP
+et le mot de passe cesse de transiter en clair.
 
-Le jour où le déploiement passera à une **clé SSH**, `sshpass` et le secret de mot de passe
-disparaissent : c'est la trajectoire à viser.
+### La variable `OVH_CIBLE`
+
+Un utilisateur dédié restreint à `./www` **n'aboutit pas au même endroit** que le compte principal :
+il arrive directement dans le dossier du site. La cible du miroir doit alors être `.` et non `www/`.
+
+Cette valeur se règle par une **variable de dépôt** — Settings → Secrets and variables → Actions →
+onglet **Variables** (et non *Secrets* : ce n'est pas une donnée sensible) :
+
+| Compte utilisé | Point d'arrivée | `OVH_CIBLE` |
+|---|---|---|
+| Principal (`bailiza`, répertoire cible `.`) | racine du compte, contenant `www` | `www/` — c'est la valeur par défaut, la variable peut rester absente |
+| Dédié (répertoire cible `./www`) | dossier du site | **`.`** |
+
+Le workflow ne fait pas confiance à ce réglage : il **sonde le point d'arrivée** et compare à la
+cible configurée. En cas de désaccord il s'arrête avant d'écrire — un miroir avec `--delete` lancé
+un cran trop haut supprimerait le site au lieu de son contenu.
 
 ### Secrets GitHub
 
@@ -287,92 +294,93 @@ jobs:
           echo "À déployer : $(du -sh _site | cut -f1)"
 
       # --- Transfert --------------------------------------------------------
-      - name: Installer lftp et sshpass
-        run: sudo apt-get update && sudo apt-get install -y lftp sshpass
+      #
+      # FTP simple, en clair. C'est un choix par défaut d'infrastructure, pas une
+      # préférence : cette offre OVH n'expose aucun canal chiffré — FTPS n'est
+      # pas annoncé par le serveur (« does not support or allow SSL ») et SFTP
+      # n'est pas accordé au compte. Vérifié le 11 août 2026 (cf.
+      # docs/DEPLOIEMENT-OVH.md §4).
+      #
+      # Ce que cela expose : le mot de passe circule en clair entre le runner et
+      # OVH. Qui le capterait pourrait remplacer /app/ — donc altérer une
+      # application qui manipule les données personnelles des locataires dans le
+      # navigateur. L'enjeu est l'intégrité du code servi, pas la confidentialité
+      # de fichiers déjà publics.
+      #
+      # Atténuations en place :
+      #   - compte FTP DÉDIÉ au déploiement, limité au dossier du site, avec un
+      #     mot de passe qui ne sert à rien d'autre. Jamais le compte principal ;
+      #   - empreinte du bundle applicatif vérifiée après coup (étape suivante) :
+      #     ce qui est en ligne doit être exactement ce qui vient d'être construit.
+      #
+      # À revoir dès qu'un canal chiffré est disponible : monter d'offre OVH pour
+      # obtenir SSH, ou déplacer l'hébergement.
+      - name: Installer lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
 
-      # Transfert en SFTP (port 22) et non en FTPS : ce cluster OVH n'annonce
-      # pas AUTH TLS sur le port 21 (« server does not support or allow SSL »).
-      # Le FTP simple est exclu — il transmettrait le mot de passe en clair.
       - name: Envoyer sur OVH
         env:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
-          # Le même mot de passe, lu par deux programmes différents, chacun
-          # depuis sa propre variable — et jamais depuis une ligne de commande :
-          #   - SSHPASS      : `sshpass -e` le donne à ssh, qui authentifie ;
-          #   - LFTP_PASSWORD: `--env-password` le donne à lftp, qui ne s'en sert
-          #     pas en SFTP mais refuse de se connecter sans (« GetPass() failed
-          #     -- assume anonymous login »).
-          SSHPASS: ${{ secrets.OVH_FTP_PASSWORD }}
+          # `--env-password` lit le mot de passe ici : il ne passe pas par la
+          # ligne de commande, donc pas par `ps`, ni par le script lftp — où un
+          # mot de passe contenant `"` ou `,` produirait une commande malformée.
           LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
+          # `www/` si la connexion aboutit à la racine du compte, `.` si elle
+          # aboutit déjà dans le dossier du site — ce qui est le cas d'un
+          # utilisateur dédié restreint. Variable de dépôt (pas un secret :
+          # ce n'est pas une donnée sensible), `www/` par défaut.
+          CIBLE: ${{ vars.OVH_CIBLE || 'www/' }}
         run: |
-          # Empreinte du serveur relevée avant la connexion : sans cela, ssh
-          # s'arrête sur une demande de confirmation qui n'aura jamais de
-          # réponse dans un environnement non interactif.
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          ssh-keyscan -H "$HOTE" >> ~/.ssh/known_hosts 2>/dev/null
-          test -s ~/.ssh/known_hosts || { echo "::error::empreinte SSH introuvable pour $HOTE"; exit 1; }
-
           # Un retour à la ligne collé par mégarde en fin de secret suffit à
           # faire rejeter le mot de passe, sans que rien ne le laisse deviner :
-          # le serveur répond « Permission denied » comme pour un mot de passe
-          # faux. Seuls CR et LF sont retirés — un espace peut être légitime.
-          BRUT="$SSHPASS"
-          SSHPASS="$(printf '%s' "$SSHPASS" | tr -d '\r\n')"
-          export SSHPASS
-          export LFTP_PASSWORD="$SSHPASS"
-          [ "$BRUT" = "$SSHPASS" ] \
+          # le serveur répond comme pour un mot de passe faux. Seuls CR et LF
+          # sont retirés — un espace peut être légitime dans un mot de passe.
+          BRUT="$LFTP_PASSWORD"
+          LFTP_PASSWORD="$(printf '%s' "$LFTP_PASSWORD" | tr -d '\r\n')"
+          export LFTP_PASSWORD
+          [ "$BRUT" = "$LFTP_PASSWORD" ] \
             || echo "::warning::Le secret OVH_FTP_PASSWORD contenait un retour à la ligne ; il a été retiré. À corriger dans les secrets du dépôt."
           unset BRUT
 
-          # Options ssh communes. Ce cluster annonce « publickey,password » : le
-          # mot de passe est accepté, les clés ne servent à rien ici (le runner
-          # n'en a aucune) et les écarter évite un aller-retour inutile.
-          # `NumberOfPasswordPrompts=1` évite de boucler sur un refus.
-          OPTIONS_SSH="-o PreferredAuthentications=password -o PubkeyAuthentication=no -o NumberOfPasswordPrompts=1"
-
-          # --- Authentification, testée à part ---
-          #
-          # lftp enveloppe ssh, et ses messages d'erreur ne disent pas si l'échec
-          # vient des identifiants, de la méthode d'authentification ou de sa
-          # propre configuration. Une connexion sftp nue tranche la question, et
-          # son diagnostic est directement lisible.
-          echo "Test d'authentification SFTP :"
-          sshpass -e sftp $OPTIONS_SSH -b /dev/null "$UTILISATEUR@$HOTE" || {
-            echo "::error::Authentification SFTP refusée. Vérifier les secrets \
-          OVH_FTP_USER et OVH_FTP_PASSWORD, et que SFTP est activé pour ce compte \
-          dans le Manager OVH (onglet FTP-SSH)."
-            exit 1
-          }
-          echo "Authentification acceptée."
-
-          # Réglages de connexion dans `~/.lftprc` plutôt que dans chaque appel :
-          # ils servent deux fois (sonde puis transfert), et les sortir du script
-          # évite d'imbriquer des guillemets dans des guillemets.
-          cat > ~/.lftprc <<RC
-          set sftp:connect-program "sshpass -e ssh -a -x $OPTIONS_SSH"
-          set sftp:auto-confirm yes
+          # `ssl-allow` reste à sa valeur par défaut (vrai) : lftp chiffrera de
+          # lui-même le jour où le serveur annoncera AUTH TLS, sans modification
+          # ici. Ce qui est retiré, c'est l'EXIGENCE de TLS, qui fait échouer la
+          # connexion sur un serveur qui ne le propose pas.
+          # Mode passif : le runner est derrière un NAT, l'actif ne passerait pas.
+          cat > ~/.lftprc <<'RC'
+          set ftp:passive-mode true
           set net:max-retries 3
           set net:timeout 20
           set cmd:fail-exit true
           RC
 
-          # --- Sonde, avant tout transfert ---
+          CONNEXION="open -u \"$UTILISATEUR\" --env-password ftp://$HOTE:21;"
+
+          # --- Sonde, avant toute écriture ---
           #
-          # La troisième passe emporte `--delete`. Visant `www/`, elle ne peut
-          # nettoyer que l'intérieur du site. Mais si la connexion aboutissait
-          # DÉJÀ dans `www` (selon le répertoire cible du compte SFTP), la même
-          # commande viserait le dossier parent et **supprimerait le docroot**.
-          # On vérifie donc où l'on atterrit avant d'écrire quoi que ce soit.
+          # La troisième passe emporte `--delete` : lancée un cran trop haut, elle
+          # supprimerait le dossier du site au lieu de son contenu. On vérifie
+          # donc que le point d'arrivée correspond bien à la cible configurée.
           echo "Point d'arrivée sur le serveur :"
-          ARRIVEE=$(lftp -c "open -u \"$UTILISATEUR\" --env-password sftp://$HOTE:22; pwd; cls -1;")
+          ARRIVEE=$(lftp -c "$CONNEXION pwd; cls -1;")
           echo "$ARRIVEE"
 
-          echo "$ARRIVEE" | grep -qx 'www/\?' || {
-            echo "::error::Le dossier 'www' est absent du point d'arrivée. \
-          Le compte SFTP aboutit peut-être déjà dans le docroot : dans ce cas la cible \
-          du miroir doit devenir '.' et non 'www/'. Transfert interrompu — \
-          un miroir avec --delete au mauvais endroit effacerait le site."
+          if echo "$ARRIVEE" | grep -qx 'www/\?'; then
+            TROUVE="racine du compte"
+            ATTENDU="www/"
+          else
+            TROUVE="dossier du site"
+            ATTENDU="."
+          fi
+          echo "Disposition détectée : $TROUVE — cible attendue « $ATTENDU », cible configurée « $CIBLE »"
+
+          [ "$CIBLE" = "$ATTENDU" ] || {
+            echo "::error::Incohérence entre le point d'arrivée et la cible du miroir. \
+          La connexion aboutit dans le $TROUVE, ce qui appelle la cible « $ATTENDU », \
+          alors que la variable OVH_CIBLE vaut « $CIBLE ». Transfert interrompu : \
+          un miroir avec --delete au mauvais niveau effacerait le site. Corriger la \
+          variable de dépôt OVH_CIBLE, ou le répertoire cible du compte FTP."
             exit 1
           }
 
@@ -388,10 +396,10 @@ jobs:
           # - Passe 2, le HTML, qui référence des assets désormais présents.
           # - Passe 3, suppression de ce qui a disparu du build.
           lftp -c "
-            open -u \"$UTILISATEUR\" --env-password sftp://$HOTE:22;
-            mirror -R --parallel=4 --exclude-glob *.html _site/ www/;
-            mirror -R --parallel=4 _site/ www/;
-            mirror -R --delete --parallel=4 _site/ www/;
+            $CONNEXION
+            mirror -R --parallel=4 --exclude-glob *.html _site/ $CIBLE;
+            mirror -R --parallel=4 _site/ $CIBLE;
+            mirror -R --delete --parallel=4 _site/ $CIBLE;
           "
 
       # --- Contrôle ---------------------------------------------------------
@@ -416,6 +424,28 @@ jobs:
           curl -sS --max-time 20 -o /dev/null -w '%{http_code} %{redirect_url}\n' \
             https://www.bailiz.fr/ | grep -q '^301 https://bailiz.fr/' \
             || echo "::warning::www ne redirige pas en 301 — .htaccess ignoré ?"
+
+          # --- Intégrité du bundle applicatif ---
+          #
+          # Le transfert se fait en clair (cf. étape précédente). Ce contrôle est
+          # la contrepartie : le JavaScript servi par bailiz.fr doit être, octet
+          # pour octet, celui qui vient d'être construit ici. Il attrape aussi
+          # bien un transfert incomplet qu'une substitution de fichier.
+          #
+          # C'est l'application qui est vérifiée, et pas la vitrine : c'est elle
+          # qui manipule les données personnelles des locataires.
+          echo "— intégrité du bundle applicatif"
+          BUNDLE=$(cd _site/app && ls assets/index-*.js | head -1)
+          LOCALE=$(sha256sum "_site/app/$BUNDLE" | cut -d' ' -f1)
+          DISTANTE=$(curl -sS --fail --max-time 30 "https://bailiz.fr/app/$BUNDLE" | sha256sum | cut -d' ' -f1)
+          if [ "$LOCALE" = "$DISTANTE" ]; then
+            echo "  $BUNDLE conforme ($LOCALE)"
+          else
+            echo "::error::Le bundle servi ne correspond pas à celui qui vient d'être \
+          construit. Attendu $LOCALE, obtenu $DISTANTE. Transfert incomplet, cache \
+          intermédiaire, ou fichier altéré — ne pas ignorer."
+            exit 1
+          fi
 
           echo "Déploiement vérifié."
 ```
@@ -646,17 +676,39 @@ Le serveur `ftp.cluster129.hosting.ovh.net` **répond sur le port 22** et annonc
 `publickey,password` — la vérification a été faite. Un refus vient donc des identifiants, ou du
 fait que le compte n'a pas réellement droit au SFTP malgré l'interrupteur du Manager.
 
-Test décisif, depuis un poste quelconque :
+**`Permission denied (publickey,password)` ne dit rien de la cause.** Vérifié : le serveur renvoie
+exactement la même ligne pour `bailiza` et pour un nom d'utilisateur inventé. C'est le comportement
+normal d'un sshd, qui refuse de révéler quels comptes existent. Mot de passe faux, compte non
+provisionné, offre sans SFTP : même réponse. Inutile de chercher à distinguer depuis la CI.
+
+### Le test qui discrimine : FTP simple avec les mêmes identifiants
+
+C'est le seul essai qui sépare les deux causes, parce qu'il change **un seul paramètre** — le
+protocole — en gardant le même compte et le même mot de passe. Dans FileZilla ou en ligne de
+commande :
 
 ```bash
-sftp -o PreferredAuthentications=password bailiza@ftp.cluster129.hosting.ovh.net
+# Port 21, FTP simple, mêmes identifiants
+ftp ftp.cluster129.hosting.ovh.net
+```
+
+| Le FTP passe | Le FTP échoue |
+|---|---|
+| **Les identifiants sont bons.** C'est donc le **SFTP** qui n'est pas accordé à ce compte : ticket OVH, ou montée d'offre, ou repli sur un autre mode de transfert | **Le mot de passe est faux** (ou le compte est bloqué). Le réinitialiser dans le Manager et recoller le secret suffit |
+
+### Test SFTP direct, en mode bavard
+
+```bash
+sftp -v -o PreferredAuthentications=password -o PubkeyAuthentication=no \
+     bailiza@ftp.cluster129.hosting.ovh.net
 ```
 
 | Réponse | Conclusion |
 |---|---|
-| Invite de mot de passe puis `sftp>` | Les identifiants sont bons : le secret du dépôt est en cause (mot de passe erroné ou retour à la ligne) |
-| `Permission denied` | Mot de passe faux, ou SFTP non accordé par l'offre. Réinitialiser le mot de passe dans le Manager, réessayer ; si le refus persiste, l'offre ne donne pas le SFTP |
-| Expiration du délai | Le port 22 est filtré **sur ce réseau**. Sans rapport avec la CI, qui atteint le serveur — refaire le test depuis un autre réseau |
+| Invite de mot de passe puis `sftp>` | Les identifiants sont bons : le secret du dépôt est en cause (mot de passe erroné, ou retour à la ligne collé avec) |
+| `Next authentication method: password` puis `Permission denied` | Le mot de passe a bien été présenté et refusé → voir le test FTP ci-dessus |
+| Pas de ligne `Next authentication method: password` | Le mot de passe n'a jamais été envoyé — problème de client, pas de compte |
+| Expiration du délai | Le port 22 est filtré **sur ce réseau**, pas chez OVH : la CI, elle, atteint le serveur. Refaire le test en partage de connexion mobile |
 
 **Si le SFTP n'est pas accordé par l'offre**, il n'y a plus de canal chiffré vers cet hébergement,
 et trois issues :
