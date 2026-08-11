@@ -72,6 +72,37 @@ describe('export / import de sauvegarde', () => {
     expect(Array.from(octets)).toEqual([1, 2, 3, 4]);
   });
 
+  /*
+   * L'import écrit par `bulkPut`, qui ne déclenche aucun hook de migration
+   * Dexie : une archive écrite avant que l'état des lieux ne porte son contexte
+   * doit donc être complétée à la relecture, sinon elle réintroduit dans une
+   * base à jour des états des lieux sans logement — invisibles en liste et
+   * impossibles à imprimer.
+   */
+  it("complète le contexte des états des lieux d’une archive écrite avant la v6", async () => {
+    const zipBlob = await exporterSauvegarde();
+    const { zip, data } = await lireSauvegarde(zipBlob);
+
+    // Archive telle qu'en produisait la version précédente : l'EDL ne connaît
+    // que son bail.
+    const donnees = data as unknown as { baux: unknown[]; edls: unknown[] };
+    donnees.baux = [{ id: 'bail-1', bienId: 'bien-1', locataireIds: ['loc-1', 'loc-2'] }];
+    donnees.edls = [
+      { id: 'edl-1', reference: 'EDL-2026-0001', bailId: 'bail-1', type: 'entree' },
+      { id: 'edl-orphelin', reference: 'EDL-2026-0002', bailId: 'disparu', type: 'entree' },
+    ];
+
+    await importerSauvegarde(zip, data, 'remplacer');
+
+    expect(await db.edls.get('edl-1')).toMatchObject({
+      bienId: 'bien-1',
+      locataireIds: ['loc-1', 'loc-2'],
+    });
+    // Un EDL dont le bail a disparu reste importé : il est rattachable ensuite,
+    // alors qu'un import qui échoue laisserait la base à moitié restaurée.
+    expect(await db.edls.get('edl-orphelin')).toBeDefined();
+  });
+
   it('détecte les conflits d’identifiants et fusionne sans effacer le reste', async () => {
     await db.biens.add(bienFixture('bien-1'));
     const zipBlob = await exporterSauvegarde();

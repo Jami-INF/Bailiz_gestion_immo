@@ -46,11 +46,13 @@ function bail(id: string, locataireIds: string[]): Bail {
   };
 }
 
-function edl(id: string, bailId: string): EtatDesLieux {
+function edl(id: string, bailId?: string, locataireIds: string[] = []): EtatDesLieux {
   return {
     id,
     reference: `EDL-${id}`,
     bailId,
+    bienId: 'bien-1',
+    locataireIds,
     type: 'entree',
     date: '2026-01-01T00:00:00.000Z',
     compteurs: [],
@@ -132,10 +134,68 @@ describe('suppression RGPD d’un locataire', () => {
     expect(await db.locataires.count()).toBe(1);
   });
 
+  /*
+   * Depuis qu'un état des lieux peut être établi sans bail, la recherche par
+   * bail ne suffit plus : un constat portant le nom, la signature manuscrite et
+   * l'horodatage du locataire échapperait sinon entièrement à l'effacement.
+   */
+  it('efface un état des lieux sans bail, avec ses photos et ses PDF', async () => {
+    await db.locataires.add(locataire('loc-1', 'Dupont'));
+    await db.edls.add(edl('edl-rapide', undefined, ['loc-1']));
+    await db.photos.add({ id: 'ph-1', blob: new Blob(['x']), dateCapture: '', edlId: 'edl-rapide' });
+    await db.documents.add(pdf('doc-1', { edlId: 'edl-rapide' }));
+
+    const perimetre = await perimetreSuppressionLocataire('loc-1');
+    expect(perimetre).toMatchObject({ bauxSupprimes: [], edls: 1, photos: 1, documents: 1 });
+
+    await supprimerLocataireEtDonnees('loc-1');
+
+    expect(await db.edls.count()).toBe(0);
+    expect(await db.photos.count()).toBe(0);
+    expect(await db.documents.count()).toBe(0);
+    expect(await db.locataires.count()).toBe(0);
+  });
+
+  it("conserve un état des lieux sans bail établi avec d'autres personnes, et l'annonce", async () => {
+    await db.locataires.bulkAdd([locataire('loc-1', 'Dupont'), locataire('loc-2', 'Martin')]);
+    await db.edls.add(edl('edl-coloc', undefined, ['loc-1', 'loc-2']));
+
+    const perimetre = await perimetreSuppressionLocataire('loc-1');
+    expect(perimetre.edls).toBe(0);
+    // Un état des lieux signé ne peut pas être amputé d'un signataire : il est
+    // conservé tel quel, et le périmètre annoncé le dit.
+    expect(perimetre.edlsPartages).toEqual(['EDL-edl-coloc']);
+
+    await supprimerLocataireEtDonnees('loc-1');
+
+    const restant = await db.edls.get('edl-coloc');
+    expect(restant?.locataireIds).toEqual(['loc-1', 'loc-2']);
+    expect(await db.locataires.count()).toBe(1);
+  });
+
+  it("ne compte qu'une fois un état des lieux trouvé à la fois par son bail et par ses parties", async () => {
+    await db.locataires.add(locataire('loc-1', 'Dupont'));
+    await db.baux.add(bail('bail-1', ['loc-1']));
+    await db.edls.add(edl('edl-1', 'bail-1', ['loc-1']));
+
+    const perimetre = await perimetreSuppressionLocataire('loc-1');
+    expect(perimetre.edls).toBe(1);
+
+    await supprimerLocataireEtDonnees('loc-1');
+    expect(await db.edls.count()).toBe(0);
+  });
+
   it('supprime un locataire sans aucune donnée liée', async () => {
     await db.locataires.add(locataire('loc-seul', 'Solo'));
     const perimetre = await supprimerLocataireEtDonnees('loc-seul');
-    expect(perimetre).toEqual({ bauxSupprimes: [], bauxPartages: [], edls: 0, photos: 0, documents: 0 });
+    expect(perimetre).toEqual({
+      bauxSupprimes: [],
+      bauxPartages: [],
+      edls: 0,
+      edlsPartages: [],
+      photos: 0,
+      documents: 0,
+    });
     expect(await db.locataires.count()).toBe(0);
   });
 });

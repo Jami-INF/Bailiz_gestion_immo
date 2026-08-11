@@ -84,13 +84,17 @@ export function EdlSignaturePage() {
         hash,
         signe: true,
         bienId: bien.id,
-        bailId: bail.id,
+        bailId: bail?.id,
         edlId: edl.id,
       });
-      // Un EDL de sortie signé clôt le bail.
-      if (edl.type === 'sortie') {
+      /*
+       * Les bascules de statut ci-dessous n'ont de sens que s'il existe un bail.
+       * Un constat établi sans contrat rédigé ici n'en invente aucun :
+       * l'application ne sait pas si le logement est loué, elle ne l'affirme pas.
+       */
+      if (bail && edl.type === 'sortie') {
         await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
-      } else if (bail.statut !== 'actif' && bail.statut !== 'termine') {
+      } else if (bail && bail.statut !== 'actif' && bail.statut !== 'termine') {
         /*
          * Un EDL d'entrée signé, c'est la remise des clés : le logement est
          * loué. Le bail restait sinon « généré » jusqu'à ce que l'utilisateur
@@ -178,8 +182,8 @@ export function EdlSignaturePage() {
                 </Button>
               </Link>
             )}
-            <Button variant="ghost" onClick={() => navigate(`/baux/${bail.id}`)}>
-              Retour au bail
+            <Button variant="ghost" onClick={() => navigate(bail ? `/baux/${bail.id}` : '/edl')}>
+              {bail ? 'Retour au bail' : 'Retour aux états des lieux'}
             </Button>
           </div>
         </Card>

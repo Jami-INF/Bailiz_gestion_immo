@@ -7,8 +7,68 @@ export interface PerimetreSuppression {
   /** Baux en colocation : le locataire en est retiré, le bail subsiste. */
   bauxPartages: string[];
   edls: number;
+  /**
+   * États des lieux conservés parce qu'ils concernent aussi d'autres personnes.
+   * Contrairement à un bail, on n'en retire pas un signataire : un état des
+   * lieux signé est immuable. Le nom subsiste donc, et cela doit être annoncé.
+   */
+  edlsPartages: string[];
   photos: number;
   documents: number;
+}
+
+/**
+ * Tout ce qui dépend d'un locataire, calculé une fois.
+ *
+ * Les états des lieux ne se retrouvent plus seulement par le bail : depuis
+ * qu'un constat peut être établi **sans bail**, un état des lieux portant le
+ * nom, la signature manuscrite et l'horodatage du locataire échapperait
+ * autrement à la suppression définitive — ce qui viderait le droit à
+ * l'effacement de son objet. La recherche par bail et la recherche par parties
+ * sont donc réunies.
+ */
+async function dependancesLocataire(locataireId: string) {
+  const baux = await db.baux.where('locataireIds').equals(locataireId).toArray();
+  const seuls = baux.filter((b) => b.locataireIds.length <= 1);
+  const partagesBaux = baux.filter((b) => b.locataireIds.length > 1);
+  const idsSeuls = seuls.map((b) => b.id);
+
+  const parBail = idsSeuls.length ? await db.edls.where('bailId').anyOf(idsSeuls).toArray() : [];
+  const parPartie = await db.edls.where('locataireIds').equals(locataireId).toArray();
+
+  // Même règle que pour les baux : supprimé s'il ne concerne que lui, conservé
+  // s'il concerne aussi quelqu'un d'autre.
+  const aSupprimer = new Map(parBail.map((e) => [e.id, e]));
+  const partagesEdls = [];
+  for (const edl of parPartie) {
+    if (aSupprimer.has(edl.id)) continue;
+    if ((edl.locataireIds ?? []).filter((id) => id !== locataireId).length === 0) {
+      aSupprimer.set(edl.id, edl);
+    } else {
+      partagesEdls.push(edl);
+    }
+  }
+
+  const edls = [...aSupprimer.values()];
+  const edlIds = edls.map((e) => e.id);
+  const photoIds = edlIds.length ? await db.photos.where('edlId').anyOf(edlIds).primaryKeys() : [];
+  // Un PDF peut être rattaché au bail ou directement à l'EDL.
+  const docsBail = idsSeuls.length ? await db.documents.where('bailId').anyOf(idsSeuls).primaryKeys() : [];
+  const docsEdl = edlIds.length ? await db.documents.where('edlId').anyOf(edlIds).primaryKeys() : [];
+  const docIds = [...new Set([...docsBail, ...docsEdl])];
+
+  return { seuls, partagesBaux, idsSeuls, edls, edlIds, partagesEdls, photoIds, docIds };
+}
+
+function versPerimetre(d: Awaited<ReturnType<typeof dependancesLocataire>>): PerimetreSuppression {
+  return {
+    bauxSupprimes: d.seuls.map((b) => b.reference),
+    bauxPartages: d.partagesBaux.map((b) => b.reference),
+    edls: d.edls.length,
+    edlsPartages: d.partagesEdls.map((e) => e.reference),
+    photos: d.photoIds.length,
+    documents: d.docIds.length,
+  };
 }
 
 /**
@@ -16,62 +76,31 @@ export interface PerimetreSuppression {
  * permet d'annoncer précisément le périmètre avant confirmation.
  */
 export async function perimetreSuppressionLocataire(locataireId: string): Promise<PerimetreSuppression> {
-  const baux = await db.baux.where('locataireIds').equals(locataireId).toArray();
-  const seuls = baux.filter((b) => b.locataireIds.length <= 1);
-  const partages = baux.filter((b) => b.locataireIds.length > 1);
-  const idsSeuls = seuls.map((b) => b.id);
-
-  const edls = idsSeuls.length ? await db.edls.where('bailId').anyOf(idsSeuls).toArray() : [];
-  const edlIds = edls.map((e) => e.id);
-  const photos = edlIds.length ? await db.photos.where('edlId').anyOf(edlIds).count() : 0;
-
-  // Un PDF peut être rattaché au bail ou directement à l'EDL.
-  const docsBail = idsSeuls.length ? await db.documents.where('bailId').anyOf(idsSeuls).toArray() : [];
-  const docsEdl = edlIds.length ? await db.documents.where('edlId').anyOf(edlIds).toArray() : [];
-  const documents = new Set([...docsBail, ...docsEdl].map((d) => d.id)).size;
-
-  return {
-    bauxSupprimes: seuls.map((b) => b.reference),
-    bauxPartages: partages.map((b) => b.reference),
-    edls: edls.length,
-    photos,
-    documents,
-  };
+  return versPerimetre(await dependancesLocataire(locataireId));
 }
 
 /**
  * Suppression définitive d'un locataire (droit à l'effacement, RGPD).
  *
  * Efface aussi **tout ce qui porte ses données personnelles** : baux dont il est
- * le seul titulaire, états des lieux de ces baux, photos associées et PDF
- * archivés — sans quoi son nom, son adresse et ses coordonnées resteraient
- * lisibles dans les documents générés. En colocation, le bail reste (il
- * concerne les autres locataires) et le locataire en est simplement retiré.
+ * le seul titulaire, états des lieux qui ne concernent que lui — qu'ils soient
+ * rattachés à un bail ou non —, photos associées et PDF archivés, sans quoi son
+ * nom, son adresse et ses coordonnées resteraient lisibles dans les documents
+ * générés. En colocation, le bail reste (il concerne les autres locataires) et
+ * le locataire en est simplement retiré.
  */
 export async function supprimerLocataireEtDonnees(locataireId: string): Promise<PerimetreSuppression> {
-  const perimetre = await perimetreSuppressionLocataire(locataireId);
-  const baux = await db.baux.where('locataireIds').equals(locataireId).toArray();
-  const idsSeuls = baux.filter((b) => b.locataireIds.length <= 1).map((b) => b.id);
-  const partages = baux.filter((b) => b.locataireIds.length > 1);
-
-  const edls = idsSeuls.length ? await db.edls.where('bailId').anyOf(idsSeuls).toArray() : [];
-  const edlIds = edls.map((e) => e.id);
-  const docsBail = idsSeuls.length ? await db.documents.where('bailId').anyOf(idsSeuls).toArray() : [];
-  const docsEdl = edlIds.length ? await db.documents.where('edlId').anyOf(edlIds).toArray() : [];
-  const docIds = [...new Set([...docsBail, ...docsEdl].map((d) => d.id))];
-  const photoIds = edlIds.length
-    ? (await db.photos.where('edlId').anyOf(edlIds).toArray()).map((p) => p.id)
-    : [];
+  const d = await dependancesLocataire(locataireId);
 
   await db.transaction(
     'rw',
     [db.locataires, db.baux, db.edls, db.photos, db.documents],
     async () => {
-      if (photoIds.length) await db.photos.bulkDelete(photoIds);
-      if (docIds.length) await db.documents.bulkDelete(docIds);
-      if (edlIds.length) await db.edls.bulkDelete(edlIds);
-      if (idsSeuls.length) await db.baux.bulkDelete(idsSeuls);
-      for (const bail of partages) {
+      if (d.photoIds.length) await db.photos.bulkDelete(d.photoIds);
+      if (d.docIds.length) await db.documents.bulkDelete(d.docIds);
+      if (d.edlIds.length) await db.edls.bulkDelete(d.edlIds);
+      if (d.idsSeuls.length) await db.baux.bulkDelete(d.idsSeuls);
+      for (const bail of d.partagesBaux) {
         await db.baux.put({
           ...bail,
           locataireIds: bail.locataireIds.filter((id) => id !== locataireId),
@@ -81,7 +110,7 @@ export async function supprimerLocataireEtDonnees(locataireId: string): Promise<
     },
   );
 
-  return perimetre;
+  return versPerimetre(d);
 }
 
 /** Ce que la suppression d'un bail va effacer avec lui. */

@@ -2,6 +2,7 @@ import { Document, Page, Text, View, Image } from '@react-pdf/renderer';
 import type { Bail, Bien, EtatDesLieux, Locataire, Parametres } from '@/types';
 import { COMPTEUR_LABELS, ETAT_LABELS } from '@/types';
 import { nomBailleur } from '@/lib/bailleur';
+import { mentionBail, mentionOrigineEntree } from './edlMentions';
 import {
   EntetePdf,
   PiedDePagePdf,
@@ -50,7 +51,11 @@ function ColonnePhotos({ titre, photos: lot }: { titre: string; photos: PhotoPou
 interface Props {
   edl: EtatDesLieux;
   edlEntree?: EtatDesLieux; // pour un EDL de sortie
-  bail: Bail;
+  /**
+   * Contrat auquel l'état des lieux sera annexé. **Facultatif** : le bail a pu
+   * être rédigé hors de l'application, ou n'être rattaché que plus tard.
+   */
+  bail?: Bail;
   bien: Bien;
   locataires: Locataire[];
   parametres: Parametres;
@@ -68,6 +73,10 @@ interface Props {
 export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, comparaisons = [], hash }: Props) {
   const sortie = edl.type === 'sortie';
   const titre = sortie ? 'État des lieux de sortie' : "État des lieux d'entrée";
+  const origineEntree = mentionOrigineEntree(edl);
+  // Sans état des lieux d'entrée, la colonne de référence n'est pas « vide » :
+  // elle n'existe pas. Le dire évite de laisser croire à un relevé oublié.
+  const sansEtatEntree = sortie && edl.origineEtatEntree === 'aucun';
   const b = parametres.bailleur;
   const largeurs = sortie
     ? ['22%', '15%', '15%', '10%', '38%']
@@ -80,8 +89,8 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
         <Text style={s.titre}>{titre}</Text>
         <Text style={s.sousTitre}>
           Établi contradictoirement entre les parties le {formatDateFr(edl.date)} — art. 3-2 de
-          la loi n°89-462 du 6 juillet 1989 et décret n°2016-382 du 30 mars 2016. Bail{' '}
-          {bail.reference}.
+          la loi n°89-462 du 6 juillet 1989 et décret n°2016-382 du 30 mars 2016.{' '}
+          {mentionBail(bail, edl.bailExterne)}
         </Text>
         {edl.rectifications && edl.rectifications.length > 0 && (
           <Text style={[s.petit, { textAlign: 'center', marginBottom: 6 }]}>
@@ -92,6 +101,10 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
               : ''}
             . Rectification établie contradictoirement et re-signée par les deux parties.
           </Text>
+        )}
+
+        {origineEntree && (
+          <Text style={[s.petit, { textAlign: 'center', marginBottom: 6 }]}>{origineEntree}</Text>
         )}
 
         <Text style={s.h2}>Localisation du logement</Text>
@@ -187,7 +200,11 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
                     {sortie ? (
                       <>
                         <Text style={[s.cellule, { width: largeurs[1] }]}>
-                          {el.etatEntree ? ETAT_LABELS[el.etatEntree] : '—'}
+                          {sansEtatEntree
+                            ? 'non établi'
+                            : el.etatEntree
+                              ? ETAT_LABELS[el.etatEntree]
+                              : '—'}
                         </Text>
                         <Text style={[s.cellule, { width: largeurs[2] }]}>
                           {el.manquant ? 'Manquant' : el.etat ? ETAT_LABELS[el.etat] : '—'}

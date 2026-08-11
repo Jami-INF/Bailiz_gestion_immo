@@ -348,7 +348,47 @@ export interface Avenant {
 export interface EtatDesLieux {
   id: string;
   reference: string; // "EDL-2026-0007"
-  bailId: string;
+  /**
+   * Bail auquel l'état des lieux sera annexé. **Optionnel** : l'état des lieux
+   * est un acte autonome, établi contradictoirement entre les parties (art. 3-2
+   * de la loi n°89-462, décret n°2016-382). Le contrat peut avoir été rédigé
+   * ailleurs — ou être rattaché plus tard, une fois l'état des lieux signé.
+   */
+  bailId?: string;
+  /**
+   * Logement constaté. Source **directe** du contexte : ne dépend plus du bail,
+   * qui peut ne pas exister.
+   */
+  bienId: string;
+  /**
+   * Parties présentes au constat, **figées à la date de l'état des lieux**.
+   * Lire les locataires du bail ferait apparaître dans un document déjà signé
+   * les colocataires ajoutés depuis — qui ne l'ont pas signé.
+   */
+  locataireIds: string[];
+  /**
+   * Dépôt de garantie servant au calcul des retenues et à la lettre de
+   * restitution. Prioritaire sur `bail.depotGarantie` : c'est le montant déclaré
+   * au moment du constat.
+   */
+  depotGarantie?: number;
+  /**
+   * Contrat de location non enregistré dans l'application (bail papier, agence,
+   * modèle tiers) : cité en tête du PDF pour que le document puisse y être
+   * annexé sans ambiguïté.
+   */
+  bailExterne?: { reference?: string; dateEffet?: string };
+  /**
+   * EDL de **sortie** — provenance des états d'entrée servant de référence au
+   * comparatif :
+   * - `edl_app`    : `edlEntreeLieId` renseigné, états dupliqués depuis l'app ;
+   * - `edl_papier` : entrée établie hors application, reportée à la main ;
+   * - `aucun`      : aucun état des lieux d'entrée n'a été établi — le document
+   *                  constate l'état à la sortie, sans comparatif opposable.
+   */
+  origineEtatEntree?: 'edl_app' | 'edl_papier' | 'aucun';
+  /** `origineEtatEntree === 'edl_papier'` : date de l'EDL d'entrée papier, citée au PDF. */
+  dateEdlEntreePapier?: string;
   type: 'entree' | 'sortie';
   date: string;
   edlEntreeLieId?: string; // pour un EDL de sortie: lien vers l'entrée

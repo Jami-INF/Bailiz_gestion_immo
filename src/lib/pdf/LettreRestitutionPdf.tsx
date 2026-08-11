@@ -1,5 +1,5 @@
 import { Document, Page, Text, View } from '@react-pdf/renderer';
-import type { Bail, Bien, Locataire, Parametres } from '@/types';
+import type { Bien, Locataire, Parametres } from '@/types';
 import { formatEuros, type LigneRetenue } from '@/lib/calculs';
 import { EntetePdf, PiedDePagePdf, formatDateFr, pdfStyles as s } from './commun';
 import { formatAdresse } from '@/lib/adresse';
@@ -7,7 +7,14 @@ import { nomBailleur, signataireBailleur } from '@/lib/bailleur';
 
 interface Props {
   reference: string;
-  bail: Bail;
+  /**
+   * Montant du dépôt à décompter. Passé en clair plutôt que déduit d'un bail :
+   * l'état des lieux de sortie peut avoir été établi sans contrat rédigé dans
+   * l'application, et c'est alors lui qui porte le montant.
+   */
+  depotGarantie: number;
+  /** Référence du contrat, si l'on en connaît une (bail enregistré ou papier). */
+  bailReference?: string;
   bien: Bien;
   locataires: Locataire[];
   parametres: Parametres;
@@ -23,7 +30,7 @@ export function LettreRestitutionPdf(p: Props) {
   const totalDegradations = p.retenues.reduce((sum, l) => sum + l.retenue, 0);
   const totalAutres = p.autresRetenues.reduce((sum, l) => sum + l.montant, 0);
   const total = totalDegradations + totalAutres;
-  const aRestituer = Math.max(0, p.bail.depotGarantie - total);
+  const aRestituer = Math.max(0, p.depotGarantie - total);
   const conforme = total === 0;
   const largeurs = ['30%', '20%', '17%', '16%', '17%'];
 
@@ -44,14 +51,15 @@ export function LettreRestitutionPdf(p: Props) {
           {p.nouvelleAdresse && <Text>{p.nouvelleAdresse}</Text>}
         </View>
         <Text style={s.p}>
-          Objet : restitution du dépôt de garantie — bail {p.bail.reference}, logement situé{' '}
+          Objet : restitution du dépôt de garantie —{' '}
+          {p.bailReference ? `bail ${p.bailReference}, ` : ''}logement situé{' '}
           {formatAdresse(p.bien.adresse)}.
         </Text>
         <Text style={[s.p, { marginTop: 8 }]}>Madame, Monsieur,</Text>
         <Text style={s.p}>
           À la suite de l'état des lieux de sortie établi contradictoirement le{' '}
           {formatDateFr(p.dateEdlSortie)}, je vous adresse le décompte du dépôt de garantie de{' '}
-          {formatEuros(p.bail.depotGarantie)} versé à la signature du bail.
+          {formatEuros(p.depotGarantie)} versé à la signature du bail.
         </Text>
         <Text style={s.p}>
           Rappel des délais légaux (art. 22 de la loi du 6 juillet 1989) : restitution sous un
@@ -108,10 +116,10 @@ export function LettreRestitutionPdf(p: Props) {
 
         <Text style={s.h2}>Solde</Text>
         <Text style={s.p}>
-          Dépôt de garantie versé : {formatEuros(p.bail.depotGarantie)}. Total des retenues :{' '}
+          Dépôt de garantie versé : {formatEuros(p.depotGarantie)}. Total des retenues :{' '}
           {formatEuros(total)}. <Text style={s.gras}>Montant restitué : {formatEuros(aRestituer)}</Text>
-          {total > p.bail.depotGarantie
-            ? `, le coût des réparations excédant le dépôt, un solde de ${formatEuros(total - p.bail.depotGarantie)} reste dû par le locataire.`
+          {total > p.depotGarantie
+            ? `, le coût des réparations excédant le dépôt, un solde de ${formatEuros(total - p.depotGarantie)} reste dû par le locataire.`
             : '.'}
         </Text>
         <Text style={s.p}>

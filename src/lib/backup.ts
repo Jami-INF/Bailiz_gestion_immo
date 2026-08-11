@@ -2,7 +2,8 @@ import JSZip from 'jszip';
 import { db, getParametres } from './db';
 import { nowISO } from './ids';
 import { bailleurRenseigne } from './bailleur';
-import type { Photo } from '@/types';
+import { completerContexteEdl } from './etat';
+import type { EtatDesLieux, Photo } from '@/types';
 
 interface DonneesExport {
   version: 1;
@@ -181,6 +182,27 @@ export async function lireSauvegarde(fichier: Blob): Promise<{ zip: JSZip; data:
   return { zip, data: validerSauvegarde(brut) };
 }
 
+/**
+ * États des lieux d'une archive, complétés de leur contexte (logement, parties)
+ * quand ils ont été écrits avant que l'EDL ne le porte lui-même.
+ *
+ * Indispensable **en plus** de la migration Dexie v6 : l'import écrit par
+ * `bulkPut`, qui ne déclenche aucun hook de migration. Sans ce passage, relire
+ * une sauvegarde ancienne réintroduirait dans une base à jour des états des
+ * lieux sans logement — invisibles dans les listes et impossibles à imprimer.
+ *
+ * C'est aussi la raison pour laquelle `VERSION_SAUVEGARDE` n'est pas
+ * incrémentée : `validerSauvegarde` refuse les archives de version inférieure,
+ * si bien qu'un passage à 2 rendrait illisibles toutes celles déjà produites.
+ */
+function edlsNormalises(data: DonneesExport): unknown[] {
+  const baux = data.baux as { id: string; bienId?: string; locataireIds?: string[] }[];
+  const parId = new Map(baux.map((b) => [b.id, b]));
+  return (data.edls as Partial<EtatDesLieux>[]).map((edl) =>
+    completerContexteEdl({ ...edl }, edl.bailId ? parId.get(edl.bailId) : undefined),
+  );
+}
+
 /** Détecte les conflits d'identifiants entre la sauvegarde et la base locale. */
 export async function detecterConflits(data: DonneesExport): Promise<number> {
   const ids = [
@@ -246,7 +268,7 @@ export async function importerSauvegarde(
       await db.locataires.bulkPut(data.locataires as never[]);
       await db.baux.bulkPut(data.baux as never[]);
       await db.inventaires.bulkPut(data.inventaires as never[]);
-      await db.edls.bulkPut(data.edls as never[]);
+      await db.edls.bulkPut(edlsNormalises(data) as never[]);
       await db.photos.bulkPut(photos);
       await db.documents.bulkPut(documents as never[]);
       if (data.parametres) {

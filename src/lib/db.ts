@@ -10,6 +10,7 @@ import type {
   Photo,
 } from '@/types';
 import { CLAUSES_BAIL_DEFAUT, GRILLE_VETUSTE_DEFAUT, MODELE_FICHE_VISITE_DEFAUT } from './defauts';
+import { completerContexteEdl } from './etat';
 
 /**
  * Configuration de la sauvegarde automatique : le handle du dossier choisi
@@ -139,6 +140,34 @@ class BailizDB extends Dexie {
     this.version(5).stores({
       brouillons: 'cle',
     });
+    /*
+     * v6 : l'état des lieux porte son propre contexte. `bailId` devient
+     * facultatif (constat établi sans bail rédigé ici), `bienId` et
+     * `locataireIds` deviennent la source directe du logement et des parties.
+     *
+     * `*locataireIds` (multiEntry) n'est pas un confort : la suppression
+     * définitive d'un locataire retrouvait ses états des lieux **par le bail**.
+     * Sans cet index, un EDL sans bail — qui porte son nom, sa signature
+     * manuscrite et son horodatage — échapperait entièrement au droit à
+     * l'effacement.
+     */
+    this.version(6)
+      .stores({
+        edls: 'id, reference, bailId, bienId, type, statut, updatedAt, *locataireIds',
+      })
+      .upgrade(async (tx) => {
+        const baux = await tx.table('baux').toArray();
+        const parId = new Map<string, Bail>(baux.map((b: Bail) => [b.id, b]));
+        await tx
+          .table('edls')
+          .toCollection()
+          .modify((edl: EtatDesLieux) => {
+            // Un EDL dont le bail a disparu ressort sans `bienId` : il reste
+            // lisible et rattachable, plutôt que de faire échouer la migration
+            // — donc l'ouverture de l'application — sur une base abîmée.
+            completerContexteEdl(edl, edl.bailId ? parId.get(edl.bailId) : undefined);
+          });
+      });
   }
 }
 

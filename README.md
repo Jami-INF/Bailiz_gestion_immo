@@ -92,9 +92,12 @@ npm run build      # build de production + PWA
   une seule source de champs, aucune divergence de données.
 - **RGPD — suppression définitive réellement complète** : supprimer un locataire efface aussi
   ses baux, états des lieux, photos et **PDF archivés** (qui portent son nom et ses
-  coordonnées). Le périmètre exact est annoncé avant confirmation. En colocation, le bail est
-  conservé et le locataire simplement retiré. La suppression reste bloquée si un bail actif y
-  est lié.
+  coordonnées). Les états des lieux sont retrouvés **par leurs parties autant que par le bail** :
+  un constat établi sans bail, qui porte pourtant son nom, sa signature manuscrite et son
+  horodatage, échapperait sinon entièrement à l'effacement. Le périmètre exact est annoncé avant
+  confirmation. En colocation, le bail est conservé et le locataire simplement retiré ; un état
+  des lieux signé, lui, n'est jamais amputé d'un signataire — il est conservé tel quel, et
+  l'annonce le dit. La suppression reste bloquée si un bail actif y est lié.
 
 ### Bailleur
 - **Trois qualités** : personne physique, **indivision** (tous les coïndivisaires figurent au
@@ -152,6 +155,22 @@ npm run build      # build de production + PWA
 - Calculateurs : prorata du premier loyer, révision IRL avec courrier PDF.
 
 ### États des lieux — valant inventaire (cœur de l'app, optimisé iPad)
+- **Aucun bail n'est nécessaire** : l'état des lieux est un acte autonome (art. 3-2 de la loi du
+  6 juillet 1989). « Nouvel état des lieux » est une action de premier niveau, au même rang que
+  « Rédiger un bail » : le logement et le ou les locataires se saisissent dans le formulaire —
+  ou se créent à la volée — et le constat commence. Le contrat peut avoir été signé sur papier,
+  rédigé par une agence ou repris d'un modèle : sa référence et sa date sont simplement citées
+  sur le document. Un bail rédigé plus tard **se rattache après coup**, y compris à un état des
+  lieux déjà signé — c'est un classement, le PDF signé et son empreinte ne sont pas régénérés.
+- **Sortie possible sans état des lieux d'entrée dans l'application** : soit l'entrée existe sur
+  papier et ses états se **reportent** élément par élément (second sélecteur en mode terrain,
+  puis comparatif et retenues comme d'habitude), soit aucune entrée n'a été établie — et
+  l'application le dit, sur l'écran comme sur le PDF : à défaut d'état des lieux d'entrée, le
+  logement est réputé avoir été reçu en bon état (art. 1731 du code civil), et le constat de
+  sortie ne fonde à lui seul aucune retenue. Averti, jamais bloqué.
+- **Un logement créé à la volée reçoit une trame de pièces déduite de son type** (ajustable), qui
+  est enregistrée sur sa fiche : le mode terrain ne s'ouvre jamais sur une liste vide, et les
+  états des lieux suivants la retrouvent.
 - **Renseigner d'un coup les éléments restants d'une pièce** : dans un logement en bon état,
   presque tout partage le même état — on le pose sur les éléments encore vierges, puis on
   corrige les exceptions. Ce que vous avez déjà relevé n'est jamais réécrit.
@@ -172,7 +191,9 @@ npm run build      # build de production + PWA
   d'élément : un élément absent se marque **« Manquant »**, ce qui vaut dégradation.
 - Synthèse comparative : éléments dégradés avec photos entrée/sortie côte à côte, coût de
   remise en état × coefficient de vétusté, total des retenues, lettre de restitution du dépôt
-  (délais légaux 1/2 mois, majoration 10 %/mois).
+  (délais légaux 1/2 mois, majoration 10 %/mois). Le **montant du dépôt** se saisit sur l'état
+  des lieux à défaut de bail enregistré — tout le décompte, la lettre et l'alerte de délai du
+  tableau de bord fonctionnent alors à l'identique.
 - Signature sur écran : relecture obligatoire → nom tapé + « lu et approuvé » → signature au
   doigt/stylet → horodatage ISO 8601 → PDF final → **empreinte SHA-256** en pied de page →
   **verrouillage**. Corrections mineures par avenant daté, modification substantielle par
@@ -253,12 +274,13 @@ src/
     biens/              fiches, éditeur de pièces, création rapide, photo, fiche de visite
     locataires/         fiches + formulaire partagé (LocataireFormModal)
     baux/               formulaire unifié (+ aperçu), fiche bail, annexes
-    edl/                mode terrain, signature, synthèse comparative
+    edl/                création (avec ou sans bail), mode terrain, signature, synthèse
     documents/  dashboard/  parametres/  legal/
   lib/
     db.ts               schéma Dexie + séquences de références
     calculs.ts          prorata, IRL, dépôt de garantie, vétusté, retenues
-    etat.ts             comparatif entrée/sortie, dégradations, progression
+    etat.ts             comparatif entrée/sortie, dégradations, progression, contexte d'un EDL
+    edl.ts              création d'un état des lieux (seul chemin), trame proposée, dépôt
     rgpd.ts             suppression complète d'un locataire et de ses documents
     erreurs.ts          messages d'erreur exploitables (quota, permission…)
     adresse.ts liens.ts formatage d'adresse, validation d'URL externe

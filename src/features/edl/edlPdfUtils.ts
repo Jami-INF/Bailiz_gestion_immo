@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { db, getParametres } from '@/lib/db';
+import { depotGarantieEdl } from '@/lib/edl';
 import { blobVersDataUrl } from '@/lib/images';
 import type { EtatDesLieux } from '@/types';
 import { ETAT_LABELS } from '@/types';
@@ -70,13 +71,21 @@ export async function chargerPhotosPourPdf(edl: EtatDesLieux): Promise<PhotoPour
   return resultat;
 }
 
+/**
+ * Contexte d'impression d'un état des lieux — **source unique** du logement,
+ * des parties et du dépôt.
+ *
+ * Le bail est facultatif : il peut avoir été rédigé ailleurs, ou n'être rattaché
+ * que plus tard. Seul le logement est exigé — sans lui il n'y a rien à
+ * constater. La liste des locataires peut être vide (constat établi en
+ * l'absence du locataire) : le PDF imprime alors une zone de signature vierge.
+ */
 export async function chargerContexteEdl(edl: EtatDesLieux) {
-  const bail = await db.baux.get(edl.bailId);
-  if (!bail) throw new Error('Bail introuvable');
-  const bien = await db.biens.get(bail.bienId);
-  if (!bien) throw new Error('Bien introuvable');
-  const locataires = await db.locataires.where('id').anyOf(bail.locataireIds).toArray();
+  const bail = edl.bailId ? await db.baux.get(edl.bailId) : undefined;
+  const bien = await db.biens.get(edl.bienId);
+  if (!bien) throw new Error('Logement introuvable');
+  const locataires = await db.locataires.where('id').anyOf(edl.locataireIds ?? []).toArray();
   const parametres = await getParametres();
   const edlEntree = edl.edlEntreeLieId ? await db.edls.get(edl.edlEntreeLieId) : undefined;
-  return { bail, bien, locataires, parametres, edlEntree };
+  return { bail, bien, locataires, parametres, edlEntree, depotGarantie: depotGarantieEdl(edl, bail) };
 }

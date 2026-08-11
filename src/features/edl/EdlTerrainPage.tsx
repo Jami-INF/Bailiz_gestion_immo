@@ -40,8 +40,15 @@ export function EdlTerrainPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const edl = useLiveQuery(() => (id ? db.edls.get(id) : undefined), [id]);
-  const bail = useLiveQuery(() => (edl ? db.baux.get(edl.bailId) : undefined), [edl?.bailId]);
-  const bien = useLiveQuery(() => (bail ? db.biens.get(bail.bienId) : undefined), [bail?.bienId]);
+  // Le logement se lit sur l'état des lieux, pas sur le bail : il peut n'y en
+  // avoir aucun (constat établi hors d'un contrat rédigé ici).
+  const bail = useLiveQuery(() => (edl?.bailId ? db.baux.get(edl.bailId) : undefined), [edl?.bailId]);
+  const bien = useLiveQuery(() => (edl ? db.biens.get(edl.bienId) : undefined), [edl?.bienId]);
+  /** Baux du même logement, seuls candidats à un rattachement a posteriori. */
+  const bauxDuBien = useLiveQuery(
+    () => (edl && !edl.bailId ? db.baux.where('bienId').equals(edl.bienId).toArray() : []),
+    [edl?.bienId, edl?.bailId],
+  );
   const [ongletIdx, setOngletIdx] = useState(0);
   const [modaleAvenant, setModaleAvenant] = useState(false);
   const [texteAvenant, setTexteAvenant] = useState('');
@@ -75,6 +82,10 @@ export function EdlTerrainPage() {
 
   const signe = edl.statut === 'signe';
   const sortie = edl.type === 'sortie';
+  /** Sortie dont l'état d'entrée est à recopier d'un exemplaire papier. */
+  const entreeAReporter = sortie && edl.origineEtatEntree === 'edl_papier';
+  /** Sortie établie sans aucun état des lieux d'entrée : rien à comparer. */
+  const sansEtatEntree = sortie && edl.origineEtatEntree === 'aucun';
   const prog = progressionEDL(edl.pieces);
   const oublis = elementsNonRenseignes(edl.pieces);
 
@@ -129,6 +140,30 @@ export function EdlTerrainPage() {
     // EDL de sortie : marquage automatique de la dégradation (décochable)
     if (sortie) m.degradation = estDegradation(el.etatEntree, etat);
     majElement(pieceId, el.id, m);
+  };
+
+  /**
+   * Rattache l'état des lieux à un bail existant.
+   *
+   * Écrit hors de `maj` à dessein : `maj` refuse toute écriture après signature,
+   * or le rattachement n'est pas une modification du constat — c'est un
+   * classement, et son intérêt principal est justement pour un document déjà
+   * signé qu'on relie au bail rédigé ensuite.
+   */
+  const rattacherBail = async (bailId: string) => {
+    if (!edl) return;
+    await db.edls.put({ ...edl, bailId, updatedAt: nowISO() });
+    toast('success', 'État des lieux rattaché au bail. Le document signé reste inchangé.');
+  };
+
+  /**
+   * Report d'un état d'entrée relevé sur un état des lieux **papier**. Le
+   * comparatif ne sait pas — et n'a pas à savoir — d'où vient l'état d'entrée :
+   * une fois reporté, la dégradation se calcule exactement comme si l'entrée
+   * avait été faite dans l'application.
+   */
+  const choisirEtatEntree = (pieceId: string, el: ElementEDL, etatEntree: EtatNote) => {
+    majElement(pieceId, el.id, { etatEntree, degradation: estDegradation(etatEntree, el.etat) });
   };
 
   /**
@@ -356,6 +391,29 @@ export function EdlTerrainPage() {
         </nav>
       </header>
 
+      {/*
+       * Sortie établie sans état des lieux d'entrée : le rappeler en permanence,
+       * et pas seulement à la création. Le constat reste valable, mais il ne
+       * prouve pas de dégradation — c'est ce qui décide de la suite (retenue ou
+       * restitution intégrale), donc cela ne doit pas se découvrir à la fin.
+       */}
+      {sansEtatEntree && (
+        <div className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Aucun état des lieux d'entrée n'a été établi. Le logement est réputé avoir été reçu en bon
+          état de réparations locatives (art. 1731 du code civil), sauf si vous avez été empêché de
+          l'établir (art. 3-2 de la loi du 6 juillet 1989). Ce constat de sortie ne fonde à lui seul
+          aucune retenue sur le dépôt de garantie.
+        </div>
+      )}
+      {entreeAReporter && (
+        <div className="mx-4 mt-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+          État des lieux d'entrée établi hors application
+          {edl.dateEdlEntreePapier && ` le ${format(new Date(edl.dateEdlEntreePapier), 'dd/MM/yyyy')}`}
+          . Recopiez pour chaque élément l'état relevé à l'entrée : les dégradations se calculent
+          ensuite comme d'habitude. Conservez l'exemplaire d'origine, c'est lui qui fait foi.
+        </div>
+      )}
+
       {signe && (
         <div className="mx-4 mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
           <p className="flex items-center gap-2 font-medium">
@@ -479,8 +537,40 @@ export function EdlTerrainPage() {
                       )}
                     </div>
                   </div>
-                  {/* État à l'entrée — mis en avant sur l'EDL de sortie */}
-                  {sortie && el.etatEntree && (
+                  {/*
+                    * État à l'entrée. Repris de l'EDL d'entrée quand il a été
+                    * fait ici, **saisissable** quand il est à recopier d'un
+                    * exemplaire papier : sans référence d'entrée, une sortie ne
+                    * fonde aucune retenue.
+                    */}
+                  {sortie && entreeAReporter && (
+                    <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+                      <span className="text-sm font-medium text-sky-900">
+                        État à l'entrée — à recopier de l'état des lieux papier :
+                      </span>
+                      <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                        {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
+                          const actif = el.etatEntree === etat;
+                          return (
+                            <button
+                              key={etat}
+                              type="button"
+                              disabled={signe}
+                              onClick={() => choisirEtatEntree(onglet.pieceId!, el, etat)}
+                              className={`min-h-touch rounded-lg border-2 px-1 py-1.5 text-xs font-semibold transition-all ${
+                                actif
+                                  ? `${COULEURS_ETAT[etat]} text-white shadow`
+                                  : 'border-sky-200 bg-white text-accent-600 hover:border-sky-400'
+                              } disabled:opacity-60`}
+                            >
+                              {ETAT_LABELS[etat]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {sortie && !entreeAReporter && el.etatEntree && (
                     <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-accent-50 px-3 py-2">
                       <span className="text-sm font-medium text-accent-600">État à l'entrée :</span>
                       <span className={`rounded px-2.5 py-1 text-sm font-bold uppercase tracking-wide text-white ${COULEURS_ETAT[el.etatEntree]}`}>
@@ -677,6 +767,30 @@ export function EdlTerrainPage() {
                 />
               </Field>
             )}
+            {/*
+             * Faute de bail enregistré, c'est l'état des lieux qui porte le
+             * montant du dépôt. Il reste rattrapable après signature depuis la
+             * synthèse : il ne fait pas partie du constat, seulement du
+             * décompte de restitution.
+             */}
+            {!bail && (
+              <Field
+                label="Dépôt de garantie (€)"
+                hint="Sert au décompte des retenues et à la lettre de restitution. Renseigné ici faute de bail enregistré."
+              >
+                <Input
+                  key={`${edl.id}-depot`}
+                  type="number"
+                  min="0"
+                  step="10"
+                  disabled={signe}
+                  defaultValue={edl.depotGarantie ?? ''}
+                  onBlur={(e) =>
+                    maj({ depotGarantie: e.target.value === '' ? undefined : Number(e.target.value) })
+                  }
+                />
+              </Field>
+            )}
             <Field label="Observations générales">
               <Textarea
                 key={`${edl.id}-obs`}
@@ -697,6 +811,46 @@ export function EdlTerrainPage() {
                 onChange={(photoIds) => maj({ photoIds })}
               />
             </div>
+            {/*
+             * Rattachement d'un bail après coup. Autorisé même sur un état des
+             * lieux signé : c'est un lien de classement, pas une rectification —
+             * le PDF archivé et son empreinte ne sont pas régénérés, le document
+             * signé reste celui qui fait foi. Ne pas rattacher de bail est un
+             * usage normal, d'où une proposition et non une alerte.
+             */}
+            {!bail && (
+              <Field
+                label="Rattacher à un bail"
+                hint="Facultatif. Seuls les baux du même logement sont proposés."
+              >
+                {(bauxDuBien ?? []).length === 0 ? (
+                  <p className="text-sm text-accent-600">
+                    Aucun bail enregistré pour ce logement.{' '}
+                    <Link
+                      to={`/baux/nouveau?bien=${edl.bienId}`}
+                      className="underline underline-offset-2"
+                    >
+                      Rédiger le bail
+                    </Link>
+                    .
+                  </p>
+                ) : (
+                  <Select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) void rattacherBail(e.target.value);
+                    }}
+                  >
+                    <option value="">—</option>
+                    {(bauxDuBien ?? []).map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.reference} — effet {format(new Date(b.dateEffet), 'dd/MM/yyyy')}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            )}
             {edl.avenants.length > 0 && (
               <div>
                 <h3 className="mb-1 text-sm font-semibold text-accent-900">Avenants</h3>

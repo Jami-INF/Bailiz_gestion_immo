@@ -10,6 +10,7 @@ import { BauxPage } from '@/features/baux/BauxPage';
 import { BailRapidePage } from '@/features/baux/BailRapidePage';
 import { BailDetailPage } from '@/features/baux/BailDetailPage';
 import { EdlListePage } from '@/features/edl/EdlListePage';
+import { EdlRapidePage } from '@/features/edl/EdlRapidePage';
 import { EdlTerrainPage } from '@/features/edl/EdlTerrainPage';
 import { EdlSignaturePage } from '@/features/edl/EdlSignaturePage';
 import { EdlSynthesePage } from '@/features/edl/EdlSynthesePage';
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/baux/:id" element={<BailDetailPage />} />
             <Route path="/baux/:id/modifier" element={<BailRapidePage />} />
             <Route path="/edl" element={<EdlListePage />} />
+            <Route path="/edl/nouveau" element={<EdlRapidePage />} />
             <Route path="/edl/:id" element={<EdlTerrainPage />} />
             <Route path="/edl/:id/signature" element={<EdlSignaturePage />} />
             <Route path="/edl/:id/synthese" element={<EdlSynthesePage />} />

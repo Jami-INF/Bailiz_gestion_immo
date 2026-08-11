@@ -81,6 +81,12 @@ export function BienDetailPage() {
         sousTitre={formatAdresse(bien.adresse)}
         actions={
           <>
+            {/* Point d'entrée naturel pour qui gère un logement sans bail rédigé ici. */}
+            <Link to={`/edl/nouveau?bien=${bien.id}`}>
+              <Button variant="secondary">
+                <ClipboardList size={16} /> État des lieux
+              </Button>
+            </Link>
             <Link to={`/biens/${bien.id}/modifier`}>
               <Button variant="secondary">
                 <Pencil size={16} /> Modifier

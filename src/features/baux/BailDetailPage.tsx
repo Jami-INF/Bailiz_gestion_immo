@@ -12,14 +12,13 @@ import {
   Scale,
   ShieldQuestion,
 } from 'lucide-react';
-import { db, getParametres, lireParametres, prochaineReference } from '@/lib/db';
-import { uid, nowISO } from '@/lib/ids';
-import type { Bail, ElementEDL, EtatDesLieux } from '@/types';
+import { db, getParametres, lireParametres } from '@/lib/db';
+import { nowISO } from '@/lib/ids';
+import type { Bail } from '@/types';
 import { TYPE_BAIL_LABELS } from '@/types';
 import { formatEuros, prorataPremierLoyer, revisionIRL } from '@/lib/calculs';
 import { baseRevisionIRL, dateApplicationRevision, derniereRevision, loyerCourant } from '@/lib/bail';
-import { construirePiecesSortie } from '@/lib/etat';
-import { MOBILIER_OBLIGATOIRE } from '@/lib/defauts';
+import { creerEtatDesLieux } from '@/lib/edl';
 import {
   enregistrerDocument,
   genererEtArchiver,
@@ -213,87 +212,25 @@ export function BailDetailPage() {
     ouvrirBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
   };
 
-  /**
-   * Compteurs pré-remplis : numéros repris du logement (ou, à défaut, de l'EDL
-   * d'entrée), relevés remis à zéro — un numéro de compteur ne change pas entre
-   * l'entrée et la sortie.
+  /*
+   * Depuis la fiche d'un bail, tout le contexte est connu : la création passe
+   * directement par `creerEtatDesLieux`, sans détour par le formulaire rapide.
+   * L'exigence d'un EDL d'entrée préalable est propre à ce chemin — un bail
+   * rédigé ici a forcément pu recevoir son état des lieux d'entrée ici.
    */
-  const compteursInitiaux = (): EtatDesLieux['compteurs'] => {
-    const duBien = bien.compteurs?.length
-      ? bien.compteurs.map((c) => ({ type: c.type, numero: c.numero, releve: 0 }))
-      : undefined;
-    const deLEntree = edlEntree?.compteurs.length
-      ? edlEntree.compteurs.map((c) => ({ type: c.type, numero: c.numero, releve: 0 }))
-      : undefined;
-    return (
-      duBien ??
-      deLEntree ?? [
-        { type: 'electricite' as const, releve: 0 },
-        { type: 'eau_froide' as const, releve: 0 },
-      ]
-    );
-  };
-
   const creerEdl = async (type: 'entree' | 'sortie') => {
     if (type === 'sortie' && !edlEntree) {
       toast('error', "Créez et signez d'abord l'état des lieux d'entrée.");
       return;
     }
-    const reference = await prochaineReference('edl');
-    const edl: EtatDesLieux = {
-      id: uid(),
-      reference,
-      bailId: bail.id,
+    const edl = await creerEtatDesLieux({
       type,
-      date: nowISO(),
-      edlEntreeLieId: type === 'sortie' ? edlEntree!.id : undefined,
-      // Les numéros de compteur (PDL/PCE) appartiennent au logement : on les
-      // reprend de la fiche du bien, sinon de l'EDL d'entrée pour une sortie.
-      // Seuls les relevés sont à ressaisir.
-      compteurs: compteursInitiaux(),
-      cles: [{ designation: "Clé porte d'entrée", nombre: 1 }],
-      pieces:
-        type === 'sortie'
-          ? construirePiecesSortie(edlEntree!)
-          : [
-              ...bien.piecesModele.map((p, i) => ({
-                id: uid(),
-                nom: p.nom,
-                ordre: i,
-                elements: p.elements.map(
-                  (e): ElementEDL => ({
-                    id: uid(),
-                    nom: e.nom,
-                    categorie: e.categorie,
-                    quantite: e.categorie === 'mobilier' ? e.quantite ?? 1 : undefined,
-                    obligatoireDecret: e.obligatoireDecret,
-                    photoIds: [],
-                  }),
-                ),
-              })),
-              // Inventaire du mobilier obligatoire (décret n°2015-981) intégré à l'EDL.
-              {
-                id: uid(),
-                nom: 'Mobilier obligatoire (décret n°2015-981)',
-                ordre: bien.piecesModele.length,
-                elements: MOBILIER_OBLIGATOIRE.map(
-                  (nom): ElementEDL => ({
-                    id: uid(),
-                    nom,
-                    categorie: 'mobilier',
-                    quantite: 1,
-                    obligatoireDecret: true,
-                    photoIds: [],
-                  }),
-                ),
-              },
-            ],
-      statut: 'brouillon',
-      avenants: [],
-      createdAt: nowISO(),
-      updatedAt: nowISO(),
-    };
-    await db.edls.add(edl);
+      bien,
+      locataireIds: bail.locataireIds ?? [],
+      bail,
+      edlEntree: type === 'sortie' ? edlEntree : undefined,
+      depotGarantie: bail.depotGarantie,
+    });
     await majBail(type === 'entree' ? { edlEntreeId: edl.id } : { edlSortieId: edl.id });
     navigate(`/edl/${edl.id}`);
   };

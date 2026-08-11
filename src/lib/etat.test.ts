@@ -13,6 +13,8 @@ function edlEntreeFixture(): EtatDesLieux {
     id: 'edl-entree',
     reference: 'EDL-2026-0001',
     bailId: 'bail-1',
+    bienId: 'bien-1',
+    locataireIds: ['loc-1'],
     type: 'entree',
     date: '2026-01-01T10:00:00.000Z',
     compteurs: [],

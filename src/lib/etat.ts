@@ -1,6 +1,34 @@
 import { ETAT_ORDRE, type EtatDesLieux, type EtatNote, type PieceEDL } from '@/types';
 import { uid } from './ids';
 
+/** Ce qu'il faut connaître d'un bail pour reconstruire le contexte d'un EDL. */
+export interface ContexteBailMinimal {
+  bienId?: string;
+  locataireIds?: string[];
+}
+
+/**
+ * Complète un état des lieux enregistré avant que le contexte (logement,
+ * parties) ne soit porté par l'EDL lui-même, en le reprenant de son bail.
+ *
+ * Fonction **pure**, partagée par deux chemins qui doivent produire le même
+ * résultat : la migration Dexie v6 et la relecture d'une sauvegarde. L'import
+ * d'archive écrit par `bulkPut`, qui ne déclenche aucun hook de migration —
+ * sans cette seconde application, une sauvegarde ancienne réintroduirait des
+ * états des lieux sans logement.
+ *
+ * Ne réécrit jamais une valeur déjà présente : appliquée deux fois, elle donne
+ * le même résultat qu'une fois.
+ */
+export function completerContexteEdl<T extends Partial<EtatDesLieux>>(
+  edl: T,
+  bail: ContexteBailMinimal | undefined,
+): T {
+  if (edl.bienId === undefined && bail?.bienId !== undefined) edl.bienId = bail.bienId;
+  if (edl.locataireIds === undefined) edl.locataireIds = bail?.locataireIds ?? [];
+  return edl;
+}
+
 /** Vrai si l'état de sortie est strictement inférieur à l'état d'entrée. */
 export function estDegradation(etatEntree: EtatNote | undefined, etatSortie: EtatNote | undefined): boolean {
   if (!etatEntree || !etatSortie) return false;

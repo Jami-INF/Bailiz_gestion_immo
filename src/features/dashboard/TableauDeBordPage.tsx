@@ -12,6 +12,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { db } from '@/lib/db';
+import { depotGarantieEdl } from '@/lib/edl';
 import { estBailEnCours, termeDuBail } from '@/lib/bail';
 import { dateLimiteRestitution, formatOctets } from '@/lib/calculs';
 import { sauvegardeAncienne } from '@/lib/backup';
@@ -36,8 +37,14 @@ export function TableauDeBordPage() {
 
   const alertes: Alerte[] = [];
 
-  // EDL d'entrée signé sans bail signé
-  for (const edl of edls.filter((e) => e.type === 'entree' && e.statut === 'signe')) {
+  /*
+   * EDL d'entrée signé alors que le bail correspondant ne l'est pas.
+   *
+   * Ne concerne **que** les états des lieux rattachés à un bail : ne pas rédiger
+   * son bail dans Bailiz est un choix légitime (contrat papier, agence), pas une
+   * anomalie. En faire une alerte orange permanente serait du harcèlement.
+   */
+  for (const edl of edls.filter((e) => e.type === 'entree' && e.statut === 'signe' && e.bailId)) {
     const bail = baux.find((b) => b.id === edl.bailId);
     if (bail && ['brouillon', 'genere'].includes(bail.statut)) {
       alertes.push({
@@ -49,10 +56,18 @@ export function TableauDeBordPage() {
     }
   }
 
-  // Dépôt de garantie à restituer après un EDL de sortie signé
+  /*
+   * Dépôt de garantie à restituer après un EDL de sortie signé.
+   *
+   * Fonctionne aussi **sans bail** : c'est l'alerte la plus utile de
+   * l'application (un mois, deux en cas de retenue, puis 10 % du loyer par mois
+   * de retard), elle n'a pas à être réservée à ceux qui ont rédigé leur bail
+   * ici. Le montant vient de l'état des lieux à défaut de contrat.
+   */
   for (const edl of edls.filter((e) => e.type === 'sortie' && e.statut === 'signe' && e.signatures)) {
     const bail = baux.find((b) => b.id === edl.bailId);
-    if (!bail || bail.depotGarantie <= 0) continue;
+    const depot = depotGarantieEdl(edl, bail);
+    if (depot <= 0) continue;
     const aDegradations = edl.pieces.some((p) => p.elements.some((el) => el.degradation));
     // Même règle que la synthèse de l'EDL et que la lettre de restitution : un
     // seul calcul du délai légal, pour qu'aucun écran n'annonce une autre date.
@@ -62,7 +77,7 @@ export function TableauDeBordPage() {
       alertes.push({
         cle: `depot-${edl.id}`,
         niveau: restants <= 7 ? 'red' : 'orange',
-        texte: `${bail.reference} : dépôt de garantie à restituer avant le ${format(limite, 'dd/MM/yyyy')} (${restants} j restants)`,
+        texte: `${bail?.reference ?? edl.reference} : dépôt de garantie à restituer avant le ${format(limite, 'dd/MM/yyyy')} (${restants} j restants)`,
         lien: `/edl/${edl.id}/synthese`,
       });
     }
@@ -152,8 +167,8 @@ export function TableauDeBordPage() {
          */
         <EmptyState
           icon={FileText}
-          titre="Commencez par le bail"
-          message="Le logement et le locataire se saisissent directement dans le formulaire, rien n'est à préparer avant. L'état des lieux d'entrée se lance ensuite depuis la fiche du bail, et celui de sortie reprendra l'entrée ligne à ligne pour calculer les retenues sur le dépôt."
+          titre="Commencez par le document dont vous avez besoin"
+          message="Le logement et le locataire se saisissent directement dans le formulaire, rien n'est à préparer avant. L'état des lieux ne réclame aucun bail : votre contrat peut avoir été signé sur papier ou rédigé ailleurs."
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Link to="/baux/nouveau">
@@ -161,9 +176,9 @@ export function TableauDeBordPage() {
                   <FileText size={16} /> Rédiger un bail
                 </Button>
               </Link>
-              <Link to="/biens/nouveau">
+              <Link to="/edl/nouveau">
                 <Button variant="secondary">
-                  <Plus size={16} /> Créer un logement
+                  <ClipboardList size={16} /> Faire un état des lieux
                 </Button>
               </Link>
             </div>

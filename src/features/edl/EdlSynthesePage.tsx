@@ -57,7 +57,7 @@ export function EdlSynthesePage() {
       </Card>
     );
   }
-  const { bail, bien, locataires } = contexte;
+  const { bail, bien, locataires, depotGarantie } = contexte;
   const degrades = elementsDegrades(edl);
   const grille = parametres.grilleVetuste;
 
@@ -104,12 +104,13 @@ export function EdlSynthesePage() {
       type: 'lettre_restitution',
       titre: `Restitution du dépôt — ${bien.nom} — ${nomsPersonnes(locataires)}`,
       bienId: bien.id,
-      bailId: bail.id,
+      bailId: bail?.id,
       edlId: edl.id,
       element: (reference) => (
         <LettreRestitutionPdf
           reference={reference}
-          bail={bail}
+          depotGarantie={depotGarantie}
+          bailReference={bail?.reference ?? edl.bailExterne?.reference}
           bien={bien}
           locataires={locataires}
           parametres={parametres}
@@ -136,6 +137,55 @@ export function EdlSynthesePage() {
         sousTitre={`${edl.reference} — comparaison poste par poste avec l'état des lieux d'entrée`}
       />
 
+      {/*
+       * Un solde calculé sur un dépôt à zéro serait faux et crédible : mieux
+       * vaut demander le montant que d'annoncer « à restituer : 0 € » à qui a
+       * encaissé deux mois de loyer.
+       */}
+      {depotGarantie === 0 && (
+        <Card className="mb-4 border-amber-200 bg-amber-50">
+          <p className="text-sm text-amber-900">
+            Aucun dépôt de garantie n'est renseigné : le solde à restituer ne peut pas être calculé.
+            {bail && ' Renseignez-le sur la fiche du bail.'}
+          </p>
+          {/*
+           * Saisissable ici, même après signature : le montant du dépôt ne fait
+           * pas partie du constat signé, seulement du décompte de restitution —
+           * comme les coûts de remise en état ci-dessous. C'est le seul moment
+           * où l'oubli se remarque, il doit être rattrapable sans détour.
+           */}
+          {!bail && (
+            <div className="mt-3 max-w-xs">
+              <Field label="Dépôt de garantie versé (€)">
+                <Input
+                  type="number"
+                  min="0"
+                  step="10"
+                  defaultValue=""
+                  onBlur={(e) =>
+                    void db.edls.put({
+                      ...edl,
+                      depotGarantie: e.target.value === '' ? undefined : Number(e.target.value),
+                      updatedAt: nowISO(),
+                    })
+                  }
+                />
+              </Field>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {edl.origineEtatEntree === 'aucun' && (
+        <Card className="mb-4 border-amber-200 bg-amber-50">
+          <p className="text-sm text-amber-900">
+            Aucun état des lieux d'entrée n'a été établi : il n'y a pas de point de comparaison. Le
+            logement est réputé avoir été reçu en bon état (art. 1731 du code civil) et les retenues
+            estimées ci-dessous ne sont pas opposables au locataire sur ce seul fondement.
+          </p>
+        </Card>
+      )}
+
       <Card className="mb-4">
         <p className="text-sm text-accent-700">
           <span className="font-semibold">{degrades.length}</span> élément(s) marqué(s) en
@@ -156,7 +206,7 @@ export function EdlSynthesePage() {
         <Card>
           <p className="text-sm text-accent-700">
             Aucune dégradation : l'état des lieux de sortie est conforme à l'entrée. Le dépôt de
-            garantie ({formatEuros(bail.depotGarantie)}) est restituable intégralement sous 1 mois.
+            garantie ({formatEuros(depotGarantie)}) est restituable intégralement sous 1 mois.
           </p>
         </Card>
       ) : (
@@ -250,8 +300,8 @@ export function EdlSynthesePage() {
               <p className="text-sm text-accent-600">Total des retenues estimées (après vétusté) :</p>
               <p className="text-2xl font-bold text-accent-900">{formatEuros(total)}</p>
               <p className="text-sm text-accent-600">
-                Dépôt de garantie : {formatEuros(bail.depotGarantie)} — à restituer :{' '}
-                <span className="font-semibold">{formatEuros(Math.max(0, bail.depotGarantie - total))}</span>
+                Dépôt de garantie : {formatEuros(depotGarantie)} — à restituer :{' '}
+                <span className="font-semibold">{formatEuros(Math.max(0, depotGarantie - total))}</span>
               </p>
             </div>
           </Card>

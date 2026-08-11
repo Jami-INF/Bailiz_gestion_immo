@@ -254,6 +254,18 @@ export function LocatairesPage() {
                     en est retiré, mais son nom peut subsister dans les PDF déjà générés.
                   </p>
                 )}
+                {/*
+                 * Un état des lieux signé est immuable : on n'en retire pas un
+                 * signataire. Le dire, plutôt que de laisser croire à un
+                 * effacement complet.
+                 */}
+                {perimetre.edlsPartages.length > 0 && (
+                  <p className="mt-2 text-accent-600">
+                    État(s) des lieux conservé(s) car établi(s) avec d'autres personnes :{' '}
+                    {perimetre.edlsPartages.join(', ')} — un état des lieux signé ne peut pas être
+                    amputé d'un signataire, le nom y subsiste.
+                  </p>
+                )}
               </div>
             )}
           </div>

@@ -81,6 +81,8 @@ describe('vérification contre les états des lieux', () => {
       id: 'edl-1',
       reference: 'EDL-2026-0007',
       bailId: 'bail-1',
+      bienId: 'bien-1',
+      locataireIds: ['loc-1'],
       type: 'sortie',
       date: '2026-02-01T10:00:00.000Z',
       compteurs: [],
