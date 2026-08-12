@@ -28,7 +28,7 @@ describe('decrireErreur', () => {
   });
 });
 
-describe('decrireErreur — causes restantes', () => {
+describe('decrireErreur - causes restantes', () => {
   /** Chaque cause a son propre conseil : c'est tout l'intérêt de la traduction. */
   const cas: [string, string, RegExp][] = [
     ['InvalidStateError', 'The database connection is closing.', /base de données indisponible/],

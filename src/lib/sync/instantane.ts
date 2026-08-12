@@ -9,7 +9,7 @@ import type { DepotDistant, FichierDistant } from './depot';
  * des données synchronisées.
  *
  * La synchronisation maintient une seule version vivante, qui se met à jour
- * toute seule — donc une version qu'un défaut de fusion pourrait abîmer sans
+ * toute seule - donc une version qu'un défaut de fusion pourrait abîmer sans
  * retour possible. L'instantané est le filet : figé, daté, restaurable tel quel.
  * Depuis la disparition du mode « archive complète », c'est le **seul** filet,
  * d'où sa cadence resserrée.
@@ -17,7 +17,7 @@ import type { DepotDistant, FichierDistant } from './depot';
 
 /**
  * Une signature rend les données irremplaçables : un état des lieux ou un bail
- * signé ne se ressaisit pas. C'est le moment de figer une copie — mais pas dix
+ * signé ne se ressaisit pas. C'est le moment de figer une copie - mais pas dix
  * fois dans la même journée de saisie, d'où ce plancher.
  */
 export const INTERVALLE_SIGNATURE_MS = 24 * 3600 * 1000;

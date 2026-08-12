@@ -11,7 +11,7 @@ import { TYPE_DOCUMENT_LABELS } from '@/types';
  * l'imprime sur le PDF. Cette empreinte ne sert à rien tant que personne ne
  * peut la **recalculer** : c'est ce que fait ce module. Un locataire qui doute
  * de l'exemplaire qu'on lui a transmis, un bailleur qui retrouve un vieux PDF
- * dans ses archives, un litige où l'on conteste le contenu d'un document — dans
+ * dans ses archives, un litige où l'on conteste le contenu d'un document - dans
  * les trois cas la question est la même : « ce fichier est-il bien celui qui a
  * été signé ? »
  *

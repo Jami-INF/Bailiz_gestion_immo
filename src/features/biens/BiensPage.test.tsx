@@ -44,7 +44,7 @@ beforeEach(async () => {
   await viderBase();
 });
 
-describe('liste des biens — barre de recherche', () => {
+describe('liste des biens - barre de recherche', () => {
   it('n’encombre pas une petite liste', async () => {
     await semerBiens(3);
     rendre(<BiensPage />);
@@ -61,7 +61,7 @@ describe('liste des biens — barre de recherche', () => {
   });
 });
 
-describe('liste des biens — recherche', () => {
+describe('liste des biens - recherche', () => {
   it('trouve malgré les accents', async () => {
     await semerBiens();
     rendre(<BiensPage />);
@@ -102,7 +102,7 @@ describe('liste des biens — recherche', () => {
   });
 });
 
-describe('liste des biens — tri', () => {
+describe('liste des biens - tri', () => {
   it('classe par nom en respectant les accents', async () => {
     await semerBiens();
     rendre(<BiensPage />);
@@ -150,7 +150,7 @@ describe('liste des biens — tri', () => {
   });
 });
 
-describe('liste des biens — statut d’occupation', () => {
+describe('liste des biens - statut d’occupation', () => {
   it('affiche « Loué » dès qu’un bail est enregistré', async () => {
     await semerBiens(1);
     await db.baux.put(unBail({ bienId: 'bien-0', statut: 'genere' }));

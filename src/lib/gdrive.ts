@@ -39,7 +39,7 @@ export interface ConfigGDrive {
 }
 
 let chargementGsi: Promise<void> | null = null;
-/** Jeton d'accès, en mémoire uniquement — jamais persisté (~1 h de validité). */
+/** Jeton d'accès, en mémoire uniquement - jamais persisté (~1 h de validité). */
 let jeton: { accessToken: string; expireA: number } | null = null;
 
 // ---------------------------------------------------------------------------
@@ -50,7 +50,7 @@ let jeton: { accessToken: string; expireA: number } | null = null;
  * En mode « standalone » (application ajoutée à l'écran d'accueil), iOS ouvre la
  * fenêtre Google comme une vue secondaire qui ne reçoit jamais le focus clavier :
  * la page s'affiche mais rien ne peut être saisi. On bascule donc sur un flux par
- * redirection — l'utilisateur va sur Google dans la fenêtre principale, puis
+ * redirection - l'utilisateur va sur Google dans la fenêtre principale, puis
  * revient avec le jeton dans le fragment d'URL.
  */
 
@@ -95,7 +95,7 @@ export function lancerConnexionParRedirection(clientId = CLIENT_ID_GDRIVE): void
 
 /**
  * Au démarrage : récupère le jeton renvoyé par Google dans le fragment d'URL.
- * **Doit être appelée avant le montage du routeur** — l'application utilise un
+ * **Doit être appelée avant le montage du routeur** - l'application utilise un
  * HashRouter, et la réponse de Google occupe précisément ce fragment.
  * Le paramètre `state` est vérifié : une réponse non sollicitée est ignorée.
  */
@@ -203,7 +203,7 @@ export async function desactiverGDrive(): Promise<void> {
 /**
  * Précharge le script Google Identity Services. À appeler à l'affichage de
  * l'écran de configuration : sur Safari/iOS, une fenêtre OAuth n'est autorisée
- * que dans le tick du geste utilisateur — si le script se télécharge au moment
+ * que dans le tick du geste utilisateur - si le script se télécharge au moment
  * du clic, la fenêtre est bloquée et la connexion échoue.
  */
 export function prechargerGsi(): void {

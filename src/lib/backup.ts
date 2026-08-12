@@ -40,7 +40,7 @@ export async function baseSansDonnees(): Promise<boolean> {
    * du bailleur, grille de vétusté, catalogue de clauses, modèle de fiche de
    * visite. C'est un vrai travail, et il ne serait jamais sauvegardé si l'on
    * s'en tenait au décompte des fiches. Le nom du bailleur sert de marqueur :
-   * sans lui, aucun document ne peut être produit — l'appareil est réellement
+   * sans lui, aucun document ne peut être produit - l'appareil est réellement
    * neuf, et le garde-fou garde tout son sens.
    */
   const parametres = await db.parametres.get('singleton');
@@ -133,7 +133,7 @@ const COLLECTIONS = [
  * L'import écrase ou fusionne des données irremplaçables : il ne doit jamais
  * commencer sur un fichier dont la forme n'a pas été vérifiée. Un `data.json`
  * tronqué passait jusqu'ici le simple test de version, puis échouait au milieu
- * de `bulkPut` — en mode « remplacer », les tables avaient déjà été vidées.
+ * de `bulkPut` - en mode « remplacer », les tables avaient déjà été vidées.
  *
  * Les messages disent quoi faire : « mettez à jour l'application » n'est pas la
  * même réponse que « ce fichier n'est pas une sauvegarde Bailiz ».
@@ -151,7 +151,7 @@ export function validerSauvegarde(brut: unknown): DonneesExport {
   }
   if (data.version > VERSION_SAUVEGARDE) {
     throw new Error(
-      `Cette sauvegarde a été créée par une version plus récente de Bailiz (format ${data.version}, cette application lit le format ${VERSION_SAUVEGARDE}). Mettez l'application à jour avant de l'importer — l'importer telle quelle perdrait des informations.`,
+      `Cette sauvegarde a été créée par une version plus récente de Bailiz (format ${data.version}, cette application lit le format ${VERSION_SAUVEGARDE}). Mettez l'application à jour avant de l'importer - l'importer telle quelle perdrait des informations.`,
     );
   }
   if (data.version < VERSION_SAUVEGARDE) {
@@ -190,7 +190,7 @@ export async function lireSauvegarde(fichier: Blob): Promise<{ zip: JSZip; data:
  * Indispensable **en plus** de la migration Dexie v6 : l'import écrit par
  * `bulkPut`, qui ne déclenche aucun hook de migration. Sans ce passage, relire
  * une sauvegarde ancienne réintroduirait dans une base à jour des états des
- * lieux sans logement — invisibles dans les listes et impossibles à imprimer.
+ * lieux sans logement - invisibles dans les listes et impossibles à imprimer.
  *
  * C'est aussi la raison pour laquelle `VERSION_SAUVEGARDE` n'est pas
  * incrémentée : `validerSauvegarde` refuse les archives de version inférieure,
@@ -293,13 +293,13 @@ export async function importerSauvegarde(
  * Efface toutes les données de l'appareil : biens, locataires, baux, EDL,
  * photos, documents, paramètres (identité du bailleur, grille de vétusté,
  * clauses, fiche de visite), configuration de sauvegarde automatique et état
- * de synchronisation. Irréversible — à réserver à un bouton protégé par une
+ * de synchronisation. Irréversible - à réserver à un bouton protégé par une
  * confirmation explicite (cf. `ParametresPage`).
  */
 export async function supprimerToutesLesDonnees(): Promise<void> {
   // `sansJournaliser` : sans elle, les hooks de suivi (`journal.ts`) rejournalisent
   // chaque ligne effacée des tables synchronisées comme une suppression à
-  // envoyer au Drive — le journal se retrouve non vide juste après l'avoir
+  // envoyer au Drive - le journal se retrouve non vide juste après l'avoir
   // vidé, pour des enregistrements qui n'existent plus.
   await sansJournaliser(() =>
     db.transaction(
@@ -347,7 +347,7 @@ export function sauvegardeAncienne(derniereSauvegarde?: string): boolean {
 
 /**
  * Ouvre un document dans un nouvel onglet (lecture et impression immédiates,
- * sans passer par le dossier de téléchargements — bien plus pratique sur
+ * sans passer par le dossier de téléchargements - bien plus pratique sur
  * tablette). Si le navigateur bloque la fenêtre, on retombe sur un
  * téléchargement classique plutôt que de ne rien faire.
  */

@@ -3,7 +3,7 @@
  * l'image de partage Open Graph et l'icône iOS.
  *
  * À exécuter à la main (`npm run images`) quand la marque ou le message
- * changent — pas à chaque build : ces fichiers sont versionnés, et les
+ * changent - pas à chaque build : ces fichiers sont versionnés, et les
  * regénérer à l'identique à chaque déploiement ne ferait que du bruit dans git.
  *
  * `sharp` est déjà présent : Astro en dépend pour son pipeline d'images.

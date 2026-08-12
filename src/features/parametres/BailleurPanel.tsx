@@ -24,16 +24,16 @@ function ChampsPersonne({
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <Field label={`${prefixe} — civilité`}>
+      <Field label={`${prefixe} - civilité`}>
         <Select value={personne.civilite} onChange={(e) => onChange({ civilite: e.target.value })}>
           <option value="M">M.</option>
           <option value="Mme">Mme</option>
         </Select>
       </Field>
-      <Field label={`${prefixe} — prénom`}>
+      <Field label={`${prefixe} - prénom`}>
         <Input value={personne.prenom} onChange={(e) => onChange({ prenom: e.target.value })} />
       </Field>
-      <Field label={`${prefixe} — nom`}>
+      <Field label={`${prefixe} - nom`}>
         <Input value={personne.nom} onChange={(e) => onChange({ nom: e.target.value })} />
       </Field>
     </div>
@@ -48,7 +48,7 @@ function ChampsPersonne({
  * à la contestation des autres, et une société doit être désignée au contrat par
  * sa dénomination, sa forme, son capital, son RCS et son représentant légal.
  * Jusqu'ici l'application ne savait décrire qu'un bailleur personne physique
- * unique — beaucoup de LMNP sont détenus à deux.
+ * unique - beaucoup de LMNP sont détenus à deux.
  */
 export function BailleurPanel({ parametres }: { parametres: Parametres }) {
   const toast = useToast();
@@ -79,7 +79,7 @@ export function BailleurPanel({ parametres }: { parametres: Parametres }) {
       identifiant="bailleur"
       titre="Bailleur"
       icone={<UserRound size={18} />}
-      resume={renseigne ? nomBailleur(bailleur) : 'Non renseigné — obligatoire pour produire un document'}
+      resume={renseigne ? nomBailleur(bailleur) : 'Non renseigné - obligatoire pour produire un document'}
       resumeAlerte={!renseigne}
       defautOuvert={!renseigne}
     >
@@ -128,7 +128,7 @@ export function BailleurPanel({ parametres }: { parametres: Parametres }) {
           <div className="mt-4">
             <Field
               label="Ville du RCS"
-              hint="Greffe d'immatriculation — imprimé « immatriculée au RCS de … »."
+              hint="Greffe d'immatriculation - imprimé « immatriculée au RCS de … »."
             >
               <Input
                 value={bailleur.villeRCS ?? ''}
@@ -264,7 +264,7 @@ export function BailleurPanel({ parametres }: { parametres: Parametres }) {
       </div>
 
       <div className="mt-4 rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
-        <span className="font-medium">Au contrat :</span> {nomBailleur(bailleur) || '—'}
+        <span className="font-medium">Au contrat :</span> {nomBailleur(bailleur) || '-'}
       </div>
 
       <div className="mt-4">

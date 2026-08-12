@@ -14,7 +14,7 @@ async function chargerPhoto(id: string): Promise<PhotoPourPdf | null> {
   if (!photo) return null;
   return {
     dataUrl: await blobVersDataUrl(photo.blob),
-    legende: `${photo.legende ?? ''} — ${format(new Date(photo.dateCapture), 'dd/MM/yyyy HH:mm')}`,
+    legende: `${photo.legende ?? ''} - ${format(new Date(photo.dateCapture), 'dd/MM/yyyy HH:mm')}`,
   };
 }
 
@@ -22,7 +22,7 @@ async function chargerPhoto(id: string): Promise<PhotoPourPdf | null> {
  * Paires avant/après des éléments **dégradés ou manquants** d'un EDL de sortie :
  * c'est ce qui prouve la différence, et donc ce qui fonde une retenue sur le
  * dépôt de garantie. Volontairement limité aux dégradations et à quelques
- * clichés par côté — comparer toutes les photos alourdirait le PDF au point de
+ * clichés par côté - comparer toutes les photos alourdirait le PDF au point de
  * mettre en échec sa génération sur tablette.
  */
 export async function chargerComparaisons(edl: EtatDesLieux): Promise<ComparaisonPhotos[]> {
@@ -65,18 +65,18 @@ export async function chargerPhotosPourPdf(edl: EtatDesLieux): Promise<PhotoPour
     if (!photo) continue;
     resultat.push({
       dataUrl: await blobVersDataUrl(photo.blob),
-      legende: `${photo.legende ?? ''} — ${format(new Date(photo.dateCapture), 'dd/MM/yyyy HH:mm')}`,
+      legende: `${photo.legende ?? ''} - ${format(new Date(photo.dateCapture), 'dd/MM/yyyy HH:mm')}`,
     });
   }
   return resultat;
 }
 
 /**
- * Contexte d'impression d'un état des lieux — **source unique** du logement,
+ * Contexte d'impression d'un état des lieux - **source unique** du logement,
  * des parties et du dépôt.
  *
  * Le bail est facultatif : il peut avoir été rédigé ailleurs, ou n'être rattaché
- * que plus tard. Seul le logement est exigé — sans lui il n'y a rien à
+ * que plus tard. Seul le logement est exigé - sans lui il n'y a rien à
  * constater. La liste des locataires peut être vide (constat établi en
  * l'absence du locataire) : le PDF imprime alors une zone de signature vierge.
  */

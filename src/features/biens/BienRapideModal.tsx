@@ -69,7 +69,7 @@ export function BienRapideModal({
           </Field>
           <Field label="Type" required>
             <Select value={b.type ?? ''} onChange={(e) => maj({ type: (e.target.value || undefined) as TypeBien })}>
-              <option value="">—</option>
+              <option value="">-</option>
               {TYPES_BIEN.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -121,7 +121,7 @@ export function BienRapideModal({
               value={b.classeDPE ?? ''}
               onChange={(e) => maj({ classeDPE: (e.target.value || undefined) as ClasseDPE })}
             >
-              <option value="">—</option>
+              <option value="">-</option>
               {CLASSES_DPE.map((c) => (
                 <option key={c} value={c}>
                   {c}

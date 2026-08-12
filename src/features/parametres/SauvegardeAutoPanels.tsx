@@ -50,7 +50,7 @@ export function SauvegardeAutoPanel() {
     try {
       await choisirDossierAutosave();
       const resultat = await pousserSiActive(true);
-      if (resultat === 'ok') toast('success', 'Dossier configuré — première sauvegarde effectuée.');
+      if (resultat === 'ok') toast('success', 'Dossier configuré - première sauvegarde effectuée.');
       else if (resultat === 'base_vide') toast('warning', `Dossier configuré. ${MSG_BASE_VIDE}`);
       else toast('warning', 'Dossier configuré, mais la première sauvegarde a échoué.');
     } catch {
@@ -65,7 +65,7 @@ export function SauvegardeAutoPanel() {
     else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
-    else toast('error', `Échec de la sauvegarde automatique — ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
+    else toast('error', `Échec de la sauvegarde automatique - ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
   };
 
   return (
@@ -77,7 +77,7 @@ export function SauvegardeAutoPanel() {
     >
       {!autosaveSupportee() ? (
         <p className="text-sm text-accent-600">
-          Non disponible sur ce navigateur (API File System Access requise — Chrome ou Edge sur
+          Non disponible sur ce navigateur (API File System Access requise - Chrome ou Edge sur
           ordinateur). Sur tablette/mobile, utilisez l'export manuel ci-dessus.
         </p>
       ) : (
@@ -92,7 +92,7 @@ export function SauvegardeAutoPanel() {
           {config ? (
             <div className="space-y-3">
               <p className="text-sm text-accent-800">
-                Dossier : <span className="font-semibold">{config.nomDossier}</span> — dernier
+                Dossier : <span className="font-semibold">{config.nomDossier}</span> - dernier
                 push :{' '}
                 {config.dernierPush
                   ? format(new Date(config.dernierPush), 'dd/MM/yyyy à HH:mm')
@@ -137,7 +137,7 @@ export function SauvegardeAutoPanel() {
  *
  * Il y avait ici deux panneaux et un interrupteur : « archive complète » d'un
  * côté, « synchronisation » de l'autre. Brancher le Drive, c'est désormais
- * synchroniser — un seul mode, donc un seul panneau. Les coutures entre les
+ * synchroniser - un seul mode, donc un seul panneau. Les coutures entre les
  * deux régimes (date de sauvegarde partagée, garde-fou de divergence devenu
  * sans objet, vocabulaires de résultat mélangés) avaient produit à elles seules
  * l'essentiel des défauts de synchronisation.
@@ -185,9 +185,9 @@ export function SauvegardeGDrivePanel() {
           : `Synchronisé : ${recus} reçu(s), ${envoyes} envoyé(s), ${supprimes} supprimé(s).`,
       );
     } else if (resultat.etat === 'bloque') {
-      toast('warning', 'Synchronisation interrompue — voir le détail ci-dessous.');
+      toast('warning', 'Synchronisation interrompue - voir le détail ci-dessous.');
     } else if (resultat.etat === 'erreur') {
-      toast('error', `Échec de la synchronisation — ${derniereErreurCycle() ?? 'cause inconnue'}`);
+      toast('error', `Échec de la synchronisation - ${derniereErreurCycle() ?? 'cause inconnue'}`);
     } else if (resultat.etat === 'ignore') {
       toast('info', 'Une synchronisation est déjà en cours.');
     } else {
@@ -249,7 +249,7 @@ export function SauvegardeGDrivePanel() {
         );
         return;
       }
-      toast('success', 'Google Drive connecté — première synchronisation en cours.');
+      toast('success', 'Google Drive connecté - première synchronisation en cours.');
       annoncer(await lancerCycle(true));
     } finally {
       setEnCours(false);
@@ -288,7 +288,7 @@ export function SauvegardeGDrivePanel() {
         `Données remplacées par l'instantané : ${resume.biens} biens, ${resume.baux} baux, ${resume.edls} EDL, ${resume.photos} photos.`,
       );
     } catch (e) {
-      toast('error', `Restauration impossible — ${decrireErreur(e)}`);
+      toast('error', `Restauration impossible - ${decrireErreur(e)}`);
     } finally {
       setEnCours(false);
     }
@@ -300,7 +300,7 @@ export function SauvegardeGDrivePanel() {
   return (
     <CarteRepliable
       identifiant="drive"
-      titre="Google Drive — synchronisation entre appareils"
+      titre="Google Drive - synchronisation entre appareils"
       icone={<RefreshCw size={18} />}
       resume={
         config?.actif
@@ -309,7 +309,7 @@ export function SauvegardeGDrivePanel() {
                 ? format(new Date(config.derniereSync), 'dd/MM à HH:mm')
                 : 'jamais'
             }`
-          : 'Non connecté — les appareils n’échangent rien'
+          : 'Non connecté - les appareils n’échangent rien'
       }
       resumeAlerte={!config?.actif}
     >
@@ -341,7 +341,7 @@ export function SauvegardeGDrivePanel() {
           {echangeAncien && (
             <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               Aucun échange depuis plus de 24 h. L'autorisation Google expire au bout d'environ une
-              heure et ne peut pas être renouvelée sans vous (l'application n'a aucun serveur) —
+              heure et ne peut pas être renouvelée sans vous (l'application n'a aucun serveur) -
               c'est systématique sur iPad, où Safari bloque le renouvellement silencieux. Cliquez
               sur « Synchroniser maintenant » pour ré-autoriser et repartir.
             </p>
@@ -387,7 +387,7 @@ export function SauvegardeGDrivePanel() {
                 ))}
               </ul>
               <p className="mt-1 text-xs text-amber-700">
-                La version du Drive a été retenue — il faut bien que les deux appareils tranchent
+                La version du Drive a été retenue - il faut bien que les deux appareils tranchent
                 dans le même sens, sinon chacun réimposerait la sienne indéfiniment. Vérifiez ces
                 réglages : ce que vous aviez saisi ici vient d'être remplacé.
               </p>
@@ -402,7 +402,7 @@ export function SauvegardeGDrivePanel() {
               <ul className="mt-1 space-y-0.5 text-sm text-amber-800">
                 {doublons.map((d) => (
                   <li key={`${d.table}-${d.reference}`}>
-                    {d.reference} — {d.ids.length} documents ({d.table})
+                    {d.reference} - {d.ids.length} documents ({d.table})
                   </li>
                 ))}
               </ul>

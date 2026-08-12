@@ -55,7 +55,7 @@ export function PhotoBien({
       onChange(id);
     } catch (e) {
       console.error(e);
-      toast('error', `Impossible d'enregistrer la photo — ${decrireErreur(e)}`);
+      toast('error', `Impossible d'enregistrer la photo - ${decrireErreur(e)}`);
     } finally {
       if (inputRef.current) inputRef.current.value = '';
     }

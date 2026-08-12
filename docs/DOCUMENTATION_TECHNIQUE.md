@@ -1,4 +1,4 @@
-# Bailiz — Documentation technique de maintenance
+# Bailiz - Documentation technique de maintenance
 
 > Public : développeur reprenant le projet. Complète le [README](../README.md) (présentation
 > fonctionnelle) et le [cahier des charges](../cdc.md) (référence contractuelle : cadre
@@ -9,7 +9,7 @@
 Bailiz est une SPA React **100 % côté client** : aucun backend, aucune API, aucun compte.
 Toutes les données (biens, baux, EDL, photos, PDF générés) vivent dans **IndexedDB** du
 navigateur. L'app est une **PWA installable** qui fonctionne hors-ligne après le premier
-chargement — contrainte forte : toute nouvelle fonctionnalité doit fonctionner sans réseau.
+chargement - contrainte forte : toute nouvelle fonctionnalité doit fonctionner sans réseau.
 
 ```
 UI (React + Tailwind)
@@ -34,7 +34,7 @@ Principes structurants :
 | Dépendance | Rôle | Où c'est utilisé |
 |---|---|---|
 | `react`, `react-dom` (18) | UI | partout |
-| `react-router-dom` (7) | Routing (**HashRouter** — pas de config serveur nécessaire, compatible `file://` et PWA) | `App.tsx` |
+| `react-router-dom` (7) | Routing (**HashRouter** - pas de config serveur nécessaire, compatible `file://` et PWA) | `App.tsx` |
 | `dexie` (4) + `dexie-react-hooks` | IndexedDB + hook réactif `useLiveQuery` | `lib/db.ts`, toutes les pages |
 | `@react-pdf/renderer` (4) | Génération PDF déclarative côté client | `lib/pdf/*` |
 | `signature_pad` (5) | Capture de signature sur canvas | `components/SignatureFlow.tsx` |
@@ -57,16 +57,16 @@ Points de vigilance en cas de montée de version :
 - **`signature_pad`** : l'app s'appuie sur l'événement `endStroke` (v4+) et sur le binding
   pointer events. Voir §7.3.
 - **`dexie`** : le schéma utilise `EntityTable` (Dexie 4). Toute évolution de schéma exige une
-  migration versionnée (§4.3) — ne jamais modifier `version(1)` en place une fois déployé.
+  migration versionnée (§4.3) - ne jamais modifier `version(1)` en place une fois déployé.
 - **Tailwind** : le projet est en v3 (config `tailwind.config.js` + directives `@tailwind`).
-  Une migration v4 changerait la config (CSS-first) — non triviale, sans bénéfice immédiat.
+  Une migration v4 changerait la config (CSS-first) - non triviale, sans bénéfice immédiat.
 
 ## 3. Arborescence et responsabilités
 
 ```
 src/
   main.tsx                 Bootstrap : registerSW (PWA), navigator.storage.persist()
-  App.tsx                  Routes (HashRouter) — table de routage unique
+  App.tsx                  Routes (HashRouter) - table de routage unique
   types.ts                 TOUT le modèle de données + labels FR (ETAT_LABELS, etc.)
   index.css                Tailwind + @font-face Inter auto-hébergée (assets/fonts/)
 
@@ -144,7 +144,7 @@ src/
     parametres/ParametresPage.tsx      Bailleur, grille vétusté, sauvegarde, RGPD
 ```
 
-Alias d'import : `@/` → `src/` (défini dans `vite.config.ts` **et** `tsconfig.app.json` —
+Alias d'import : `@/` → `src/` (défini dans `vite.config.ts` **et** `tsconfig.app.json` -
 maintenir les deux synchrones).
 
 ## 4. Persistance (Dexie / IndexedDB)
@@ -185,12 +185,12 @@ this.version(2).stores({ /* uniquement les tables dont les INDEX changent */ })
 ```
 
 Les champs non indexés peuvent être ajoutés aux interfaces de `types.ts` **sans** migration
-(les objets existants les auront simplement `undefined` — coder défensivement, ex.
+(les objets existants les auront simplement `undefined` - coder défensivement, ex.
 `edl.avenants ?? []`). Penser à l'impact sur `lib/backup.ts` : le format d'export porte un
-champ `version` (actuellement `1`) — incrémenter et gérer la rétro-compatibilité dans
+champ `version` (actuellement `1`) - incrémenter et gérer la rétro-compatibilité dans
 `lireSauvegarde` si la forme des entités change.
 
-### 4.3 bis Schéma v2 — table `sauvegardeAuto`
+### 4.3 bis Schéma v2 - table `sauvegardeAuto`
 
 La v2 ajoute la table `sauvegardeAuto` (une seule ligne, id `'dossier'`) qui stocke le
 **FileSystemDirectoryHandle** du dossier de sauvegarde automatique (les handles sont
@@ -200,12 +200,12 @@ ailleurs.
 
 ### 4.3 ter Schémas v3, v4 et v5
 
-- **v3** : `photos: 'id, edlId, bienId'` — une photo peut illustrer un bien (fiche de visite)
+- **v3** : `photos: 'id, edlId, bienId'` - une photo peut illustrer un bien (fiche de visite)
   et plus seulement un EDL ; `Photo.edlId` devient donc optionnel.
 - **v4** : `changements: '++id, [table+cle], horodatage'` (journal de synchronisation) et
   `syncEtat: '[table+cle], driveId'` (lien enregistrement ↔ fichier Drive). Aucune donnée
   existante n'est transformée.
-- **v5** : `brouillons: 'cle'` — saisies de formulaires en cours (cf. §5.1). Table
+- **v5** : `brouillons: 'cle'` - saisies de formulaires en cours (cf. §5.1). Table
   **volontairement absente** de `TABLES_SYNCHRONISEES` et de l'export ZIP : un brouillon
   appartient à l'appareil où on le saisit. Ne pas l'ajouter à ces listes.
 
@@ -215,7 +215,7 @@ ailleurs.
 données irremplaçables, il ne doit jamais commencer sur un fichier dont la forme n'a pas été
 vérifiée. Sont contrôlés le numéro de version (`VERSION_SAUVEGARDE`, refus **motivé** au-dessus
 comme en dessous) et la présence de chaque collection. Un `data.json` tronqué passait
-auparavant le simple test de version puis échouait au milieu de `bulkPut` — en mode
+auparavant le simple test de version puis échouait au milieu de `bulkPut` - en mode
 « remplacer », après que les tables ont déjà été vidées.
 
 
@@ -240,10 +240,10 @@ bailiz-sauvegarde-YYYY-MM-DD-HHmm.zip
 ### 4.5 Sauvegarde automatique « push ZIP » (`lib/autosave.ts`)
 
 Zéro infrastructure : l'utilisateur choisit une fois un dossier local **synchronisé par son
-cloud** (Google Drive, OneDrive, iCloud…) via `showDirectoryPicker` (File System Access API —
+cloud** (Google Drive, OneDrive, iCloud…) via `showDirectoryPicker` (File System Access API -
 Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explicite sinon).
 
-- **Déclencheurs** : après chaque signature (EDL, bail, inventaire — appel
+- **Déclencheurs** : après chaque signature (EDL, bail, inventaire - appel
   `pousserSiActive(true)` dans les trois pages) ; à l'ouverture de l'app si le dernier push
   date de plus de 7 jours (`AppLayout`, `pousserSiActive(false)` : silencieux, ne re-demande
   pas la permission) ; et **à chaque modification d'entité** :
@@ -253,31 +253,31 @@ Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explici
   pushs concurrents ET la boucle infinie (le push écrit lui-même dans `parametres`) ; les
   tables `parametres`/`sauvegardeAuto` ne sont pas observées ; l'init est idempotente
   (StrictMode). Attention : les hooks ne voient que les écritures passant par Dexie.
-- **UI** : composant `SauvegardeStatut` (pied de la barre latérale, `AppLayout`) — affiche
+- **UI** : composant `SauvegardeStatut` (pied de la barre latérale, `AppLayout`) - affiche
   « Dernière sauvegarde à XXhXX » (source unique : `parametres.derniereSauvegarde`, mise à
   jour par tout export réussi, manuel ou auto) + bouton « Sauvegarder » quand au moins une
   destination est configurée (`pousserSiActive(true)`, donc capable de re-demander la
   permission).
 
-### 4.6 Sauvegarde Google Drive (`lib/gdrive.ts`) — le cas iPad
+### 4.6 Sauvegarde Google Drive (`lib/gdrive.ts`) - le cas iPad
 
 Deuxième destination de push, cumulable avec le dossier local, qui fonctionne sur **tous**
 les navigateurs (Safari/iPad inclus) puisqu'elle passe par l'API Drive et non par File
 System Access :
 
 - **Auth** : Google Identity Services (script `gsi/client` chargé à la demande, jamais au
-  démarrage — l'app reste 100 % hors-ligne tant qu'on ne pousse pas), flux « token client »,
+  démarrage - l'app reste 100 % hors-ligne tant qu'on ne pousse pas), flux « token client »,
   scope non sensible **`drive.file`** (l'app ne voit que ses propres fichiers). Le jeton
   (~1 h) vit en mémoire uniquement, jamais persisté ; renouvellement silencieux
   (`prompt: ''`) sinon interaction requise. Types ambiants dans `src/types/gsi.d.ts`.
 - **Config** dans `parametres.sauvegardeGDrive` (`clientId` public, `actif`, `dossierId`,
-  `dernierPush`) — voyage donc avec l'export ZIP, ce qui est voulu (restauration sur un
+  `dernierPush`) - voyage donc avec l'export ZIP, ce qui est voulu (restauration sur un
   nouvel appareil : il ne reste qu'à se reconnecter). Le Client ID OAuth est saisi par
   l'utilisateur dans les Paramètres (créé sur console.cloud.google.com, origines autorisées
   = domaine GitHub Pages + localhost:5273).
 - **Upload** : dossier « Bailiz » retrouvé/créé à la racine (`assurerDossier`), upload
   `multipart/related` (`construireCorpsMultipart`, pure et testée), rotation identique au
-  dossier local (`lib/rotation.ts`, partagé — `fichiersASupprimer` y a été déplacé et est
+  dossier local (`lib/rotation.ts`, partagé - `fichiersASupprimer` y a été déplacé et est
   ré-exporté par `autosave.ts`).
 - **Agrégation** : `pousserSiActive` pousse vers les deux destinations et renvoie `ok` si au
   moins une a réussi, sinon l'état le plus actionnable (`permission_requise` > `hors_ligne` >
@@ -287,11 +287,11 @@ System Access :
   **plus** conditionnée à `autosaveSupportee()` (sinon iPad n'aurait aucun push).
 - Un jeton expirant en plein push (401) est re-demandé une fois puis l'opération est rejouée.
 - **Permissions** : après un redémarrage du navigateur, la permission repasse à `prompt` ;
-  la re-demande (`requestPermission`) exige un geste utilisateur — c'est pourquoi le push
+  la re-demande (`requestPermission`) exige un geste utilisateur - c'est pourquoi le push
   d'ouverture n'insiste pas et les pushs post-signature (qui suivent un clic) peuvent, eux,
   rouvrir la demande.
 - **Rotation** : seules les 10 archives `bailiz-sauvegarde-*.zip` les plus récentes sont
-  conservées (`fichiersASupprimer`, pure et testée — le tri lexical des noms datés équivaut
+  conservées (`fichiersASupprimer`, pure et testée - le tri lexical des noms datés équivaut
   au tri chronologique). L'échec de la rotation n'empêche jamais le push.
 - Les types de l'API sont déclarés dans `src/types/fs-access.d.ts` (absents de lib.dom).
 - Astuce de test : un handle OPFS (`navigator.storage.getDirectory()`) expose la même
@@ -304,7 +304,7 @@ rotation les sauvegardes pleines des autres appareils. Il ne comptait que les **
 (biens, locataires, baux, EDL, documents) : un utilisateur ayant seulement saisi ses
 coordonnées, sa grille de vétusté ou son catalogue de clauses voyait donc son travail refusé à
 la sauvegarde, avec le message « aucune donnée sur cet appareil ». Le nom du bailleur sert
-désormais de marqueur de configuration — sans lui, aucun document ne peut être produit et
+désormais de marqueur de configuration - sans lui, aucun document ne peut être produit et
 l'appareil est réellement neuf.
 
 ### 4.7 Détection de divergence entre appareils (lot A)
@@ -313,7 +313,7 @@ Deux appareils poussant dans le même dossier ne se regardaient pas : le plus en
 recouvrait l'autre en silence. Correctif :
 
 - **Identité d'appareil** (`lib/appareil.ts`) : uuid + nom lisible dans `localStorage`,
-  **jamais dans `Parametres`** — sinon l'export ZIP la transporterait, et un appareil restauré
+  **jamais dans `Parametres`** - sinon l'export ZIP la transporterait, et un appareil restauré
   hériterait de l'identité de l'autre : la détection ne fonctionnerait plus jamais.
 - Chaque archive poussée porte `appProperties: { appareil, appareilNom, exporteLe }`.
 - `comparerArchives` (pure, testée) confronte la dernière archive du Drive à
@@ -328,20 +328,20 @@ recouvrait l'autre en silence. Correctif :
 ### 4.8 Synchronisation par fichiers (lot B, `lib/sync/`)
 
 **Seul mode d'échange avec le Drive** : le connecter, c'est synchroniser. Les deux appareils
-convergent au lieu de s'écraser. Pour ne pas synchroniser, on déconnecte — il n'y a plus
+convergent au lieu de s'écraser. Pour ne pas synchroniser, on déconnecte - il n'y a plus
 d'interrupteur, plus de push ZIP vers Drive, plus de garde-fou de divergence. Le dossier local
 synchronisé garde ses ZIP, indépendamment.
 
 Ne jamais reconstruire l'objet `sauvegardeGDrive` à neuf (`activerGDrive`) : on y perdrait
 `derniereSync`, dont la disparition force au cycle suivant un re-listage et une réécriture
-complète de la base. La reconnexion Google est un geste banal — le jeton n'est jamais persisté.
+complète de la base. La reconnexion Google est un geste banal - le jeton n'est jamais persisté.
 
 **Déclenchement** : à l'ouverture, à chaque retour au premier plan, toutes les
 `INTERVALLE_SYNC_MS` (5 min) tant que l'application est visible, après chaque signature, et
 quelques secondes après une modification. Le battement périodique est indispensable : tous les
 autres déclencheurs supposent une **écriture locale**, or un appareil qui ne fait que consulter
 doit voir arriver ce que l'autre a saisi. Ne pas l'adosser à l'ancienneté de `derniereSauvegarde`
-— l'instantané hebdomadaire la rafraîchit lui-même, et le cycle d'ouverture ne se déclenchait
+- l'instantané hebdomadaire la rafraîchit lui-même, et le cycle d'ouverture ne se déclenchait
 alors plus qu'une fois par semaine.
 
 | Module | Rôle |
@@ -360,19 +360,19 @@ alors plus qu'une fois par semaine.
 `'<dossier>' in parents and modifiedTime > '<date>'` suffit à obtenir l'incrément.
 
 **Convergence** : dernier écrivain gagne, enregistrement par enregistrement, sur `updatedAt`
-(ou `createdAt` / `dateCapture` pour les immuables). À égalité, le distant l'emporte — la
+(ou `createdAt` / `dateCapture` pour les immuables). À égalité, le distant l'emporte - la
 convergence doit être déterministe des deux côtés. Jamais de fusion champ à champ : un EDL à
 moitié de chaque appareil n'aurait aucun sens juridique.
 
 C'est **la saisie la plus récente à la montre** qui gagne, jamais « le dernier connecté » : le
 cycle reçoit avant d'envoyer, donc un appareil resté hors ligne adopte la version postérieure au
-lieu de la recouvrir — et impose la sienne si elle est plus tardive. L'ordre de connexion
+lieu de la recouvrir - et impose la sienne si elle est plus tardive. L'ordre de connexion
 n'entre pas en jeu ; c'est aussi pourquoi le garde-fou d'horloge est indispensable. Voir
 `arbitrage.test.ts`, qui fige ces cas : ils ne sont pas devinables et une régression y serait
 silencieuse.
 
-**Saisies remplacées** (`ResultatCycle.saisiesRemplacees`) : quand la réception écrase — ou
-supprime — une fiche pour laquelle le journal portait encore une modification, c'est du travail
+**Saisies remplacées** (`ResultatCycle.saisiesRemplacees`) : quand la réception écrase - ou
+supprime - une fiche pour laquelle le journal portait encore une modification, c'est du travail
 qui disparaît sans que personne ne l'ait demandé. Le cycle le détecte en comparant la clé au
 journal **relevé avant le pull**, seul moment où la saisie perdue peut encore être nommée. Le
 résultat est accumulé dans le magasin de `lib/sync/index.ts` et affiché par `BandeauSync`
@@ -380,7 +380,7 @@ jusqu'à ce que l'utilisateur en prenne acte. Ne pas confondre avec la santé du
 synchronisation a fonctionné, elle a seulement tranché.
 
 **Suppressions** : un tombstone est déposé et le fichier retiré. Sans ce mécanisme, une fusion
-naïve **ressusciterait** les enregistrements supprimés — dont les suppressions RGPD. Le
+naïve **ressusciterait** les enregistrements supprimés - dont les suppressions RGPD. Le
 tombstone ne contient qu'une clé technique, aucune donnée personnelle.
 
 **Pièges rencontrés, à ne pas réintroduire :**
@@ -398,12 +398,12 @@ tombstone ne contient qu'une clé technique, aucune donnée personnelle.
   réglages d'un appareil dès que l'autre en touche un seul. Quand la même section a bougé des
   deux côtés, **le distant gagne** : il faut que les deux appareils tranchent dans le même sens,
   sinon chacun réimposerait sa version indéfiniment. La collision remonte dans
-  `ResultatCycle.reglagesEcrases` et s'affiche dans les Paramètres — c'est le seul cas de perte.
+  `ResultatCycle.reglagesEcrases` et s'affiche dans les Paramètres - c'est le seul cas de perte.
 - Les tables à blob (`photos`, `documents`) portent métadonnées et contenu dans deux fichiers
   distincts (`driveId` / `blobDriveId`) : écrire l'enveloppe sans préserver le blob local le
   détruirait. Mémoriser `driveId` **avant** d'envoyer le blob : une coupure entre les deux
   laisserait sinon un fichier dont plus personne ne connaît l'identifiant, et le cycle suivant en
-  créerait un homonyme — deux fichiers du même nom, et la réception en lit un au hasard.
+  créerait un homonyme - deux fichiers du même nom, et la réception en lit un au hasard.
 - Le journal se compacte à une entrée par fiche, mais `confirmerEnvoi` doit retirer **toutes** les
   entrées absorbées (`idsResumes`), pas seulement celle qui a été envoyée : sinon il ne se vide
   jamais, le compteur « en attente » ment, et la fiche repart à chaque cycle.
@@ -415,17 +415,17 @@ tombstone ne contient qu'une clé technique, aucune donnée personnelle.
 - Ne jamais interroger le dépôt **par fiche** : une suppression RGPD en efface des dizaines d'un
   coup. Les recherches par nom passent par des index construits une fois par espace et par cycle
   (`tousParNom`, `trouverBlob`), et les identifiants des sous-dossiers sont mis en cache pour la
-  session — avec un cycle toutes les 5 min, les résoudre à chaque fois coûterait plus que
+  session - avec un cycle toutes les 5 min, les résoudre à chaque fois coûterait plus que
   l'échange lui-même.
 - `lancerCycle` distingue **`ignore`** (rien à tenter : Drive déconnecté, ou cycle déjà en
-  cours — banal avec le battement, ne jamais alerter) de **`indisponible`** (dépôt inaccessible :
+  cours - banal avec le battement, ne jamais alerter) de **`indisponible`** (dépôt inaccessible :
   hors-ligne ou autorisation à renouveler, là il y a une action à proposer). Les confondre
   affichait « reconnectez Google Drive » à un utilisateur dont le Drive fonctionnait.
 - **Signal d'état** (`EtatSync` : `etatSync` / `abonnerEtatSync`, consommé par `BandeauSync` via
   `useSyncExternalStore`). **Tout ce qui empêche les deux appareils de converger doit se voir** :
   le battement lance un cycle toutes les cinq minutes sans que personne ne lise son résultat, si
   bien qu'une horloge décalée ou un garde-fou déclenché arrêtait la synchronisation pour des
-  jours, en silence — et l'ordinateur imprimait d'anciennes données en se croyant à jour.
+  jours, en silence - et l'ordinateur imprimait d'anciennes données en se croyant à jour.
   Cinq pièges, tous rencontrés :
   - déduire l'état de la validité du jeton en mémoire donnerait un faux signal à chaque
     chargement de page (le renouvellement silencieux marche très bien là où le navigateur
@@ -439,10 +439,10 @@ tombstone ne contient qu'une clé technique, aucune donnée personnelle.
     dans `en_cours` que depuis `ok` ;
   - afficher `en_cours` immédiatement ferait clignoter un bandeau à chaque battement, un cycle
     sans rien à échanger durant une fraction de seconde : il n'apparaît qu'au-delà d'une seconde,
-    c'est-à-dire quand des données arrivent réellement — le moment où il ne faut pas imprimer.
+    c'est-à-dire quand des données arrivent réellement - le moment où il ne faut pas imprimer.
 - **Toute demande d'autorisation Google doit être la première instruction du gestionnaire de
   clic**, avant le moindre `await` sur IndexedDB : Safari/iOS n'autorise la fenêtre que pendant
-  l'activation du geste, et la bloque ensuite *sans erreur* — le bouton paraît ne rien faire.
+  l'activation du geste, et la bloque ensuite *sans erreur* - le bouton paraît ne rien faire.
   C'est pourquoi `BandeauReconnexion` et `SauvegardeStatut` appellent `demanderAutorisationGoogle`
   eux-mêmes au lieu de laisser `pousserSiActive` le faire : celui-ci traverse le dossier local,
   soit deux lectures de base, avant d'arriver au jeton.
@@ -454,11 +454,11 @@ tombstone ne contient qu'une clé technique, aucune donnée personnelle.
   seconde partagent leur nom.
 
 **Garde-fous** (`cycle.ts`) : écart d'horloge supérieur à 2 minutes, et suppression de plus de
-la moitié de la base (avec un plancher de 5 — sinon supprimer l'unique locataire d'une base
+la moitié de la base (avec un plancher de 5 - sinon supprimer l'unique locataire d'une base
 d'un enregistrement serait bloqué). Tous deux interrompent le cycle sans rien appliquer.
 
 **Rattrapage** (`rattraperChangements`) : compare la base à `syncEtat` et journalise ce qui
-manque — indispensable à la première activation sur une base déjà remplie. Les suppressions
+manque - indispensable à la première activation sur une base déjà remplie. Les suppressions
 échappent à ce filet (rien à comparer) : elles dépendent entièrement des hooks.
 
 ## 5. Fonctionnalités : implémentation et points d'attention
@@ -469,7 +469,7 @@ manque — indispensable à la première activation sur une base déjà remplie.
   (`schemaIdentite`, `schemaSurfaces`). Sert aussi à la modification (route
   `/biens/:id/modifier`, préchargement via `db.biens.get`).
 - **Sauvegarde continue de la saisie** (`hooks/useBrouillon.ts`, table `brouillons`) : chaque
-  frappe est écrite après 600 ms d'inactivité et retrouvée telle quelle au retour — cinq
+  frappe est écrite après 600 ms d'inactivité et retrouvée telle quelle au retour - cinq
   étapes ne doivent pas disparaître avec un rechargement ou une notification passée au
   premier plan. Ce sont les **données du formulaire** qui sont conservées, **jamais une
   entité à demi renseignée** : un bien incomplet n'a rien à faire dans la liste des biens, le
@@ -482,16 +482,16 @@ manque — indispensable à la première activation sur une base déjà remplie.
   `identifiantFiscal` (12 chiffres, décret 2023-796, baux depuis le 01/01/2024),
   `typeHabitat` (collectif/individuel), `periodeConstruction`, `classeDPE`,
   `equipementsTIC` (rubrique II.E), `zoneTendue` (décret d'évolution des loyers à la
-  relocation — distinct de `zoneEncadrementLoyers`, le plafond au m²). La décence
+  relocation - distinct de `zoneEncadrementLoyers`, le plafond au m²). La décence
   énergétique est validée par `validerDecenceDPE` (`lib/calculs.ts`) : G bloquant depuis
-  2025, F en 2028, E en 2034 — alerte dans le formulaire ET blocage dans l'assistant de bail.
+  2025, F en 2028, E en 2034 - alerte dans le formulaire ET blocage dans l'assistant de bail.
 - `PiecesEditeur` édite `bien.piecesModele` : c'est la **trame copiée dans chaque EDL
-  d'entrée** (copie profonde avec nouveaux ids — modifier la trame ne touche jamais un EDL
+  d'entrée** (copie profonde avec nouveaux ids - modifier la trame ne touche jamais un EDL
   existant). La bibliothèque de modèles est dans `defauts.ts` (`BIBLIOTHEQUE_PIECES`) :
   ajouter une pièce type = ajouter une entrée là-bas, rien d'autre.
 - **Dossier technique** : plus de saisie de diagnostics datés (le suivi des validités a été
   retiré, il faisait double emploi avec les fichiers eux-mêmes). Le bien porte simplement
-  `dossierTechniqueUrl` — un lien vers le dossier en ligne (Drive, cloud) — dont un **QR code**
+  `dossierTechniqueUrl` - un lien vers le dossier en ligne (Drive, cloud) - dont un **QR code**
   est imprimé sur le bail. L'URL passe par `urlExterneSure` (http/https uniquement) avant
   d'être rendue cliquable ou encodée : le QR est scanné par un tiers.
 - Les éléments de catégorie `mobilier` des pièces (avec leur `quantite`) alimentent la partie
@@ -499,10 +499,10 @@ manque — indispensable à la première activation sur une base déjà remplie.
 
 **Recherche et tri des listes** (Biens, Locataires, Baux) : un seul composant, `BarreListe`,
 et un seul jeu de comparateurs (`lib/recherche.ts`). La recherche est insensible aux accents
-(`normaliser`) et exige **tous** les mots saisis, dans n'importe quel ordre (`correspond`) —
+(`normaliser`) et exige **tous** les mots saisis, dans n'importe quel ordre (`correspond`) -
 « chamalieres » doit trouver « Chamalières ». Le tri passe par `comparerTexte`
 (`localeCompare` fr, `numeric` : « Chambre 2 » avant « Chambre 10 ») et `comparerDatesDesc`,
-qui relègue les dates absentes ou illisibles en fin de liste plutôt que d'échouer — une fiche
+qui relègue les dates absentes ou illisibles en fin de liste plutôt que d'échouer - une fiche
 abîmée ne doit jamais rendre une liste inaccessible. La barre n'apparaît qu'à partir de
 `SEUIL_BARRE_LISTE` (6) éléments : filtrer quatre biens coûte plus d'écran qu'il ne fait
 gagner de temps.
@@ -528,7 +528,7 @@ gagner de temps.
   depuis un bail existant (`bailVersSaisie`). Bien et locataires sont **résolus depuis la base
   si sélectionnés**, sinon construits inline.
 - **Validation non bloquante** : les incohérences (DPE G, dépôt > 2 mois, durée atypique)
-  s'affichent en avertissements, jamais en blocage — l'outil produit un document à compléter.
+  s'affichent en avertissements, jamais en blocage - l'outil produit un document à compléter.
   Les règles légales restent dans `lib/calculs.ts` : ne jamais en dupliquer une dans un
   composant, l'ajouter là avec un test.
 - **Champs manquants** : `Rempl` (dans `pdf/commun.tsx`) rend une valeur ou, en mode
@@ -537,9 +537,9 @@ gagner de temps.
   objet »), II objet (identifiant fiscal, habitat, période de construction, classe DPE +
   rappel des seuils de décence, TIC), III durée, IV conditions financières (zone tendue à la
   relocation, encadrement, IRL, assurance colocataires récupérable par douzième), V travaux
-  (3 sous-rubriques, « néant » par défaut — champ `bail.travaux`), VI garanties (dépôt en
+  (3 sous-rubriques, « néant » par défaut - champ `bail.travaux`), VI garanties (dépôt en
   chiffres ET en toutes lettres via `montantEnLettres`), VII solidarité, VIII **clause
-  résolutoire** (`bail.clauseResolutoire`, défaut true — coder `!== false` pour les baux
+  résolutoire** (`bail.clauseResolutoire`, défaut true - coder `!== false` pour les baux
   antérieurs au champ), IX honoraires (néant), X clauses particulières, XI annexes (dont
   attestation d'assurance du locataire dans la checklist).
 - L'enregistrement fait, dans l'ordre : références (bail + grille) → construction des entités
@@ -549,7 +549,7 @@ gagner de temps.
 - **Aucun inventaire séparé n'est créé** : l'EDL vaut inventaire (voir §5.4).
 - **Pas de signature électronique du bail** : il est destiné à être imprimé et signé à la
   main (le PDF porte les zones de signature manuscrite). Le bail reste donc **modifiable et
-  régénérable sans limite** — « Modifier » recharge le formulaire, l'enregistrement met à jour
+  régénérable sans limite** - « Modifier » recharge le formulaire, l'enregistrement met à jour
   l'entité et régénère le PDF sous la **même référence**. « Télécharger le PDF » le reconstruit
   toujours depuis les données courantes : aucun écart possible entre l'écran et le document.
 - **Cycle de vie** (`BailDetailPage`) : `genere` → `actif` (bouton « Marquer le logement
@@ -558,22 +558,22 @@ gagner de temps.
 - **Documents utiles** de la fiche bail : fiche d'aide juridique, acte de cautionnement
   (pré-rempli, non archivé car modèle à signer), grille de vétusté, courrier IRL, lettre de
   restitution. Tous passent par `genererEtArchiver` (référence + rendu + archivage +
-  téléchargement) — utiliser ce helper pour tout nouveau document annexe.
-- La checklist d'annexes est figée dans le bail à la création (`annexesParDefaut(bien)` —
+  téléchargement) - utiliser ce helper pour tout nouveau document annexe.
+- La checklist d'annexes est figée dans le bail à la création (`annexesParDefaut(bien)` -
   l'extrait de copropriété ne s'ajoute que si `regimeJuridique === 'copropriete'`).
-- Calculateurs : prorata affiché en permanence (`prorataPremierLoyer` — jour d'effet inclus,
+- Calculateurs : prorata affiché en permanence (`prorataPremierLoyer` - jour d'effet inclus,
   toujours calculé sur le loyer **du contrat**) ; révision IRL en modal (`revisionIRL` =
   loyer × nouvel indice / indice de référence).
 - **Révisions de loyer** (`lib/bail.ts`) : générer le courrier **enregistre** la révision dans
-  `bail.revisionsLoyer`. `bail.loyerHC` n'est jamais réécrit — c'est le loyer du contrat
+  `bail.revisionsLoyer`. `bail.loyerHC` n'est jamais réécrit - c'est le loyer du contrat
   imprimé et signé, et le bail doit se régénérer à l'identique ; le loyer dû aujourd'hui se lit
   par `loyerCourant(bail)`, la base du prochain courrier par `baseRevisionIRL(bail)`. Sans cet
   historique, chaque révision repartait du loyer d'origine et le courrier de la deuxième année
   annonçait un loyer vieux de deux ans.
 - `dateApplicationRevision` : anniversaire du bail, ou **date de la demande** si l'anniversaire
-  est passé — la révision ne rétroagit pas (art. 17-1, I, al. 2).
+  est passé - la révision ne rétroagit pas (art. 17-1, I, al. 2).
 
-### 5.4 États des lieux (cœur de l'app — vaut inventaire)
+### 5.4 États des lieux (cœur de l'app - vaut inventaire)
 
 **L'EDL vaut inventaire** (décret n°2015-981) : il n'existe plus d'entité `Inventaire`
 distincte. Le mobilier porte une `quantite` en plus de son `etat`, et les 11 postes
@@ -609,14 +609,14 @@ obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `o
   etat)` à chaque sélection (ordre : neuf > très bon > bon > usagé > mauvais, cf.
   `ETAT_ORDRE`), et la case reste décochable manuellement (usure normale).
 - **Remplissage groupé** (`renseignerRestants`) : en tête de chaque pièce, cinq boutons posent
-  l'état commun sur les éléments **encore vierges** — dans un logement en bon état, la
+  l'état commun sur les éléments **encore vierges** - dans un logement en bon état, la
   quasi-totalité partage le même état, on corrige ensuite les exceptions. Les éléments déjà
   statués ne sont **jamais** réécrits : un raccourci ne doit pas pouvoir effacer une
   observation faite sur place. Le bloc disparaît dès que la pièce est complète.
 - **Récapitulatif des oublis** (`elementsNonRenseignes`, `lib/etat.ts`) : l'en-tête affiche
   « N élément(s) non renseigné(s) » cliquable, et « Signer » ouvre la même liste au lieu de
-  naviguer. Chaque ligne mène à la pièce concernée. Rien n'est **bloqué** — « Signer quand
-  même » reste offert — mais une barre de progression dit qu'il reste du travail sans dire
+  naviguer. Chaque ligne mène à la pièce concernée. Rien n'est **bloqué** - « Signer quand
+  même » reste offert - mais une barre de progression dit qu'il reste du travail sans dire
   *où* : c'est la liste qui rend l'information exploitable sur le terrain. La même liste est
   reprise, nominative, en tête de `EdlSignaturePage`. Un élément `manquant` compte comme
   renseigné : c'est une décision, pas un oubli.
@@ -646,7 +646,7 @@ obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `o
 **Synthèse comparative** (`EdlSynthesePage`, sortie uniquement) :
 - Liste `elementsDegrades(edl)` avec photos entrée/sortie côte à côte.
 - Saisie par élément : `coutRemiseEnEtat`, `posteVetuste` (référence une ligne de
-  `parametres.grilleVetuste` **par son libellé `poste`** — renommer un poste de la grille
+  `parametres.grilleVetuste` **par son libellé `poste`** - renommer un poste de la grille
   casse le lien : les éléments pointant vers l'ancien nom retombent à 100 %), `ageEquipementAnnees`.
 - **Rectification d'un EDL signé** : un document contradictoire ne se modifie pas
   unilatéralement, mais les deux parties peuvent convenir d'une version corrigée. « Rectifier »
@@ -679,35 +679,35 @@ obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `o
 Toute la logique d'alertes est dans `TableauDeBordPage` (pas de lib dédiée) :
 - EDL d'entrée signé alors que le bail est encore `brouillon`/`genere` ;
 - dépôt à restituer : EDL de sortie signé → date limite par `dateLimiteRestitution`
-  (1 ou 2 **mois** calendaires selon dégradations, art. 22 — jamais 30/60 jours), alerte
+  (1 ou 2 **mois** calendaires selon dégradations, art. 22 - jamais 30/60 jours), alerte
   affichée à ≤ 45 jours de l'échéance (rouge à ≤ 7 jours) ;
 - sauvegarde > 30 jours.
 Échéancier : terme du bail via `termeDuBail` et prochain anniversaire de révision IRL des baux
 révisables. **Distinguer reconduction et fin de plein droit est obligatoire** : un meublé d'un
 an se reconduit tacitement faute de congé, et annoncer « fin de bail » laissait croire que le
-logement se libérait tout seul — tout en taisant la seule date qui engage, celle après laquelle
+logement se libérait tout seul - tout en taisant la seule date qui engage, celle après laquelle
 il est trop tard pour donner congé (trois mois avant le terme, art. 25-8). Les baux étudiant et
 mobilité, eux, s'arrêtent seuls : aucun congé à annoncer. Si vous ajoutez un type d'alerte, suivez l'interface `Alerte` existante.
 
 **Périmètre des baux suivis** : toujours `estBailEnCours` (`lib/bail.ts`), qui retient
 `genere | signe | actif`. Ne pas retester les statuts à la main : `genere` est l'état d'un bail
-qu'on vient d'enregistrer et il n'en sort que par une action manuelle — l'exclure affichait le
+qu'on vient d'enregistrer et il n'en sort que par une action manuelle - l'exclure affichait le
 logement « Vacant » et vidait l'échéancier. Signer l'EDL d'entrée bascule le bail en `actif`
 (`EdlSignaturePage`), le bouton « Marquer le logement loué » ne servant plus que de rattrapage.
 
 ### 5.6 bis Qualité du bailleur (`lib/bailleur.ts`)
 
 Trois qualités : personne physique, **indivision**, **personne morale**. Ce n'est pas de la
-présentation — un logement détenu en indivision loué au nom d'un seul indivisaire expose le
+présentation - un logement détenu en indivision loué au nom d'un seul indivisaire expose le
 bail à la contestation des autres, et une société doit être désignée au contrat par sa
 dénomination, sa forme, son capital, son RCS et son représentant légal.
 
 Toute la règle est dans `lib/bailleur.ts`, jamais dans les vues ni dans les PDF :
-- `nomBailleur` — nom court (dénomination pour une société, énumération des indivisaires) ;
-- `signataireBailleur` — **qui signe** : une société ne signe pas, son gérant signe pour elle ;
-- `designationBailleur` — les lignes de la partie I du bail ;
-- `libelleAdresseBailleur` — « Demeurant » ou « Siège social » ;
-- `bailleurRenseigne` — remplace les tests sur le seul `nom`, qui considéraient une SCI
+- `nomBailleur` - nom court (dénomination pour une société, énumération des indivisaires) ;
+- `signataireBailleur` - **qui signe** : une société ne signe pas, son gérant signe pour elle ;
+- `designationBailleur` - les lignes de la partie I du bail ;
+- `libelleAdresseBailleur` - « Demeurant » ou « Siège social » ;
+- `bailleurRenseigne` - remplace les tests sur le seul `nom`, qui considéraient une SCI
   correctement configurée comme non renseignée.
 
 Le modèle reste **rétro-compatible** : `civilite`/`nom`/`prenom` portent toujours la personne
@@ -720,7 +720,7 @@ Paramètres, pas au milieu d'un contrat.
 
 Le pendant du SHA-256 imprimé au pied des documents signés : tant que personne ne peut le
 **recalculer**, cette empreinte n'est qu'une décoration. `verifierFichier` compare l'empreinte
-d'un PDF aux `documents.hash` et aux `edls.pdfHash`, **y compris les `rectifications`** — un
+d'un PDF aux `documents.hash` et aux `edls.pdfHash`, **y compris les `rectifications`** - un
 document annulé et remplacé reste authentique, et le dire vaut mieux que « inconnu ». Une
 empreinte attendue peut être saisie à la main (lue sur un exemplaire papier), avec ou sans les
 espaces de `formatHash`. Le fichier n'est jamais transmis : tout est calculé localement.
@@ -754,7 +754,7 @@ rendrePdfAvecHash((hash?) => <XxxPdf hash={hash}/>)
 
 **Important** : l'empreinte affichée sur le PDF (et stockée dans `pdfHash` + `documents.hash`)
 est celle du **PDF de première passe** (le contenu signé, sans le pied de page hash). Pour
-vérifier une empreinte a posteriori, il faut donc régénérer la passe 1 à partir des données —
+vérifier une empreinte a posteriori, il faut donc régénérer la passe 1 à partir des données -
 ou comparer avec le hash stocké en base. C'est un choix assumé (impossible d'inclure un hash
 dans le document qu'il hache). Le second rendu de `@react-pdf/renderer` étant déterministe à
 contenu identique, les deux passes ne diffèrent que par le pied de page.
@@ -765,7 +765,7 @@ contenu identique, les deux passes ne diffèrent que par le pied de page.
   empreinte ou mention « Document généré par Bailiz »).
 - `SignaturesPdf` : image PNG du canvas + nom tapé + mention « lu et approuvé » + horodatage
   (format lisible **et** ISO 8601). `ZoneSignatureManuscrite` : cadres vides pour signature
-  papier (utilisée quand `signatures` est absent — bail, documents non signés sur écran).
+  papier (utilisée quand `signatures` est absent - bail, documents non signés sur écran).
 - Polices : Helvetica intégrée (pas de font embarquée → PDF légers et pas de fetch réseau,
   compatible hors-ligne). Si vous embarquez une police, `Font.register` avec un fichier local.
 - Ajouter un document = créer `lib/pdf/MonDocPdf.tsx` + un `TypeDocument` dans `types.ts`
@@ -774,14 +774,14 @@ contenu identique, les deux passes ne diffèrent que par le pied de page.
 ### 6.3 Photos dans l'EDL
 
 `chargerPhotosPourPdf` convertit chaque Blob en data-URL (obligatoire pour
-`@react-pdf/renderer`) avec légende « pièce — élément — date ». Elles sont rendues en annexe
+`@react-pdf/renderer`) avec légende « pièce - élément - date ». Elles sont rendues en annexe
 (3 colonnes). Gros EDL = beaucoup de mémoire au moment du rendu ; si cela devient un problème,
 paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
 
 ## 7. Pièges connus / dette technique assumée
 
 1. **Immutabilité applicative seulement.** Le verrouillage d'un EDL signé est garanti par
-   l'UI (`maj()` no-op) et par convention — rien n'empêche un code d'écrire dans la table.
+   l'UI (`maj()` no-op) et par convention - rien n'empêche un code d'écrire dans la table.
    Toute nouvelle fonctionnalité qui écrit dans `edls`/`inventaires` doit vérifier
    `statut !== 'signe'` (exception documentée : champs de vétusté, §5.4).
 2. **Bundle monolithique (~2,1 Mo minifié)** dominé par `@react-pdf/renderer`. Amélioration
@@ -789,23 +789,23 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
    (attention à garder le precache PWA cohérent). Le warning Rollup à ce sujet est connu.
 3. **`signature_pad`** : `pointermove`/`pointerup` sont écoutés sur `window` ; le composant
    redimensionne le canvas au `devicePixelRatio` au montage. Il n'y a **pas** de gestion du
-   resize/rotation pendant une signature (le tracé serait décalé) — cas accepté ; si besoin,
+   resize/rotation pendant une signature (le tracé serait décalé) - cas accepté ; si besoin,
    ré-instancier le pad sur l'événement `resize`.
 4. **Champs non contrôlés `defaultValue`+`onBlur`** (EDL terrain, synthèse, grille de
    vétusté) : un test automatisé doit déclencher `focusout` (pas `blur` non bubblant) pour
    valider la saisie. Les états/boutons sont contrôlés, eux. Dans les listes supprimables
    (compteurs, clés, grille de vétusté), les `key` incluent la longueur de la liste
-   (`` `${i}-${liste.length}` ``) pour forcer le remontage après suppression — sinon les
+   (`` `${i}-${liste.length}` ``) pour forcer le remontage après suppression - sinon les
    `defaultValue` affichés seraient décalés d'une ligne. Conserver ce motif.
 4bis. **Dates** : tous les champs de date passent par `DateInput` (saisie clavier
    JJ/MM/AAAA avec masque + calendrier natif superposé à l'icône), qui échange en ISO
-   `yyyy-MM-dd` et renvoie `''` si vide — les appelants doivent ignorer la valeur vide
+   `yyyy-MM-dd` et renvoie `''` si vide - les appelants doivent ignorer la valeur vide
    (`onChange={(d) => d && ...}`) pour ne jamais construire de `Date` invalide. Ne pas
    réintroduire d'`<input type="date">` nu.
 5. **Police Inter auto-hébergée** (`index.css` + `src/assets/fonts/`) : deux woff2 variables
    (`latin`, `latin-ext`), émis et versionnés par Vite, précachés comme le reste. Ne pas
    réintroduire l'`@import` vers `fonts.googleapis.com` : il envoyait l'IP de chaque
-   utilisateur à Google — contraire aux mentions légales de l'app — et retardait le premier
+   utilisateur à Google - contraire aux mentions légales de l'app - et retardait le premier
    rendu. L'application ne charge **rien** depuis un domaine tiers ; `vite.config.ts` n'a donc
    plus de `runtimeCaching`.
 5bis. **Mise à jour de l'application** : `registerType: 'prompt'` (jamais `autoUpdate`) +
@@ -824,7 +824,7 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
 6. **HashRouter** : les URL sont en `/#/...`. Ne pas remplacer par `BrowserRouter` sans
    configurer le fallback SPA de l'hébergeur ET la `navigateFallback` du service worker.
 7. **`.claude/launch.json` du repo portfolio** contient une entrée `bailiz` (port 5273,
-   `npm --prefix`) utilisée pour le développement piloté depuis l'autre workspace — anecdote
+   `npm --prefix`) utilisée pour le développement piloté depuis l'autre workspace - anecdote
    d'outillage, pas une dépendance du projet.
 8. **Suppression d'entités** : bien supprimable seulement sans baux liés ; locataire cf.
    RGPD, via `lib/rgpd.ts` qui gère déjà la cascade (baux, EDL, photos, PDF). Baux/EDL/
@@ -834,7 +834,7 @@ paginer l'annexe ou réduire la taille de compression dans `lib/images.ts`.
 ## 8. Tests et qualité
 
 ```bash
-npm run lint          # ESLint (flat config) — exécuté en CI avant les tests
+npm run lint          # ESLint (flat config) - exécuté en CI avant les tests
 npm test              # Vitest : toute la suite
 npm run test:watch    # même chose, en continu pendant le développement
 npm run test:coverage # + couverture et seuils (ce que lance la CI)
@@ -844,7 +844,7 @@ npx tsc -b            # type-check strict (aussi exécuté par npm run build)
 
 ### 8.1 Stratégie
 
-Trois niveaux, chacun avec un rôle distinct — et aucun qui cherche à faire le travail des
+Trois niveaux, chacun avec un rôle distinct - et aucun qui cherche à faire le travail des
 autres.
 
 **1. Logique métier (`lib/*.test.ts`, environnement node).** Calculs légaux, comparaison
@@ -854,10 +854,10 @@ sont couverts à ~100 % et des **seuils par domaine** l'imposent (cf. §8.2). Ra
 DOM, aucun rendu.
 
 **2. Écrans (`features/**/*.test.tsx`, environnement jsdom).** Montés avec Testing Library,
-**sur la vraie base** Dexie (`fake-indexeddb`) — la couche de données n'est jamais simulée.
+**sur la vraie base** Dexie (`fake-indexeddb`) - la couche de données n'est jamais simulée.
 C'est délibéré : les défauts de cette application vivent à la jonction, pas dans une fonction
 pure. Un écran qui lit un champ que personne n'écrit, un statut qu'aucune action ne pose, une
-suppression qui laisse des PDF derrière elle — un test qui bouchonne `db` ne verrait rien de
+suppression qui laisse des PDF derrière elle - un test qui bouchonne `db` ne verrait rien de
 tout cela. Les cinq bugs corrigés en août 2026 étaient tous de cette nature, et chacun a
 désormais son test de non-régression.
 
@@ -875,7 +875,7 @@ bail ; la mise en page du courrier a ses propres tests.
 
 **Ce qui n'est volontairement pas testé** : les écrans de paramétrage (`ParametresPage`,
 panneaux de sauvegarde, éditeurs de modèles). Beaucoup de surface, peu de logique, et un coût
-de maintenance supérieur à ce qu'ils protègent. C'est un choix assumé, pas un oubli — s'ils
+de maintenance supérieur à ce qu'ils protègent. C'est un choix assumé, pas un oubli - s'ils
 gagnent de la logique, ils devront gagner des tests.
 
 ### 8.2 Couverture
@@ -893,13 +893,13 @@ finit par baisser.
 Le plancher global est modeste parce que `features/` est fait de vues ; **`branches` est le
 chiffre à regarder** (≈ 82 %) : il mesure les cas traités, pas les lignes traversées. Sont
 exclus du calcul les points d'entrée (`main.tsx`, `App.tsx`), les déclarations de types et les
-catalogues de contenu (`lib/defauts.ts` — des données, exercées indirectement par les tests
+catalogues de contenu (`lib/defauts.ts` - des données, exercées indirectement par les tests
 PDF).
 
 ### 8.3 Outillage des tests d'écran
 
 - `src/test/setup.ts` : matchers `jest-dom`, nettoyage entre tests, et les bouchons jsdom
-  manquants (`matchMedia`, `scrollTo`, `navigator.storage`). Expose `figerDate(iso)` — qui ne
+  manquants (`matchMedia`, `scrollTo`, `navigator.storage`). Expose `figerDate(iso)` - qui ne
   falsifie **que** `Date` : `useFakeTimers()` complet met en défaut `fake-indexeddb` et les
   attentes de Testing Library, et les tests se figent au lieu d'échouer.
 - `src/test/utils.tsx` : `rendre` / `rendreRoute` (routeur + toasts), `viderBase`, et des
@@ -953,7 +953,7 @@ La CI échoue sur toute **erreur** ESLint.
 
 Non couvert automatiquement (vérifié manuellement, cf. critères §8 du cdc) : rendu des PDF,
 parcours UI, PWA hors-ligne. **Règle de maintenance : toute règle légale ajoutée ou modifiée
-dans `calculs.ts`/`etat.ts` doit arriver avec son test** — ce sont les fonctions qui engagent
+dans `calculs.ts`/`etat.ts` doit arriver avec son test** - ce sont les fonctions qui engagent
 la conformité juridique des documents.
 
 ## 9. Build, PWA et déploiement
@@ -979,4 +979,4 @@ la conformité juridique des documents.
 | Signature eIDAS (Yousign/DocuSign) | Hors périmètre : le bail est volontairement signé sur papier. Le PDF « prêt à signer » existe (`documents`) si l'on souhaitait brancher un prestataire |
 | Quittances / suivi des paiements | Nouvelle table Dexie + type de document ; les séquences et la bibliothèque absorbent un nouveau `TypeDocument` sans refonte |
 | Synchronisation multi-appareils | Le format d'export ZIP (§4.4) est le pivot : mêmes ids partout, fusion par id déjà implémentée |
-| Comptabilité LMNP | Hors périmètre — ne pas mélanger avec ce code, prévoir un module séparé |
+| Comptabilité LMNP | Hors périmètre - ne pas mélanger avec ce code, prévoir un module séparé |

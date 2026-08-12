@@ -19,7 +19,7 @@ export async function rendrePdf(document: DocElement): Promise<Blob> {
 /**
  * Photo d'un bien convertie en data-URL : react-pdf ne sait pas rendre un Blob.
  * Renvoie `undefined` si le bien n'a pas de photo, ou si elle a disparu de la
- * base (restauration partielle) — un document ne doit pas échouer pour autant.
+ * base (restauration partielle) - un document ne doit pas échouer pour autant.
  */
 export async function photoBienEnDataUrl(photoId?: string): Promise<string | undefined> {
   if (!photoId) return undefined;
@@ -85,7 +85,7 @@ export function nomsPersonnes(personnes: { prenom: string; nom: string }[]): str
 }
 
 /**
- * Nom de fichier explicite : « BAIL-2026-0001 - Bail meublé — T2 Chamalières —
+ * Nom de fichier explicite : « BAIL-2026-0001 - Bail meublé - T2 Chamalières -
  * Marie Dupont - 2026-07-07.pdf ». Caractères interdits remplacés.
  */
 export function nomFichierDocument(doc: {

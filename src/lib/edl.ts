@@ -6,7 +6,7 @@ import type { Bail, Bien, ElementEDL, EtatDesLieux, PieceEDL, PieceModele } from
 
 /**
  * Compteurs pré-remplis : numéros repris du logement (ou, à défaut, de l'EDL
- * d'entrée), relevés remis à zéro — un numéro de compteur (PDL, PCE, n° de
+ * d'entrée), relevés remis à zéro - un numéro de compteur (PDL, PCE, n° de
  * série) appartient au logement et ne change pas d'un locataire à l'autre.
  */
 export function compteursInitiaux(bien: Bien, edlEntree?: EtatDesLieux): EtatDesLieux['compteurs'] {
@@ -79,7 +79,7 @@ export function pieceDepuisModele(nomModele: string, ordre: number, suffixe?: nu
  * Trame proposée pour un logement qui n'a pas encore de pièces : déduite de son
  * type et de son nombre de pièces.
  *
- * Une proposition, pas une contrainte — elle s'ajuste dans le formulaire, et le
+ * Une proposition, pas une contrainte - elle s'ajuste dans le formulaire, et le
  * terrain l'enrichit de toute façon. Le but est qu'un état des lieux commencé
  * sur un logement créé à la volée ne s'ouvre pas sur une liste vide.
  */
@@ -124,7 +124,7 @@ export interface CreationEtatDesLieux {
 }
 
 /**
- * Crée et enregistre un état des lieux — **seul chemin de création**, appelé
+ * Crée et enregistre un état des lieux - **seul chemin de création**, appelé
  * aussi bien depuis la fiche d'un bail que depuis le formulaire rapide.
  *
  * Une sortie sans EDL d'entrée dans l'application n'est pas refusée : l'entrée a

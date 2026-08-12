@@ -6,7 +6,7 @@ import { Button, Checkbox, Field, Input, Section, Select } from '@/components/ui
  * Section « Locataire(s) » du formulaire de bail. Chaque locataire provient
  * d'une fiche enregistrée : la saisie se fait exclusivement via le formulaire
  * locataire partagé (modale), jamais dupliquée ici. Un emplacement laissé vide
- * reste imprimable — le PDF affiche alors des zones à compléter à la main.
+ * reste imprimable - le PDF affiche alors des zones à compléter à la main.
  */
 export function SectionLocataires({
   saisie,
@@ -58,7 +58,7 @@ export function SectionLocataires({
               <div className="min-w-0 flex-1">
                 <Field label="Fiche locataire">
                   <Select value={l.id ?? ''} onChange={(e) => majLoc(i, { id: e.target.value || undefined })}>
-                    <option value="">— Aucun locataire sélectionné —</option>
+                    <option value="">- Aucun locataire sélectionné -</option>
                     {locatairesEnr.map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.civilite} {x.prenom} {x.nom}
@@ -100,7 +100,7 @@ export function SectionLocataires({
                 {enr.garant && enr.garant.type === 'visale' && (
                   <p className="mt-2 text-xs text-accent-600">
                     Garantie Visale : contrat de cautionnement à activer sur votre espace bailleur
-                    visale.fr avec le visa transmis par le locataire — rien à générer ici.
+                    visale.fr avec le visa transmis par le locataire - rien à générer ici.
                   </p>
                 )}
               </div>
@@ -126,7 +126,7 @@ export function SectionLocataires({
             onChange={(e) => maj({ clauseSolidarite: e.target.checked })}
           />
           <Field
-            label="Assurance souscrite par le bailleur pour les colocataires — montant annuel (€)"
+            label="Assurance souscrite par le bailleur pour les colocataires - montant annuel (€)"
             hint="Laissez vide si les colocataires s'assurent eux-mêmes."
           >
             <Input

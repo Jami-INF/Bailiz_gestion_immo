@@ -8,7 +8,7 @@ import type { DepotDistant, Espace, FichierDistant } from './depot';
 
 /**
  * Dépôt distant adossé à Google Drive : traduit le contrat `DepotDistant` en
- * appels de l'API Drive v3. Aucune règle métier ici — la convergence est
+ * appels de l'API Drive v3. Aucune règle métier ici - la convergence est
  * décidée dans `protocole.ts`, ce module ne fait que lire et écrire.
  */
 
@@ -58,14 +58,14 @@ async function assurerSousDossier(
  * Les résoudre coûte une requête chacun, et un cycle a lieu toutes les cinq
  * minutes : sans ce cache, l'ouverture du dépôt pèserait plus que l'échange
  * lui-même. Un dossier supprimé à la main sur le Drive rendrait le cache faux,
- * mais l'écriture échouerait alors franchement plutôt que d'écrire ailleurs —
+ * mais l'écriture échouerait alors franchement plutôt que d'écrire ailleurs -
  * et recharger l'application suffit à repartir.
  */
 const sousDossiers = new Map<string, Record<Espace, string>>();
 
 /**
  * Prépare le dépôt : jeton, dossier « Bailiz » et ses sous-dossiers.
- * `null` quand l'autorisation Google n'est pas disponible — la synchronisation
+ * `null` quand l'autorisation Google n'est pas disponible - la synchronisation
  * est alors simplement reportée.
  */
 export async function ouvrirDepotDrive(interactif: boolean): Promise<DepotDistant | null> {
@@ -146,8 +146,8 @@ export async function ouvrirDepotDrive(interactif: boolean): Promise<DepotDistan
       } catch (e) {
         /*
          * Le fichier a disparu : un autre appareil a supprimé la fiche pendant
-         * qu'on la modifiait ici. Abandonner bloquerait le cycle — et donc tout
-         * le reste de la file d'attente — pour un cas parfaitement normal en
+         * qu'on la modifiait ici. Abandonner bloquerait le cycle - et donc tout
+         * le reste de la file d'attente - pour un cas parfaitement normal en
          * usage à deux appareils. On recrée, et l'arbitrage par horodatage
          * décidera au prochain cycle qui de la suppression ou de la
          * modification l'emporte.

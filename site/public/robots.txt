@@ -1,11 +1,11 @@
-# Bailiz — https://bailiz.fr
+# Bailiz - https://bailiz.fr
 #
 # L'application (/app/) ne doit pas être indexée : c'est une coquille rendue en
 # JavaScript, dont le seul contenu visible serait un tableau de bord vide. Elle
 # concurrencerait la vitrine sur les requêtes de marque en offrant une bien plus
 # mauvaise première visite.
 #
-# Elle est donc en `noindex` dans son propre HTML — et NON bloquée ici.
+# Elle est donc en `noindex` dans son propre HTML - et NON bloquée ici.
 # Un `Disallow: /app/` serait contre-productif : il empêcherait les moteurs de
 # lire la balise `noindex`, et l'URL pourrait rester indexée sans son contenu.
 # Pour désindexer, il faut laisser explorer.

@@ -273,7 +273,7 @@ describe('fusionnerParametres', () => {
     expect(collisions).toEqual([]);
   });
 
-  it('sans référence, une section configurée ici prime — et la collision est signalée', () => {
+  it('sans référence, une section configurée ici prime - et la collision est signalée', () => {
     // L'autre appareil, lui, a une référence : il adoptera cette version au
     // cycle suivant. La convergence est assurée dans ce sens-là.
     const { fusionne, collisions } = fusionner(avecNom('Configuré ici'), avecNom('Drive'));

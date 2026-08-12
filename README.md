@@ -1,8 +1,8 @@
-# Bailiz — Gestion locative LMNP (Baux & États des lieux)
+# Bailiz - Gestion locative LMNP (Baux & États des lieux)
 
 Application web 100 % côté client pour bailleur particulier en LMNP : rédaction de baux
-meublés conformes prêts à imprimer, états des lieux d'entrée/sortie comparatifs avec photos —
-l'état des lieux valant **inventaire du mobilier** —, signature sur écran horodatée et hachée
+meublés conformes prêts à imprimer, états des lieux d'entrée/sortie comparatifs avec photos -
+l'état des lieux valant **inventaire du mobilier** -, signature sur écran horodatée et hachée
 (SHA-256), calcul des retenues sur dépôt de garantie avec grille de vétusté.
 
 **Aucun backend, aucun compte** : toutes les données restent dans le navigateur (IndexedDB).
@@ -18,7 +18,7 @@ https://jami-inf.github.io/Bailiz_gestion_immo/
   PDF est toujours reconstruit à partir des données courantes (jamais de version périmée).
 - **L'état des lieux** (et l'inventaire qu'il contient) se remplit et se signe **sur place, sur
   tablette** : la signature électronique y est admise (décret n°2016-382). Après signature il est
-  verrouillé, mais peut être **rectifié** si les deux parties re-signent — la version précédente
+  verrouillé, mais peut être **rectifié** si les deux parties re-signent - la version précédente
   est alors conservée et le nouveau document porte la mention « annule et remplace ».
 - Les champs laissés vides deviennent des **zones pointillées à compléter à la main** : on peut
   imprimer un bail partiellement rempli et finir sur place.
@@ -33,7 +33,7 @@ https://jami-inf.github.io/Bailiz_gestion_immo/
 - `react-router-dom` v7, `react-hook-form` + `zod`, `dexie-react-hooks`, `signature_pad`,
   `date-fns` (locale fr), `jszip`, `lucide-react`
 - Qualité : ESLint (flat config), Vitest + Testing Library (`fake-indexeddb` pour la couche
-  Dexie), couverture v8 avec seuils par domaine — 390 tests, cf. `docs/DOCUMENTATION_TECHNIQUE.md` §8
+  Dexie), couverture v8 avec seuils par domaine - 390 tests, cf. `docs/DOCUMENTATION_TECHNIQUE.md` §8
 
 ## Démarrer
 
@@ -50,7 +50,7 @@ npm run build      # build de production + PWA
 
 ### Biens
 - **Saisie enregistrée en continu** : le formulaire en cinq étapes s'écrit dans le navigateur
-  à chaque frappe et se retrouve intact au retour — un rechargement ou une notification qui
+  à chaque frappe et se retrouve intact au retour - un rechargement ou une notification qui
   passe au premier plan ne coûte plus la saisie. Ce sont les données du formulaire qui sont
   conservées, jamais une fiche à demi remplie : rien n'apparaît dans les listes tant que vous
   n'avez pas enregistré, et « Repartir de la fiche enregistrée » écarte la saisie en cours.
@@ -68,7 +68,7 @@ npm run build      # build de production + PWA
   fiche de visite.
 - **Conditions de location portées par le logement** (loyer, charges, dépôt, disponibilité,
   accès, conditions particulières) : elles pré-remplissent le formulaire de bail dès qu'on
-  choisit le bien, et sont mises à jour à l'enregistrement du bail — le loyer évoluant peu, la
+  choisit le bien, et sont mises à jour à l'enregistrement du bail - le loyer évoluant peu, la
   fiche reste juste sans saisie en double.
 
 ### Visites
@@ -90,19 +90,19 @@ npm run build      # build de production + PWA
   contrat de cautionnement est alors émis par Action Logement, rien à rédiger).
 - Le **même formulaire** sert depuis la fiche Locataires et depuis le formulaire de bail :
   une seule source de champs, aucune divergence de données.
-- **RGPD — suppression définitive réellement complète** : supprimer un locataire efface aussi
+- **RGPD - suppression définitive réellement complète** : supprimer un locataire efface aussi
   ses baux, états des lieux, photos et **PDF archivés** (qui portent son nom et ses
   coordonnées). Les états des lieux sont retrouvés **par leurs parties autant que par le bail** :
   un constat établi sans bail, qui porte pourtant son nom, sa signature manuscrite et son
   horodatage, échapperait sinon entièrement à l'effacement. Le périmètre exact est annoncé avant
   confirmation. En colocation, le bail est conservé et le locataire simplement retiré ; un état
-  des lieux signé, lui, n'est jamais amputé d'un signataire — il est conservé tel quel, et
+  des lieux signé, lui, n'est jamais amputé d'un signataire - il est conservé tel quel, et
   l'annonce le dit. La suppression reste bloquée si un bail actif y est lié.
 
 ### Bailleur
 - **Trois qualités** : personne physique, **indivision** (tous les coïndivisaires figurent au
   bail, qui rappelle qu'ils agissent conjointement) et **personne morale** (SCI, SARL de
-  famille : dénomination, forme, capital, RCS, siège social et représentant légal — c'est lui
+  famille : dénomination, forme, capital, RCS, siège social et représentant légal - c'est lui
   qui signe, avec sa fonction). La désignation des parties du bail s'adapte, ainsi que tous
   les courriers.
 
@@ -111,7 +111,7 @@ npm run build      # build de production + PWA
   type & durée → loyer & charges → clauses & travaux. Le bien et les locataires peuvent être
   choisis parmi les fiches enregistrées **ou créés à la volée** sans quitter le formulaire.
 - **Validation non bloquante** : les incohérences légales (DPE G, dépôt > 2 mois, durée
-  atypique) s'affichent en avertissements — le but est de produire un document à compléter,
+  atypique) s'affichent en avertissements - le but est de produire un document à compléter,
   jamais de bloquer.
 - **Modifiable et régénérable à l'infini** : « Modifier » rouvre le formulaire pré-rempli,
   l'enregistrement met à jour le bail et régénère son PDF (même référence, aucun doublon).
@@ -122,7 +122,7 @@ npm run build      # build de production + PWA
   travaux, dépôt de garantie en toutes lettres, **clause résolutoire**, dernier loyer de
   l'ancien locataire, honoraires « néant », SIRET LMNP…
 - **Conditions générales d'occupation** (partie X) : une vingtaine de clauses **licites et
-  favorables au bailleur** — droit de visite limité à 2 h par jour ouvrable, interdiction de
+  favorables au bailleur** - droit de visite limité à 2 h par jour ouvrable, interdiction de
   sous-louer et de louer en meublé de tourisme, réparations locatives du décret 87-712, entretien
   annuel de la chaudière et ramonage avec justificatifs, prévention des désordres et déclaration
   des sinistres, assurance et attestation annuelle, règlement de copropriété, animaux, sécurité.
@@ -130,19 +130,19 @@ npm run build      # build de production + PWA
   bail. S'y ajoutent les notifications par courriel (hors congé, qui reste en LRAR ou par acte),
   la nouvelle adresse à communiquer au départ, la ventilation mécanique, les abonnements
   individuels et l'état des lieux par commissaire de justice en cas de désaccord. Les clauses réputées non écrites (pénalités, frais de relance, responsabilité automatique,
-  assurance imposée…) sont volontairement absentes — voir `docs/CDC-bail-clauses.md`.
+  assurance imposée…) sont volontairement absentes - voir `docs/CDC-bail-clauses.md`.
 - **Clause résolutoire obligatoire** (loi du 27 juillet 2023) : impayés, dépôt de garantie,
   assurance, troubles de voisinage, avec le délai de six semaines rappelé. Motif facultatif
   supplémentaire si le logement est soumis à la servitude de résidence principale.
 - **Numérotation calculée** : retirer une partie (pas de colocation, aucune condition générale)
-  ou une sous-partie (pas d'annexe, pas de partie commune) ne laisse aucun trou — ni « IX puis
-  XI », ni « A, B, E » — et le sommaire est construit depuis la même liste que le corps.
+  ou une sous-partie (pas d'annexe, pas de partie commune) ne laisse aucun trou - ni « IX puis
+  XI », ni « A, B, E » - et le sommaire est construit depuis la même liste que le corps.
 - **Loyer révisable par défaut** : sans clause d'indexation IRL au contrat, aucune augmentation
   n'est possible en cours de bail, et l'oubli est irrattrapable une fois signé.
 - **Page de garde et sommaire** : photo du logement, récapitulatif (parties, logement, loyer CC,
   dépôt, durée) et liste des parties ; paraphes en pied de chaque page tant que le bail n'est pas signé.
 - **Annexes générées selon le logement** : le dossier de diagnostic technique n'est pas le même
-  partout — CREP seulement avant 1949, états gaz et électricité seulement au-delà de 15 ans, ERP
+  partout - CREP seulement avant 1949, états gaz et électricité seulement au-delà de 15 ans, ERP
   selon la commune (daté de moins de 6 mois), diagnostic bruit en zone d'aérodrome. Tant qu'une
   condition n'est pas renseignée sur la fiche du bien, la pièce reste listée avec sa condition.
 - **Checklist des pièces à remettre** par le locataire, imprimée en fin de bail et adaptée au
@@ -154,17 +154,17 @@ npm run build      # build de production + PWA
   main), grille de vétusté, courrier de révision IRL, lettre de restitution du dépôt.
 - Calculateurs : prorata du premier loyer, révision IRL avec courrier PDF.
 
-### États des lieux — valant inventaire (cœur de l'app, optimisé iPad)
+### États des lieux - valant inventaire (cœur de l'app, optimisé iPad)
 - **Aucun bail n'est nécessaire** : l'état des lieux est un acte autonome (art. 3-2 de la loi du
   6 juillet 1989). « Nouvel état des lieux » est une action de premier niveau, au même rang que
-  « Rédiger un bail » : le logement et le ou les locataires se saisissent dans le formulaire —
-  ou se créent à la volée — et le constat commence. Le contrat peut avoir été signé sur papier,
+  « Rédiger un bail » : le logement et le ou les locataires se saisissent dans le formulaire -
+  ou se créent à la volée - et le constat commence. Le contrat peut avoir été signé sur papier,
   rédigé par une agence ou repris d'un modèle : sa référence et sa date sont simplement citées
   sur le document. Un bail rédigé plus tard **se rattache après coup**, y compris à un état des
-  lieux déjà signé — c'est un classement, le PDF signé et son empreinte ne sont pas régénérés.
+  lieux déjà signé - c'est un classement, le PDF signé et son empreinte ne sont pas régénérés.
 - **Sortie possible sans état des lieux d'entrée dans l'application** : soit l'entrée existe sur
   papier et ses états se **reportent** élément par élément (second sélecteur en mode terrain,
-  puis comparatif et retenues comme d'habitude), soit aucune entrée n'a été établie — et
+  puis comparatif et retenues comme d'habitude), soit aucune entrée n'a été établie - et
   l'application le dit, sur l'écran comme sur le PDF : à défaut d'état des lieux d'entrée, le
   logement est réputé avoir été reçu en bon état (art. 1731 du code civil), et le constat de
   sortie ne fonde à lui seul aucune retenue. Averti, jamais bloqué.
@@ -172,7 +172,7 @@ npm run build      # build de production + PWA
   est enregistrée sur sa fiche : le mode terrain ne s'ouvre jamais sur une liste vide, et les
   états des lieux suivants la retrouvent.
 - **Renseigner d'un coup les éléments restants d'une pièce** : dans un logement en bon état,
-  presque tout partage le même état — on le pose sur les éléments encore vierges, puis on
+  presque tout partage le même état - on le pose sur les éléments encore vierges, puis on
   corrige les exceptions. Ce que vous avez déjà relevé n'est jamais réécrit.
 - **Récapitulatif des oublis avant signature** : « N éléments non renseignés » se déplie en
   liste cliquable qui mène droit à la pièce concernée, plutôt qu'une barre de progression qui
@@ -192,7 +192,7 @@ npm run build      # build de production + PWA
 - Synthèse comparative : éléments dégradés avec photos entrée/sortie côte à côte, coût de
   remise en état × coefficient de vétusté, total des retenues, lettre de restitution du dépôt
   (délais légaux 1/2 mois, majoration 10 %/mois). Le **montant du dépôt** se saisit sur l'état
-  des lieux à défaut de bail enregistré — tout le décompte, la lettre et l'alerte de délai du
+  des lieux à défaut de bail enregistré - tout le décompte, la lettre et l'alerte de délai du
   tableau de bord fonctionnent alors à l'identique.
 - Signature sur écran : relecture obligatoire → nom tapé + « lu et approuvé » → signature au
   doigt/stylet → horodatage ISO 8601 → PDF final → **empreinte SHA-256** en pied de page →
@@ -202,7 +202,7 @@ npm run build      # build de production + PWA
 
 ### Documents & sauvegarde
 - **Recherche et tri** sur les biens, les locataires et les baux (nom, adresse, référence,
-  locataire…), insensibles aux accents — « chamalieres » trouve « Chamalières ». La barre
+  locataire…), insensibles aux accents - « chamalieres » trouve « Chamalières ». La barre
   n'apparaît qu'à partir de six fiches : à deux biens, elle n'occuperait que de la place.
 - Bibliothèque de tous les PDF générés, filtrable par bien / bail / type, numérotation
   `TYPE-ANNEE-XXXX` (séquence remise à zéro chaque année).
@@ -210,12 +210,12 @@ npm run build      # build de production + PWA
   (« remplacer tout » ou « fusionner par id »). Rappel si la sauvegarde date de plus de 30 jours.
 - **Sauvegarde automatique « push ZIP »**, deux destinations cumulables, zéro serveur :
   un dossier local synchronisé par votre cloud (Chrome/Edge desktop, File System Access)
-  et/ou **Google Drive via l'API** (tous navigateurs, y compris Safari/iPad — scope
+  et/ou **Google Drive via l'API** (tous navigateurs, y compris Safari/iPad - scope
   `drive.file` limité aux fichiers de l'app, ID client OAuth **pré-rempli**). Déclencheurs :
   après chaque signature, à chaque modification (regroupées), à l'ouverture ; reprise au retour
   du réseau ; rotation des 10 dernières archives.
 - **Détection de divergence entre appareils** : chaque archive envoyée sur le Drive porte
-  l'identité de l'appareil d'origine. Avant tout envoi — et à l'ouverture — l'application
+  l'identité de l'appareil d'origine. Avant tout envoi - et à l'ouverture - l'application
   vérifie qu'un autre appareil n'a pas sauvegardé entre-temps. Si c'est le cas, **l'envoi est
   suspendu** plutôt que de recouvrir la version la plus récente : les Paramètres proposent alors
   de reprendre la sauvegarde du Drive ou d'envoyer quand même. Sans autorisation Google valide,
@@ -224,7 +224,7 @@ npm run build      # build de production + PWA
   au lieu d'envoyer une archive complète, l'application échange **fiche par fiche** avec le
   Drive. Les modifications faites en parallèle sur l'iPad et l'ordinateur se rejoignent au lieu
   de s'écraser, les photos ne remontent **qu'une seule fois**, et les modifications faites
-  hors-ligne repartent au retour du réseau. Les suppressions se propagent — y compris
+  hors-ligne repartent au retour du réseau. Les suppressions se propagent - y compris
   l'effacement définitif d'un locataire, qui ne revient jamais.
   - En cas de conflit sur un même enregistrement : le plus récemment modifié l'emporte, jamais
     de fusion à moitié. Deux garde-fous interrompent le cycle plutôt que d'agir à l'aveugle :
@@ -234,22 +234,22 @@ npm run build      # build de production + PWA
   - Un **instantané ZIP hebdomadaire** (4 conservés) reste déposé à côté, jamais fusionné :
     une version vivante qui se met à jour seule mérite un filet figé.
 - Persistance du stockage demandée au navigateur (`navigator.storage.persist()`), et
-  **espace occupé affiché** — avec alerte au-delà de 80 % : les photos d'états des lieux
+  **espace occupé affiché** - avec alerte au-delà de 80 % : les photos d'états des lieux
   s'accumulent sans qu'on les voie, et le quota se découvre sinon le jour où une écriture
   échoue, en plein état des lieux.
 - **Import de sauvegarde vérifié avant toute écriture** : version du format et présence de
   chaque collection. Une archive écrite par une version plus récente est refusée avec la
-  marche à suivre, et rien n'est modifié — plutôt que d'échouer à mi-parcours après avoir
+  marche à suivre, et rien n'est modifié - plutôt que d'échouer à mi-parcours après avoir
   vidé les tables.
 - **Vérificateur d'empreinte** (Paramètres) : déposez un PDF signé, l'application recalcule son
-  SHA-256 et dit à quel document il correspond — ou signale qu'il a été modifié. Les versions
+  SHA-256 et dit à quel document il correspond - ou signale qu'il a été modifié. Les versions
   rectifiées sont reconnues comme authentiques mais remplacées. Une empreinte lue sur un
   exemplaire papier peut être saisie à la main. Le fichier ne quitte pas l'appareil.
 - **Mise à jour proposée, jamais imposée** : la nouvelle version s'installe au clic, et le
   bandeau reste masqué en mode terrain. Une prise de contrôle automatique peut recharger la
   page au milieu d'un état des lieux, devant le locataire.
 - **Diagnostic des pannes** : les échecs affichent un **code d'étape et la cause réelle**
-  (stockage saturé, permission refusée…) plutôt qu'un message générique — indispensable sur
+  (stockage saturé, permission refusée…) plutôt qu'un message générique - indispensable sur
   tablette, où la console n'est pas consultable. Les toasts d'erreur restent affichés jusqu'à
   fermeture manuelle.
 
@@ -257,12 +257,12 @@ npm run build      # build de production + PWA
 - Biens avec statut loué/vacant, alertes (EDL d'entrée signé sans bail signé, dépôt à restituer
   avant l'échéance légale, stockage saturé, sauvegarde ancienne), échéancier.
 - **Reconduction tacite distinguée de la fin de plein droit** : un meublé d'un an se reconduit
-  faute de congé — l'échéancier l'annonce comme tel et ajoute la date **limite pour donner
+  faute de congé - l'échéancier l'annonce comme tel et ajoute la date **limite pour donner
   congé** (trois mois avant le terme). Les baux étudiant et mobilité s'arrêtent seuls : aucun
   congé n'est annoncé.
   Un logement est « loué » dès qu'un bail est enregistré pour lui, et l'état des lieux d'entrée
   signé rend le bail actif : aucune échéance ne dépend d'un clic qu'on aurait oublié.
-  Les dates de validité des diagnostics ne sont pas suivies — c'est le dossier joint qui fait foi.
+  Les dates de validité des diagnostics ne sont pas suivies - c'est le dossier joint qui fait foi.
 
 ## Structure
 

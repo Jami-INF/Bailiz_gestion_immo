@@ -3,7 +3,7 @@
  *
  * La stratégie est **`prompt`**, pas `autoUpdate` : le service worker prend la
  * main uniquement quand l'utilisateur l'accepte. Une mise à jour silencieuse
- * peut recharger la page — au pire moment, c'est-à-dire pendant un état des
+ * peut recharger la page - au pire moment, c'est-à-dire pendant un état des
  * lieux saisi sur tablette, sur place, devant le locataire.
  *
  * `registerSW` s'exécute hors de React (`main.tsx`) : ce module fait le pont,
@@ -45,7 +45,7 @@ export async function appliquerMiseAJour(): Promise<void> {
   await appliquer();
 }
 
-/** Remise à zéro — tests uniquement. */
+/** Remise à zéro - tests uniquement. */
 export function reinitialiserMiseAJour(): void {
   disponible = false;
   appliquer = undefined;

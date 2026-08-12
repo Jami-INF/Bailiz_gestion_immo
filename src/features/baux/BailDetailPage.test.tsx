@@ -8,7 +8,7 @@ import { figerDate } from '@/test/setup';
 
 /*
  * Le rendu PDF est neutralisé : ce parcours vérifie ce que la révision **écrit
- * dans le bail**, pas la mise en page du courrier — laquelle a ses propres
+ * dans le bail**, pas la mise en page du courrier - laquelle a ses propres
  * tests dans `lib/pdf/`. Sans ce bouchon, chaque cas paierait une seconde de
  * rendu pour un résultat qu'il ne regarde pas.
  */
@@ -63,7 +63,7 @@ describe('révision IRL', () => {
     });
   });
 
-  it('laisse intact le loyer du contrat — le bail doit se régénérer à l’identique', async () => {
+  it('laisse intact le loyer du contrat - le bail doit se régénérer à l’identique', async () => {
     await semer();
     rendreBail();
     await reviser('2e trimestre 2026', '149.03');
@@ -136,7 +136,7 @@ describe('révision IRL', () => {
   });
 });
 
-describe('fiche de bail — robustesse', () => {
+describe('fiche de bail - robustesse', () => {
   it('reste consultable et supprimable quand le bien a disparu', async () => {
     await semer();
     await db.biens.clear();

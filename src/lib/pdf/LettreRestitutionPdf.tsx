@@ -35,7 +35,7 @@ export function LettreRestitutionPdf(p: Props) {
   const largeurs = ['30%', '20%', '17%', '16%', '17%'];
 
   return (
-    <Document title={`${p.reference} — Restitution du dépôt de garantie`} language="fr">
+    <Document title={`${p.reference} - Restitution du dépôt de garantie`} language="fr">
       <Page size="A4" style={s.page}>
         <EntetePdf reference={p.reference} docTitre="Restitution du dépôt de garantie" />
         <View style={{ marginBottom: 12 }}>
@@ -51,7 +51,7 @@ export function LettreRestitutionPdf(p: Props) {
           {p.nouvelleAdresse && <Text>{p.nouvelleAdresse}</Text>}
         </View>
         <Text style={s.p}>
-          Objet : restitution du dépôt de garantie —{' '}
+          Objet : restitution du dépôt de garantie -{' '}
           {p.bailReference ? `bail ${p.bailReference}, ` : ''}logement situé{' '}
           {formatAdresse(p.bien.adresse)}.
         </Text>

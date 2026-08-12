@@ -10,13 +10,13 @@ import { EntetePdf, PiedDePagePdf, formatDateFr, pdfStyles as s } from './commun
  */
 export function FicheAidePdf({ reference }: { reference: string }) {
   return (
-    <Document title={`${reference} — Fiche d'aide juridique du bailleur meublé`} language="fr">
+    <Document title={`${reference} - Fiche d'aide juridique du bailleur meublé`} language="fr">
       <Page size="A4" style={s.page}>
-        <EntetePdf reference={reference} docTitre="Fiche d'aide juridique — location meublée" />
+        <EntetePdf reference={reference} docTitre="Fiche d'aide juridique - location meublée" />
         <Text style={s.titre}>Fiche d'aide juridique du bailleur meublé</Text>
         <Text style={s.sousTitre}>
           Résidence principale, location meublée (titre Ier bis de la loi du 6 juillet 1989).
-          Générée le {formatDateFr(new Date().toISOString())} — les règles évoluent : vérifiez
+          Générée le {formatDateFr(new Date().toISOString())} - les règles évoluent : vérifiez
           sur service-public.fr avant toute action contentieuse. Ce document est une aide, pas
           un conseil juridique.
         </Text>
@@ -36,7 +36,7 @@ export function FicheAidePdf({ reference }: { reference: string }) {
         <Text style={s.h3}>Congé donné par le bailleur</Text>
         <Text style={s.p}>
           – Uniquement pour l'échéance du bail, avec un préavis de 3 mois, et pour l'un des
-          trois motifs suivants : reprise pour habiter (vous ou un proche — préciser nom et
+          trois motifs suivants : reprise pour habiter (vous ou un proche - préciser nom et
           lien), vente du logement, ou motif légitime et sérieux (impayés répétés, troubles…).
           Le congé doit être motivé, sous peine de nullité.
         </Text>
@@ -73,7 +73,7 @@ export function FicheAidePdf({ reference }: { reference: string }) {
         <Text style={s.p}>
           c) Clause résolutoire : faire délivrer par commissaire de justice un commandement de
           payer. Le locataire dispose de 6 semaines pour régler (baux signés depuis le 29
-          juillet 2023 — loi n°2023-668 ; 2 mois pour les baux antérieurs). À défaut de
+          juillet 2023 - loi n°2023-668 ; 2 mois pour les baux antérieurs). À défaut de
           paiement, saisir le juge des contentieux de la protection pour constater la
           résiliation et ordonner l'expulsion.
         </Text>
@@ -116,7 +116,7 @@ export function FicheAidePdf({ reference }: { reference: string }) {
           elle ne rétroagit pas (elle prend effet à la date de la demande).
         </Text>
         <Text style={s.p}>
-          – Prescription générale des loyers, charges et régularisations : 3 ans (art. 7-1) —
+          – Prescription générale des loyers, charges et régularisations : 3 ans (art. 7-1) -
           au-delà, les sommes ne sont plus récupérables.
         </Text>
         <Text style={s.p}>

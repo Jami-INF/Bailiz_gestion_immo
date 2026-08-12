@@ -66,7 +66,7 @@ interface Props {
 }
 
 /**
- * État des lieux d'entrée ou de sortie — conforme au décret n°2016-382
+ * État des lieux d'entrée ou de sortie - conforme au décret n°2016-382
  * du 30 mars 2016. L'EDL de sortie affiche la comparaison poste par poste
  * avec l'EDL d'entrée.
  */
@@ -83,18 +83,18 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
     : ['25%', '18%', '57%'];
 
   return (
-    <Document title={`${edl.reference} — ${titre}`} language="fr">
+    <Document title={`${edl.reference} - ${titre}`} language="fr">
       <Page size="A4" style={s.page}>
         <EntetePdf reference={edl.reference} docTitre={titre} />
         <Text style={s.titre}>{titre}</Text>
         <Text style={s.sousTitre}>
-          Établi contradictoirement entre les parties le {formatDateFr(edl.date)} — art. 3-2 de
+          Établi contradictoirement entre les parties le {formatDateFr(edl.date)} - art. 3-2 de
           la loi n°89-462 du 6 juillet 1989 et décret n°2016-382 du 30 mars 2016.{' '}
           {mentionBail(bail, edl.bailExterne)}
         </Text>
         {edl.rectifications && edl.rectifications.length > 0 && (
           <Text style={[s.petit, { textAlign: 'center', marginBottom: 6 }]}>
-            Version rectificative n°{edl.rectifications.length} — annule et remplace la version signée
+            Version rectificative n°{edl.rectifications.length} - annule et remplace la version signée
             du {formatDateFr(edl.rectifications[edl.rectifications.length - 1].dateSignature, true)}
             {edl.rectifications[edl.rectifications.length - 1].pdfHash
               ? `, empreinte ${edl.rectifications[edl.rectifications.length - 1].pdfHash!.slice(0, 16)}…`
@@ -113,7 +113,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
           {bien.adresse.ligne2 ? `, ${bien.adresse.ligne2}` : ''}, {bien.adresse.codePostal}{' '}
           {bien.adresse.ville}
           {bien.batiment ? `, bâtiment ${bien.batiment}` : ''}
-          {bien.etage ? `, étage ${bien.etage}` : ''} — {bien.type}, {bien.surfaceBoutin} m².
+          {bien.etage ? `, étage ${bien.etage}` : ''} - {bien.type}, {bien.surfaceBoutin} m².
         </Text>
 
         <Text style={s.h2}>Parties</Text>
@@ -145,7 +145,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
           {edl.compteurs.map((c, i) => (
             <View style={s.ligneTableau} key={i}>
               <Text style={[s.cellule, { width: '30%' }]}>{COMPTEUR_LABELS[c.type]}</Text>
-              <Text style={[s.cellule, { width: '35%' }]}>{c.numero ?? '—'}</Text>
+              <Text style={[s.cellule, { width: '35%' }]}>{c.numero ?? '-'}</Text>
               <Text style={[s.cellule, { width: '35%' }]}>{c.releve}</Text>
             </View>
           ))}
@@ -204,10 +204,10 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
                             ? 'non établi'
                             : el.etatEntree
                               ? ETAT_LABELS[el.etatEntree]
-                              : '—'}
+                              : '-'}
                         </Text>
                         <Text style={[s.cellule, { width: largeurs[2] }]}>
-                          {el.manquant ? 'Manquant' : el.etat ? ETAT_LABELS[el.etat] : '—'}
+                          {el.manquant ? 'Manquant' : el.etat ? ETAT_LABELS[el.etat] : '-'}
                         </Text>
                         <Text style={[s.cellule, { width: largeurs[3] }]}>
                           {el.degradation ? 'OUI' : ''}
@@ -218,7 +218,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
                             el.commentaire ? `Sortie : ${el.commentaire}` : '',
                           ]
                             .filter(Boolean)
-                            .join(' — ')}
+                            .join(' - ')}
                         </Text>
                       </>
                     ) : (
@@ -246,7 +246,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
             {comparaisons.map((c, i) => (
               <View key={i} style={[s.carte, { marginTop: 8 }]} wrap={false}>
                 <Text style={s.gras}>
-                  {c.pieceNom} — {c.elementNom}
+                  {c.pieceNom} - {c.elementNom}
                 </Text>
                 <Text style={[s.petit, { marginBottom: 5 }]}>
                   Entrée : {c.etatEntree ?? 'non renseigné'} {'>>'} Sortie : {c.etatSortie}
@@ -304,7 +304,7 @@ export function EdlPdf({ edl, bail, bien, locataires, parametres, photos, compar
 
       {photos.length > 0 && (
         <Page size="A4" style={s.page}>
-          <EntetePdf reference={edl.reference} docTitre={`${titre} — Annexe photographique`} />
+          <EntetePdf reference={edl.reference} docTitre={`${titre} - Annexe photographique`} />
           <Text style={s.titre}>Annexe photographique</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {photos.map((p, i) => (

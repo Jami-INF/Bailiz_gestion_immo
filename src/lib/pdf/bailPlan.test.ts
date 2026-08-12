@@ -23,7 +23,7 @@ describe('lettrer', () => {
   });
 });
 
-describe('planDuContrat — parties', () => {
+describe('planDuContrat - parties', () => {
   it('numérote sans trou quand les conditions générales sont absentes', () => {
     const plan = planDuContrat({ bail, bien, locataires: unLocataire });
     expect(plan.num('honoraires')).toBe('VIII');
@@ -62,7 +62,7 @@ describe('planDuContrat — parties', () => {
   });
 });
 
-describe('planDuContrat — sous-parties', () => {
+describe('planDuContrat - sous-parties', () => {
   it('lettre l’objet du contrat selon ce que le logement comporte', () => {
     const complet = planDuContrat({ bail, bien, locataires: unLocataire }).sousObjet;
     expect(complet).toEqual({
@@ -94,7 +94,7 @@ describe('planDuContrat — sous-parties', () => {
   });
 });
 
-describe('planDuContrat — clauses conditionnelles', () => {
+describe('planDuContrat - clauses conditionnelles', () => {
   it('écarte le règlement de copropriété en monopropriété', () => {
     const enMono = planDuContrat({
       bail: { ...bail, clauses: CLAUSES_BAIL_DEFAUT.filter((c) => c.active) },

@@ -14,8 +14,8 @@ import { Button, ConfirmModal, useToast } from '@/components/ui';
  * Suppression d'un bail, avec le détail de ce qui part avec lui.
  *
  * Il n'existait aucun moyen d'effacer un bail : ni ici, ni ailleurs. Une fiche
- * restée en base après un enregistrement interrompu — ou dont le bien a été
- * supprimé — devenait donc définitive. Le périmètre est annoncé avant
+ * restée en base après un enregistrement interrompu - ou dont le bien a été
+ * supprimé - devenait donc définitive. Le périmètre est annoncé avant
  * confirmation, sur le modèle de la suppression RGPD d'un locataire : un bail
  * peut emporter des états des lieux signés.
  */
@@ -45,7 +45,7 @@ export function BoutonSupprimerBail({ bail }: { bail: Bail }) {
       toast('success', `Bail ${bail.reference ?? ''} supprimé.`.replace('  ', ' '));
       navigate('/baux');
     } catch (e) {
-      toast('error', `Suppression impossible — ${decrireErreur(e)}`);
+      toast('error', `Suppression impossible - ${decrireErreur(e)}`);
     } finally {
       setEnCours(false);
       setConfirmation(false);

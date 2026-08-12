@@ -23,7 +23,7 @@ export interface PerimetreSuppression {
  * Les états des lieux ne se retrouvent plus seulement par le bail : depuis
  * qu'un constat peut être établi **sans bail**, un état des lieux portant le
  * nom, la signature manuscrite et l'horodatage du locataire échapperait
- * autrement à la suppression définitive — ce qui viderait le droit à
+ * autrement à la suppression définitive - ce qui viderait le droit à
  * l'effacement de son objet. La recherche par bail et la recherche par parties
  * sont donc réunies.
  */
@@ -83,8 +83,8 @@ export async function perimetreSuppressionLocataire(locataireId: string): Promis
  * Suppression définitive d'un locataire (droit à l'effacement, RGPD).
  *
  * Efface aussi **tout ce qui porte ses données personnelles** : baux dont il est
- * le seul titulaire, états des lieux qui ne concernent que lui — qu'ils soient
- * rattachés à un bail ou non —, photos associées et PDF archivés, sans quoi son
+ * le seul titulaire, états des lieux qui ne concernent que lui - qu'ils soient
+ * rattachés à un bail ou non -, photos associées et PDF archivés, sans quoi son
  * nom, son adresse et ses coordonnées resteraient lisibles dans les documents
  * générés. En colocation, le bail reste (il concerne les autres locataires) et
  * le locataire en est simplement retiré.
@@ -144,7 +144,7 @@ export async function perimetreSuppressionBail(bailId: string): Promise<Perimetr
  * photos de ces états des lieux, PDF archivés.
  *
  * Nécessaire ne serait-ce que pour se débarrasser d'un bail resté en base après
- * un enregistrement interrompu — il n'y avait jusqu'ici aucun moyen d'en
+ * un enregistrement interrompu - il n'y avait jusqu'ici aucun moyen d'en
  * effacer un. Les photos et les PDF partent avec : laisser des blobs orphelins
  * dans IndexedDB les rendrait invisibles et indestructibles.
  */

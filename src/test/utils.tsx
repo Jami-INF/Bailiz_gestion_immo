@@ -11,7 +11,7 @@ import type { Bail, Bien, EtatDesLieux, Locataire, Parametres, PieceEDL } from '
  *
  * Le parti pris : **monter les vraies pages sur la vraie base** (Dexie sur
  * `fake-indexeddb`), sans simuler la couche de données. Ce qui casse dans cette
- * application casse à la jonction — un écran qui lit un champ que personne
+ * application casse à la jonction - un écran qui lit un champ que personne
  * n'écrit, un statut jamais posé, une suppression qui laisse des documents
  * derrière elle. Un test qui simule `db` ne verrait rien de tout cela.
  */

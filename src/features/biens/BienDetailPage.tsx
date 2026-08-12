@@ -104,7 +104,7 @@ export function BienDetailPage() {
           {photoUrl && (
             <img
               src={photoUrl}
-              alt={`Photo — ${bien.nom}`}
+              alt={`Photo - ${bien.nom}`}
               className="mb-4 h-48 w-full rounded-lg object-cover"
             />
           )}
@@ -121,11 +121,11 @@ export function BienDetailPage() {
             <dt className="text-accent-500">Habitat</dt>
             <dd>{bien.typeHabitat === 'individuel' ? 'Individuel' : 'Collectif'}</dd>
             <dt className="text-accent-500">Construction</dt>
-            <dd>{bien.periodeConstruction ? PERIODE_CONSTRUCTION_LABELS[bien.periodeConstruction] : '—'}</dd>
+            <dd>{bien.periodeConstruction ? PERIODE_CONSTRUCTION_LABELS[bien.periodeConstruction] : '-'}</dd>
             <dt className="text-accent-500">Classe DPE</dt>
-            <dd>{bien.classeDPE ?? '—'}</dd>
+            <dd>{bien.classeDPE ?? '-'}</dd>
             <dt className="text-accent-500">Identifiant fiscal</dt>
-            <dd>{bien.identifiantFiscal ?? '—'}</dd>
+            <dd>{bien.identifiantFiscal ?? '-'}</dd>
             <dt className="text-accent-500">Chauffage</dt>
             <dd>
               {bien.chauffage.type} ({bien.chauffage.energie})
@@ -138,7 +138,7 @@ export function BienDetailPage() {
               <>
                 <dt className="text-accent-500">Encadrement des loyers</dt>
                 <dd>
-                  Référence majorée : {bien.loyerReferenceMajore ?? '—'} €
+                  Référence majorée : {bien.loyerReferenceMajore ?? '-'} €
                 </dd>
               </>
             )}
@@ -190,7 +190,7 @@ export function BienDetailPage() {
           {!conditions || conditions.loyerHC === undefined ? (
             <p className="text-sm text-accent-500">
               Aucun loyer renseigné. Il pré-remplira le formulaire de bail et s'imprimera sur la
-              fiche de visite — renseignez-le via « Modifier », étape « Location &amp; visite ».
+              fiche de visite - renseignez-le via « Modifier », étape « Location &amp; visite ».
             </p>
           ) : (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -201,14 +201,14 @@ export function BienDetailPage() {
               </dt>
               <dd>{formatEuros(conditions.charges?.montant ?? 0)}</dd>
               <dt className="text-accent-500">Total charges comprises</dt>
-              <dd className="font-medium">{totalCC !== undefined ? formatEuros(totalCC) : '—'}</dd>
+              <dd className="font-medium">{totalCC !== undefined ? formatEuros(totalCC) : '-'}</dd>
               <dt className="text-accent-500">Dépôt de garantie</dt>
-              <dd>{conditions.depotGarantie !== undefined ? formatEuros(conditions.depotGarantie) : '—'}</dd>
+              <dd>{conditions.depotGarantie !== undefined ? formatEuros(conditions.depotGarantie) : '-'}</dd>
               <dt className="text-accent-500">Disponible à partir du</dt>
               <dd>
                 {conditions.dateDisponibilite
                   ? format(new Date(conditions.dateDisponibilite), 'd MMMM yyyy', { locale: fr })
-                  : '—'}
+                  : '-'}
               </dd>
             </dl>
           )}
@@ -262,7 +262,7 @@ export function BienDetailPage() {
                   >
                     <span className="flex items-center gap-2">
                       <FileText size={15} className="text-accent-400" />
-                      {b.reference} — {TYPE_BAIL_LABELS[b.typeBail]}
+                      {b.reference} - {TYPE_BAIL_LABELS[b.typeBail]}
                     </span>
                     <Badge tone={estBailEnCours(b) ? 'green' : 'neutral'}>
                       {b.statut}

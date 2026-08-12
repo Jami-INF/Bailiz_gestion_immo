@@ -1,8 +1,8 @@
-# CDC — État des lieux rapide (sans bail)
+# CDC - État des lieux rapide (sans bail)
 
 > Complète `README.md` et `docs/DOCUMENTATION_TECHNIQUE.md`. Périmètre : **découpler l'état des
 > lieux du bail**. Un état des lieux doit pouvoir être créé, rempli, signé et archivé sans
-> qu'aucun bail n'existe dans l'application — à l'entrée comme à la sortie.
+> qu'aucun bail n'existe dans l'application - à l'entrée comme à la sortie.
 > Touche le schéma Dexie (`bailId` devient optionnel, deux champs apparaissent), les quatre
 > écrans EDL, `EdlPdf`, `LettreRestitutionPdf`, la suppression RGPD et les CTA du site vitrine.
 
@@ -18,13 +18,13 @@ C'est une exigence de l'outil, pas du droit. L'état des lieux est un acte **aut
 vaut inventaire du mobilier (décret n°2015-981), et rien n'impose que le contrat auquel il sera
 annexé ait été rédigé avec le même outil. Trois situations concrètes sont aujourd'hui impossibles :
 
-1. **Le bail existe déjà, sur papier** — signé l'an dernier, ou rédigé par une agence, ou repris
+1. **Le bail existe déjà, sur papier** - signé l'an dernier, ou rédigé par une agence, ou repris
    d'un modèle Word. Le bailleur veut Bailiz pour l'état des lieux seulement. Il doit
    actuellement ressaisir intégralement un bail qu'il n'imprimera jamais.
-2. **La sortie arrive en premier** — on découvre l'outil au moment de rendre le dépôt de
+2. **La sortie arrive en premier** - on découvre l'outil au moment de rendre le dépôt de
    garantie. L'entrée a été faite à la main, il y a trois ans. Il faut aujourd'hui inventer un
    bail *et* un état des lieux d'entrée fictif pour accéder au comparatif et aux retenues.
-3. **Le visiteur venu du site vitrine** — le CTA « Faire un état des lieux » de `bailiz.fr` pointe
+3. **Le visiteur venu du site vitrine** - le CTA « Faire un état des lieux » de `bailiz.fr` pointe
    sur `/app/#/edl`. Le commentaire de `EdlListePage.tsx:28` documente déjà la fuite : l'écran
    n'offre aucune action et renvoie **rédiger un bail**. La promesse de la page d'atterrissage
    n'est pas tenue par l'écran d'atterrissage.
@@ -37,20 +37,20 @@ formulaire de bail sait déjà le faire. Le bail, s'il existe un jour, se rattac
 
 | Brique | État |
 |---|---|
-| Mode terrain, sélecteur d'état, photos, compteurs, clés, autosave | ✅ `EdlTerrainPage` — ne lit du bail que le lien de retour (`:282`) |
+| Mode terrain, sélecteur d'état, photos, compteurs, clés, autosave | ✅ `EdlTerrainPage` - ne lit du bail que le lien de retour (`:282`) |
 | Parcours de signature (relecture → nom → tracé → horodatage → SHA-256 → verrouillage) | ✅ `SignatureFlow` + `EdlSignaturePage` |
 | Comparatif entrée/sortie, dégradations, vétusté, retenues | ✅ `lib/etat.ts`, `lib/calculs.ts`, `EdlSynthesePage` |
 | Duplication de la structure d'entrée vers la sortie | ✅ `construirePiecesSortie` (`lib/etat.ts:15`) |
 | Bibliothèque de pièces et mobilier obligatoire | ✅ `BIBLIOTHEQUE_PIECES`, `MOBILIER_OBLIGATOIRE` (`lib/defauts.ts`) |
-| Création d'un logement à la volée | ✅ `BienRapideModal` + `construireBienInline` — écrit un vrai `Bien` réutilisable |
+| Création d'un logement à la volée | ✅ `BienRapideModal` + `construireBienInline` - écrit un vrai `Bien` réutilisable |
 | Création d'un locataire à la volée | ✅ `LocataireFormModal`, déjà partagé entre la fiche Locataires et le formulaire de bail |
-| Brouillon de formulaire écrit en continu | ✅ `db.brouillons` (clé `bien:nouveau`…) — s'applique tel quel à `edl:nouveau` |
-| Pipeline document (référence, rendu, hash, archivage) | ✅ `lib/pdf/generer.ts` — `bailId` y est **déjà optionnel** (`:53`, `:130`) |
+| Brouillon de formulaire écrit en continu | ✅ `db.brouillons` (clé `bien:nouveau`…) - s'applique tel quel à `edl:nouveau` |
+| Pipeline document (référence, rendu, hash, archivage) | ✅ `lib/pdf/generer.ts` - `bailId` y est **déjà optionnel** (`:53`, `:130`) |
 | Photo détachée de l'EDL | ✅ Précédent exact : `Photo.edlId` est devenu optionnel pour la fiche de visite |
 | Sauvegarde / synchronisation des EDL | ✅ `edls` figure dans `COLLECTIONS` (`backup.ts:123`) et `TABLES_SYNCHRONISEES` (`sync/journal.ts:20`) |
-| **Rattachement de l'EDL** | ❌ `bailId: string` **obligatoire** — verrou principal |
+| **Rattachement de l'EDL** | ❌ `bailId: string` **obligatoire** - verrou principal |
 | **Contexte de l'EDL (logement, parties)** | ❌ N'existe que par transitivité du bail |
-| **Montant du dépôt de garantie** | ❌ N'existe que sur `Bail.depotGarantie` — lu par la synthèse, la lettre de restitution et l'alerte du tableau de bord |
+| **Montant du dépôt de garantie** | ❌ N'existe que sur `Bail.depotGarantie` - lu par la synthèse, la lettre de restitution et l'alerte du tableau de bord |
 | **Création d'un EDL** | ❌ Le seul point d'entrée est `creerEdl` dans `BailDetailPage.tsx:240`, non factorisé |
 | **Sortie sans entrée** | ❌ `creerEdl` refuse (`:241`) et `construirePiecesSortie` exige un EDL d'entrée |
 
@@ -60,7 +60,7 @@ autonome** et les **retombées transverses** (RGPD, tableau de bord, migration).
 
 ## 3. Décisions actées
 
-- **Nom** : « État des lieux rapide » côté produit ; côté code, pas de type ni d'écran séparé —
+- **Nom** : « État des lieux rapide » côté produit ; côté code, pas de type ni d'écran séparé -
   c'est **le même état des lieux**, simplement sans bail. Aucun `type: 'rapide'`, aucune
   duplication du mode terrain. Un EDL sans bail se reconnaît à `bailId === undefined`.
 - **Le logement et les locataires sont de vraies fiches** (`db.biens`, `db.locataires`), créées à
@@ -71,7 +71,7 @@ autonome** et les **retombées transverses** (RGPD, tableau de bord, migration).
   **sur l'`EtatDesLieux`**, pour *tous* les EDL, y compris ceux nés d'un bail (§4.1). Ce n'est pas
   une dénormalisation de confort : un état des lieux signé est une **preuve figée à une date**.
   Un colocataire ajouté au bail six mois plus tard n'a rien à faire dans l'état des lieux
-  d'entrée qu'il n'a pas signé — c'est pourtant ce que produit la lecture actuelle via le bail.
+  d'entrée qu'il n'a pas signé - c'est pourtant ce que produit la lecture actuelle via le bail.
 - **Le dépôt de garantie est saisi sur l'EDL** (`depotGarantie?`), et lu en priorité sur lui. Toute
   la chaîne existante (vétusté, retenues, lettre de restitution, alerte de délai légal) fonctionne
   alors à l'identique sans bail.
@@ -130,7 +130,7 @@ export interface EtatDesLieux {
    */
   bailExterne?: { reference?: string; dateEffet?: string };
   /**
-   * EDL de sortie uniquement — provenance des états d'entrée servant de
+   * EDL de sortie uniquement - provenance des états d'entrée servant de
    * référence au comparatif :
    * - `edl_app`    : `edlEntreeLieId` renseigné, états dupliqués (cas actuel) ;
    * - `edl_papier` : état des lieux d'entrée établi hors application, reporté
@@ -150,7 +150,7 @@ export interface EtatDesLieux {
 déjà et servent exactement au report manuel (§5.4). C'est le point qui rend la sortie autonome
 peu coûteuse.
 
-### 4.2 Schéma Dexie — version 6 (`lib/db.ts`)
+### 4.2 Schéma Dexie - version 6 (`lib/db.ts`)
 
 ```ts
 // v6 : l'état des lieux porte son propre contexte. `bailId` devient optionnel
@@ -184,20 +184,20 @@ accepte déjà `bailId?`. `Photo.edlId` reste le rattachement des clichés.
 
 ## 5. Parcours et écrans
 
-### 5.1 `/edl` — la liste devient un point de départ
+### 5.1 `/edl` - la liste devient un point de départ
 
 `EdlListePage` porte aujourd'hui un sous-titre qui *interdit* (« Les états des lieux se créent
 depuis la fiche d'un bail ») et un `EmptyState` qui renvoie ailleurs. Les deux disparaissent.
 
 - **Bouton primaire permanent** dans le `PageHeader` : « Nouvel état des lieux » → `/edl/nouveau`.
-  Présent aussi quand la liste est pleine — c'est l'action principale de l'écran.
+  Présent aussi quand la liste est pleine - c'est l'action principale de l'écran.
 - `EmptyState` : message unique, orienté action (« Constatez l'état d'un logement à l'entrée ou à
   la sortie. Le bail n'est pas nécessaire : vous pourrez le rattacher plus tard, ou le rédiger
   ensuite depuis le logement. »), action = « Nouvel état des lieux ».
 - Chaque ligne lit désormais `edl.bienId` directement (une jointure de moins) et affiche un badge
   discret « sans bail » le cas échéant.
 
-### 5.2 `/edl/nouveau` — `EdlRapidePage`
+### 5.2 `/edl/nouveau` - `EdlRapidePage`
 
 Formulaire **d'une seule page**, dans l'esprit de `BailRapidePage`, avec brouillon continu
 (`db.brouillons`, clé `edl:nouveau`). Cinq blocs, tout ce qui peut être déduit l'est :
@@ -216,11 +216,11 @@ Formulaire **d'une seule page**, dans l'esprit de `BailRapidePage`, avec brouill
 - Le bien n'en a pas (créé à la volée) → une **sélection de pièces** issue de
   `BIBLIOTHEQUE_PIECES` est proposée, **présélectionnée d'après `type` et `nbPieces`** du bien
   (ex. T2 → entrée, séjour, chambre, cuisine, SDB, WC). Elle est modifiable, et **écrite dans
-  `bien.piecesModele`** à la validation — exactement ce que fait déjà l'ajout de pièce à la volée
+  `bien.piecesModele`** à la validation - exactement ce que fait déjà l'ajout de pièce à la volée
   en mode terrain (`EdlTerrainPage.tsx:214`). Le logement s'enrichit du terrain, l'utilisateur ne
   remplit pas deux fois.
 
-Validation : bien + au moins un locataire. Tout le reste est facultatif — le principe de l'app
+Validation : bien + au moins un locataire. Tout le reste est facultatif - le principe de l'app
 (produire un document à compléter, jamais bloquer) est conservé. Bouton **« Commencer l'état des
 lieux »** → création puis navigation vers `/edl/:id`.
 
@@ -249,7 +249,7 @@ l'appelle sans bail. **Un seul chemin de création**, testable hors composant.
 
 Entrées supplémentaires vers ce formulaire :
 - `BienDetailPage` : bouton « État des lieux » → `/edl/nouveau?bien=<id>` (bloc 2 pré-rempli) ;
-- `BailDetailPage` : **inchangé** — les boutons existants créent directement l'EDL, sans passer
+- `BailDetailPage` : **inchangé** - les boutons existants créent directement l'EDL, sans passer
   par le formulaire (le bail connaît déjà tout).
 
 ### 5.4 Sortie sans état des lieux d'entrée
@@ -258,32 +258,32 @@ Trois cas, choisis au bloc 5 et mémorisés dans `origineEtatEntree` :
 
 | Choix | Construction des pièces | Colonne « à l'entrée » | Comparatif |
 |---|---|---|---|
-| **EDL d'entrée de l'application** (`edl_app`) | `construirePiecesSortie(edlEntree)` — inchangé | Pré-remplie, en lecture seule | Automatique |
+| **EDL d'entrée de l'application** (`edl_app`) | `construirePiecesSortie(edlEntree)` - inchangé | Pré-remplie, en lecture seule | Automatique |
 | **EDL d'entrée sur papier** (`edl_papier`) | Trame du bien (`piecesModele`) | **Saisissable** : un second sélecteur d'état par élément, à recopier du papier | Automatique dès que l'état d'entrée est saisi |
 | **Aucun EDL d'entrée** (`aucun`) | Trame du bien | Masquée | Aucun ; `degradation` reste manuel |
 
 Le mode terrain doit donc savoir afficher **deux sélecteurs** par élément. C'est le seul ajout
 réel à `EdlTerrainPage` : le sélecteur existe déjà, il est instancié une seconde fois, écrivant
 `etatEntree` / `commentaireEntree` au lieu de `etat` / `commentaire`. `estDegradation` et
-`construirePiecesSortie` sont inchangés — le comparatif ne sait pas, et n'a pas à savoir, d'où
+`construirePiecesSortie` sont inchangés - le comparatif ne sait pas, et n'a pas à savoir, d'où
 vient l'état d'entrée.
 
 **Avertissements (jamais bloquants)** :
-- `aucun` — bandeau permanent sur le mode terrain, la synthèse et une mention au PDF : « Aucun
+- `aucun` - bandeau permanent sur le mode terrain, la synthèse et une mention au PDF : « Aucun
   état des lieux d'entrée n'a été établi. À défaut d'état des lieux d'entrée, le logement est
   réputé avoir été reçu en bon état (art. 1731 du code civil), sauf si le bailleur a été empêché
   de l'établir (art. 3-2 de la loi du 6 juillet 1989). Ce document constate l'état à la sortie ;
   il ne fonde à lui seul aucune retenue sur le dépôt de garantie. »
-- `edl_papier` — mention au PDF : « Les états d'entrée figurant en colonne de référence sont
+- `edl_papier` - mention au PDF : « Les états d'entrée figurant en colonne de référence sont
   reportés de l'état des lieux d'entrée établi contradictoirement le JJ/MM/AAAA, hors
   application. » La synthèse rappelle que l'exemplaire papier doit être conservé.
 
 ### 5.5 Rattachement d'un bail, et bail rédigé ensuite
 
 Sur la fiche d'un EDL sans bail, deux actions :
-- **« Rattacher à un bail »** — liste des baux du même bien ; écrit `bailId`. Refusé si le bail
+- **« Rattacher à un bail »** - liste des baux du même bien ; écrit `bailId`. Refusé si le bail
   porte un autre `bienId`.
-- **« Rédiger le bail de ce logement »** — `/baux/nouveau?bien=<id>&locataires=<ids>`, puis
+- **« Rédiger le bail de ce logement »** - `/baux/nouveau?bien=<id>&locataires=<ids>`, puis
   proposition de rattacher l'EDL au bail créé.
 
 Ce sont des **suggestions offertes, jamais des alertes** : ne pas rédiger de bail dans Bailiz est
@@ -295,17 +295,17 @@ un usage légitime, pas un oubli à signaler (§7.4).
 
 > **Réalisé** : les deux mentions ci-dessous vivent dans `lib/pdf/edlMentions.ts`, pas dans le
 > composant. Ce sont elles qui portent la valeur juridique du document, elles doivent être
-> vérifiables sans rendre un PDF — dont les flux sont compressés, donc illisibles à l'assertion.
+> vérifiables sans rendre un PDF - dont les flux sont compressés, donc illisibles à l'assertion.
 
 - `bail: Bail` → **`bail?: Bail`**.
 - Sous-titre : `Bail {bail.reference}.` devient
   - avec bail : inchangé ;
   - `bailExterne.reference` renseignée : « Bail {référence}{, prenant effet le JJ/MM/AAAA} (contrat
-    établi hors application) — à annexer au contrat de location. » ;
+    établi hors application) - à annexer au contrat de location. » ;
   - sinon : « Établi contradictoirement entre les parties désignées ci-dessous, à annexer au
     contrat de location. »
 - Bloc « Parties » : lit `locataires` (déjà passé en props, désormais issu de `edl.locataireIds`)
-  — **aucun changement**.
+  - **aucun changement**.
 - Mentions §5.4 pour `origineEtatEntree` à `edl_papier` / `aucun`.
 - Le tableau de sortie garde ses cinq colonnes quelle que soit l'origine de l'état d'entrée ; en
   `aucun`, la colonne « à l'entrée » affiche « non établi » plutôt qu'une case vide.
@@ -328,7 +328,7 @@ export async function chargerContexteEdl(edl: EtatDesLieux) {
 ```
 
 `bien` reste obligatoire : sans logement, il n'y a pas d'état des lieux. `locataires` peut être
-vide (constat établi en l'absence du locataire) — le PDF imprime alors la zone de signature
+vide (constat établi en l'absence du locataire) - le PDF imprime alors la zone de signature
 manuscrite vide, comportement déjà en place.
 
 ### 6.3 `LettreRestitutionPdf` et `EdlSynthesePage`
@@ -337,28 +337,28 @@ manuscrite vide, comportement déjà en place.
   `bailReference?: string`. Le document ne dépendait du bail que pour ces trois valeurs.
 - `EdlSynthesePage` : les deux lectures de `bail.depotGarantie` (`:159`, `:253`) passent par
   `contexte.depotGarantie`. Si le dépôt vaut 0 et qu'aucun bail n'est rattaché, un encart invite
-  à le saisir plutôt que d'annoncer un solde faux — **saisissable sur place, y compris après
+  à le saisir plutôt que d'annoncer un solde faux - **saisissable sur place, y compris après
   signature** : `maj()` du mode terrain refuse toute écriture sur un EDL signé, or c'est
   précisément au moment du décompte que l'oubli se remarque. Le montant ne fait pas partie du
   constat signé, seulement du décompte, comme les coûts de remise en état.
-- `enregistrerDocument({ bailId: bail?.id })` — déjà toléré (`generer.ts:53`).
+- `enregistrerDocument({ bailId: bail?.id })` - déjà toléré (`generer.ts:53`).
 
 ### 6.4 Signature (`EdlSignaturePage`)
 
 - `bail` devient optionnel dans les appels ; `bienId: bien.id`, `bailId: bail?.id`.
 - Les bascules de statut du bail (`:88-100` : sortie → `termine`, entrée → `actif`) sont
   **conditionnées à la présence d'un bail**. Sans bail, aucun statut n'est inventé (§3).
-- Le reste — hash, verrouillage, archivage, `pousserSiActive`, écran « Transmettre une copie » —
+- Le reste - hash, verrouillage, archivage, `pousserSiActive`, écran « Transmettre une copie » -
   est inchangé.
 
 **Rattachement post-signature** : écrire `bailId` sur un EDL signé ne régénère **pas** le PDF
 archivé. Le document signé et haché fait foi ; il porte la mention du bail telle qu'elle était au
-moment de la signature. Le rattachement est un classement, pas une rectification — la
+moment de la signature. Le rattachement est un classement, pas une rectification - la
 rectification, elle, exige la re-signature des deux parties et reste inchangée.
 
 ## 7. Retombées transverses
 
-### 7.1 Suppression RGPD (`lib/rgpd.ts`) — impact le plus sensible
+### 7.1 Suppression RGPD (`lib/rgpd.ts`) - impact le plus sensible
 
 `perimetreSuppressionLocataire` et `supprimerLocataireEtDonnees` trouvent aujourd'hui les EDL
 **par le bail**. Un EDL rapide, qui porte le nom, la signature manuscrite et l'horodatage du
@@ -374,7 +374,7 @@ les baux** :
   (`edlsPartages`, à côté de `bauxPartages`), pour que l'utilisateur sache ce qui subsiste.
 
 `supprimerBailEtDonnees` : un EDL rattaché à un bail supprimé **n'est plus supprimé avec lui** si
-son `bienId`/`locataireIds` le rendent autonome ? **Non** — comportement inchangé : supprimer un
+son `bienId`/`locataireIds` le rendent autonome ? **Non** - comportement inchangé : supprimer un
 bail supprime ses EDL. Le périmètre est annoncé, l'utilisateur décide en connaissance de cause,
 et changer cette règle en cours de route surprendrait pour un gain nul.
 
@@ -391,7 +391,7 @@ suivent. Deux points de vigilance :
 ### 7.3 Sauvegarde (`lib/backup.ts`)
 
 `VERSION_SAUVEGARDE` **reste à 1** (§3). Les EDL relus depuis une archive sont normalisés avant
-`bulkPut` — l'import court-circuite les hooks de migration Dexie, la migration v6 seule ne
+`bulkPut` - l'import court-circuite les hooks de migration Dexie, la migration v6 seule ne
 suffirait pas :
 
 ```ts
@@ -403,14 +403,14 @@ Cette normalisation et l'`upgrade` de la v6 partagent la même fonction pure, te
 ### 7.4 Tableau de bord (`features/dashboard/TableauDeBordPage.tsx`)
 
 - **Alerte « EDL d'entrée signé mais bail non signé »** (`:39`) : ignore les EDL sans bail. Ne pas
-  avoir de bail dans Bailiz est un choix, pas une anomalie — transformer ce choix en alerte
+  avoir de bail dans Bailiz est un choix, pas une anomalie - transformer ce choix en alerte
   orange permanente serait du harcèlement.
 - **Alerte « dépôt de garantie à restituer »** (`:53`) : fonctionne désormais **aussi sans bail**,
   en lisant `edl.depotGarantie ?? bail?.depotGarantie`. Le libellé cite la référence de l'EDL
   quand il n'y a pas de bail. C'est l'alerte la plus utile de l'application (délai légal
   d'un/deux mois, majoration de 10 % par mois de retard) : elle ne doit pas être réservée à ceux
   qui ont rédigé leur bail ici.
-- **Statut d'un bien** : inchangé — « loué » reste déduit de l'existence d'un bail (§3).
+- **Statut d'un bien** : inchangé - « loué » reste déduit de l'existence d'un bail (§3).
 
 ### 7.5 Fiche du bien
 
@@ -420,14 +420,14 @@ bail dans l'application.
 
 ## 8. Site vitrine (`site/`)
 
-Périmètre volontairement minimal — aucune refonte SEO, qui relève de `CDC-site-vitrine-seo.md`.
+Périmètre volontairement minimal - aucune refonte SEO, qui relève de `CDC-site-vitrine-seo.md`.
 
-- `site/src/pages/index.astro:87` et `:364` — CTA « Faire un état des lieux » : `/app/#/edl` →
+- `site/src/pages/index.astro:87` et `:364` - CTA « Faire un état des lieux » : `/app/#/edl` →
   **`/app/#/edl/nouveau`**.
-- `site/src/pages/etat-des-lieux.astro:51` et `:150` — même changement. Le visiteur atterrit sur
+- `site/src/pages/etat-des-lieux.astro:51` et `:150` - même changement. Le visiteur atterrit sur
   un formulaire de trois champs, pas sur une liste vide qui le renvoie rédiger un bail.
 - Le texte de `etat-des-lieux.astro` ne pose aucun prérequis de bail : **rien à corriger**. Un
-  paragraphe est ajouté pour dire ce qui est désormais vrai — l'état des lieux fonctionne sans
+  paragraphe est ajouté pour dire ce qui est désormais vrai - l'état des lieux fonctionne sans
   bail, y compris avec un contrat signé ailleurs.
 - `README.md` : la section « États des lieux » gagne le point « sans bail » ; la mention
   « Les états des lieux se créent depuis la fiche d'un bail » disparaît partout.
@@ -450,14 +450,14 @@ domaine `lib` déjà couvert.
 
 ## 10. Lots
 
-1. **Socle** — types, migration Dexie v6, normalisation à l'import, `lib/edl.ts` factorisé,
+1. **Socle** - types, migration Dexie v6, normalisation à l'import, `lib/edl.ts` factorisé,
    `chargerContexteEdl` tolérant au bail absent, `EdlPdf`/`LettreRestitutionPdf` en `bail?`.
    *À l'issue de ce lot, rien ne change pour l'utilisateur et tout est prêt.*
-2. **Entrée rapide** — `EdlRapidePage`, refonte de `EdlListePage`, entrée depuis `BienDetailPage`,
+2. **Entrée rapide** - `EdlRapidePage`, refonte de `EdlListePage`, entrée depuis `BienDetailPage`,
    bloc bailleur, trame de pièces déduite. *Le parcours du site vitrine est tenu.*
-3. **Sortie autonome** — bloc 5 du formulaire, double sélecteur en mode terrain, avertissements,
+3. **Sortie autonome** - bloc 5 du formulaire, double sélecteur en mode terrain, avertissements,
    dépôt saisi sur l'EDL, synthèse et lettre de restitution sans bail.
-4. **Finitions** — rattachement a posteriori, RGPD, tableau de bord, CTA du site, README.
+4. **Finitions** - rattachement a posteriori, RGPD, tableau de bord, CTA du site, README.
 
 ## 11. Hors périmètre
 

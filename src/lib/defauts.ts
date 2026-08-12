@@ -148,9 +148,9 @@ const LOI_1989 = 'loi n°89-462 du 6 juillet 1989';
  * **licites** : chacune porte son fondement, et aucune ne figure dans la liste
  * des clauses réputées non écrites de l'article 4 de la loi du 6 juillet 1989
  * (version en vigueur depuis le 21 novembre 2024). Les clauses souvent
- * réclamées mais interdites — pénalités de retard, frais de relance,
+ * réclamées mais interdites - pénalités de retard, frais de relance,
  * responsabilité automatique pour dégradations, assurance imposée, interdiction
- * d'animaux familiers… — sont volontairement absentes : voir
+ * d'animaux familiers… - sont volontairement absentes : voir
  * `docs/CDC-bail-clauses.md` §4.3.
  */
 export const CLAUSES_BAIL_DEFAUT: ClauseBail[] = [
@@ -188,7 +188,7 @@ export const CLAUSES_BAIL_DEFAUT: ClauseBail[] = [
     titre: 'Visites en vue de la vente ou de la relocation',
     texte:
       "En cas de congé donné ou reçu, ainsi qu'en cas de mise en vente du logement, le locataire laisse visiter les lieux deux heures par jour ouvrable, aux jours et heures convenus entre les parties et, à défaut d'accord, de 17 heures à 19 heures. Aucune visite ne peut être imposée les dimanches et jours fériés. Le locataire facilite l'accès du logement et le maintient en état de présentation.",
-    baseLegale: `art. 4 a) de la ${LOI_1989} — la limite de deux heures est d'ordre public`,
+    baseLegale: `art. 4 a) de la ${LOI_1989} - la limite de deux heures est d'ordre public`,
     active: true,
   },
   {
@@ -205,7 +205,7 @@ export const CLAUSES_BAIL_DEFAUT: ClauseBail[] = [
     famille: 'occupation',
     titre: 'Notifications et élection de domicile',
     texte:
-      "Le locataire élit domicile dans le logement loué pour toute la durée du contrat. Les parties conviennent que leurs échanges courants — demandes de justificatifs, régularisation des charges, prise de rendez-vous, information sur les travaux — peuvent être adressés valablement par courrier électronique aux adresses figurant au présent contrat. Sont exclus de cette convention et demeurent soumis aux formes légales : le congé, le commandement de payer et toute mise en demeure préalable à la résiliation, qui se font par lettre recommandée avec avis de réception, par acte de commissaire de justice ou par remise en main propre contre récépissé.",
+      "Le locataire élit domicile dans le logement loué pour toute la durée du contrat. Les parties conviennent que leurs échanges courants - demandes de justificatifs, régularisation des charges, prise de rendez-vous, information sur les travaux - peuvent être adressés valablement par courrier électronique aux adresses figurant au présent contrat. Sont exclus de cette convention et demeurent soumis aux formes légales : le congé, le commandement de payer et toute mise en demeure préalable à la résiliation, qui se font par lettre recommandée avec avis de réception, par acte de commissaire de justice ou par remise en main propre contre récépissé.",
     baseLegale: `art. 15 de la ${LOI_1989} ; art. 1366 du code civil`,
     active: true,
   },
@@ -307,7 +307,7 @@ export const CLAUSES_BAIL_DEFAUT: ClauseBail[] = [
     famille: 'assurance',
     titre: 'Assurance des risques locatifs',
     texte:
-      "Le locataire s'assure contre les risques dont il doit répondre en sa qualité de locataire et en justifie lors de la remise des clés, puis chaque année à la demande du bailleur. À défaut, et après une mise en demeure demeurée infructueuse pendant un mois, le bailleur peut souscrire une assurance pour le compte du locataire — la prime étant alors récupérable par douzièmes, majorée au plus de 10 % — ou se prévaloir de la clause résolutoire.",
+      "Le locataire s'assure contre les risques dont il doit répondre en sa qualité de locataire et en justifie lors de la remise des clés, puis chaque année à la demande du bailleur. À défaut, et après une mise en demeure demeurée infructueuse pendant un mois, le bailleur peut souscrire une assurance pour le compte du locataire - la prime étant alors récupérable par douzièmes, majorée au plus de 10 % - ou se prévaloir de la clause résolutoire.",
     baseLegale: `art. 7 g) de la ${LOI_1989}`,
     active: true,
   },
@@ -316,7 +316,7 @@ export const CLAUSES_BAIL_DEFAUT: ClauseBail[] = [
     famille: 'assurance',
     titre: 'Déclaration des sinistres',
     texte:
-      "Le locataire déclare tout sinistre à son assureur dans les délais prévus par son contrat — cinq jours ouvrés, et deux jours ouvrés en cas de vol — et en informe le bailleur sans délai, en lui transmettant copie de la déclaration ainsi que les coordonnées de l'expert désigné.",
+      "Le locataire déclare tout sinistre à son assureur dans les délais prévus par son contrat - cinq jours ouvrés, et deux jours ouvrés en cas de vol - et en informe le bailleur sans délai, en lui transmettant copie de la déclaration ainsi que les coordonnées de l'expert désigné.",
     baseLegale: 'art. L.113-2 du code des assurances',
     active: true,
   },
@@ -422,7 +422,7 @@ export const MODELE_FICHE_VISITE_DEFAUT: ModeleFicheVisite = {
       note: 'Une seule pièce, en cours de validité, avec photographie.',
       condition: 'toujours',
       pieces: [
-        piece('id-cni', "Carte nationale d'identité", 'Recto-verso — française ou étrangère'),
+        piece('id-cni', "Carte nationale d'identité", 'Recto-verso - française ou étrangère'),
         piece('id-passeport', 'Passeport', "Pages d'identité"),
         piece('id-permis', 'Permis de conduire'),
         piece('id-sejour', 'Carte de séjour, carte de résident, ou carte de ressortissant UE/EEE'),
@@ -511,7 +511,7 @@ export const MODELE_FICHE_VISITE_DEFAUT: ModeleFicheVisite = {
         piece(
           'visale-validite',
           'Vérifiez la date de fin de validité du visa',
-          '3 mois — 6 mois pour les étudiants, alternants et volontaires en service civique',
+          '3 mois - 6 mois pour les étudiants, alternants et volontaires en service civique',
         ),
       ],
     },
@@ -527,7 +527,7 @@ export const MODELE_FICHE_VISITE_DEFAUT: ModeleFicheVisite = {
     {
       id: 'signature',
       titre: 'À prévoir pour la signature',
-      note: 'Pas pour la candidature — inutile de les fournir maintenant.',
+      note: 'Pas pour la candidature - inutile de les fournir maintenant.',
       condition: 'toujours',
       pieces: [
         piece(
@@ -536,7 +536,7 @@ export const MODELE_FICHE_VISITE_DEFAUT: ModeleFicheVisite = {
           'Au plus tard à la remise des clés, puis chaque année',
         ),
         piece('sig-paiement', 'Moyen de paiement du premier loyer et du dépôt de garantie'),
-        piece('sig-rib', 'Un RIB uniquement si vous choisissez le prélèvement', 'À votre initiative — il ne peut pas être exigé'),
+        piece('sig-rib', 'Un RIB uniquement si vous choisissez le prélèvement', 'À votre initiative - il ne peut pas être exigé'),
       ],
     },
   ],

@@ -250,7 +250,7 @@ export function LocatairesPage() {
                 )}
                 {perimetre.bauxPartages.length > 0 && (
                   <p className="mt-2 text-accent-600">
-                    Conservé(s) car en colocation : {perimetre.bauxPartages.join(', ')} — le locataire
+                    Conservé(s) car en colocation : {perimetre.bauxPartages.join(', ')} - le locataire
                     en est retiré, mais son nom peut subsister dans les PDF déjà générés.
                   </p>
                 )}
@@ -262,7 +262,7 @@ export function LocatairesPage() {
                 {perimetre.edlsPartages.length > 0 && (
                   <p className="mt-2 text-accent-600">
                     État(s) des lieux conservé(s) car établi(s) avec d'autres personnes :{' '}
-                    {perimetre.edlsPartages.join(', ')} — un état des lieux signé ne peut pas être
+                    {perimetre.edlsPartages.join(', ')} - un état des lieux signé ne peut pas être
                     amputé d'un signataire, le nom y subsiste.
                   </p>
                 )}

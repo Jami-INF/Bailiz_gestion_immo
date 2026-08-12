@@ -47,7 +47,7 @@ export function MentionsLegalesPage() {
           <h2 className="mb-2 font-semibold text-accent-900">Éditeur du site</h2>
           <p>
             Bailiz est une application web personnelle et gratuite, créée et éditée par{' '}
-            <span className="font-medium text-accent-900">Jami Infante</span>, développeur —{' '}
+            <span className="font-medium text-accent-900">Jami Infante</span>, développeur -{' '}
             <LienExterne href={LIEN_LINKEDIN}>
               <Linkedin size={14} /> LinkedIn
             </LienExterne>
@@ -56,7 +56,7 @@ export function MentionsLegalesPage() {
           <p className="mt-2">
             Le code source est publié sur{' '}
             <LienExterne href={LIEN_REPO}>
-              <Github size={14} /> GitHub — Jami-INF/Bailiz_gestion_immo
+              <Github size={14} /> GitHub - Jami-INF/Bailiz_gestion_immo
             </LienExterne>
             .
           </p>
@@ -66,7 +66,7 @@ export function MentionsLegalesPage() {
           <h2 className="mb-2 font-semibold text-accent-900">Hébergement</h2>
           <p>
             Le site est hébergé en France par <span className="font-medium text-accent-900">OVH
-            SAS</span> — 2 rue Kellermann, 59100 Roubaix (
+            SAS</span> - 2 rue Kellermann, 59100 Roubaix (
             <LienExterne href="https://www.ovhcloud.com">ovhcloud.com</LienExterne>).
             L'hébergeur ne fait que servir les fichiers de l'application : aucune donnée saisie
             dans Bailiz ne lui est transmise.
@@ -125,7 +125,7 @@ export function MentionsLegalesPage() {
           <p>
             Application 100 % côté client : React + TypeScript + Vite, données locales
             (IndexedDB via Dexie), PDF générés dans le navigateur (@react-pdf/renderer), PWA
-            installable fonctionnant entièrement hors-ligne — pensée pour réaliser des états
+            installable fonctionnant entièrement hors-ligne - pensée pour réaliser des états
             des lieux sur le terrain (cave, parking, immeuble mal couvert) sans connexion.
           </p>
           <h3 className="mb-1 mt-4 font-semibold text-accent-900">
@@ -134,9 +134,9 @@ export function MentionsLegalesPage() {
           <p>
             Le besoin de départ : un bailleur particulier en LMNP gérant lui-même quelques
             appartements meublés, sans agence, qui doit produire des documents conformes aux
-            deux moments clés du cycle locatif — l'entrée du locataire (bail type, inventaire
+            deux moments clés du cycle locatif - l'entrée du locataire (bail type, inventaire
             du mobilier, état des lieux) et sa sortie (état des lieux comparatif, décompte du
-            dépôt de garantie avec vétusté) — le tout sur tablette, parfois hors-ligne, et sans
+            dépôt de garantie avec vétusté) - le tout sur tablette, parfois hors-ligne, et sans
             payer d'abonnement ni d'infrastructure.
           </p>
           <h3 className="mb-1 mt-4 font-semibold text-accent-900">Spec Driven Development</h3>
@@ -144,14 +144,14 @@ export function MentionsLegalesPage() {
             Le site a été développé avec{' '}
             <LienExterne href="https://claude.com/claude-code">Claude Code</LienExterne> selon
             une approche « spécification d'abord » : un cahier des charges complet a été rédigé
-            en amont (contexte juridique — loi du 6 juillet 1989, décrets 2015-587, 2015-981,
-            2016-382 —, modèle de données, architecture imposée, lots de développement
+            en amont (contexte juridique - loi du 6 juillet 1989, décrets 2015-587, 2015-981,
+            2016-382 -, modèle de données, architecture imposée, lots de développement
             ordonnés et critères d'acceptation mesurables), puis confié à l'IA qui l'a
             implémenté lot par lot, chaque lot étant vérifié contre ses critères (tests
             unitaires des règles de calcul légales, déroulé complet des parcours dans le
             navigateur) avant de passer au suivant. Le cahier des charges fait partie du dépôt
             (<span className="font-mono text-xs">cdc.md</span>) et reste la référence des
-            évolutions —{' '}
+            évolutions -{' '}
             <LienExterne href={LIEN_REPO}>voir le dépôt GitHub</LienExterne>.
           </p>
         </Card>

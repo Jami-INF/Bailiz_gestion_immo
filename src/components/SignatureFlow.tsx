@@ -56,7 +56,7 @@ export function SignatureFlow({
 
     // Dimensionne le canvas à sa taille réelle (en préservant un tracé en cours).
     // Si le layout n'est pas encore prêt (largeur 0), on retente à la frame suivante
-    // — c'est la cause du bouton « signer » qui restait grisé.
+    // - c'est la cause du bouton « signer » qui restait grisé.
     const dimensionner = () => {
       const largeur = canvas.offsetWidth;
       if (largeur === 0) {
@@ -105,7 +105,7 @@ export function SignatureFlow({
     } else {
       onTermine({
         dateSignature: nowISO(),
-        lieu: lieu.trim() || '—',
+        lieu: lieu.trim() || '-',
         bailleur: nouveaux[0],
         locataires: nouveaux.slice(1),
       });
@@ -142,14 +142,14 @@ export function SignatureFlow({
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-accent-900">
-        Signature {index + 1}/{signataires.length} —{' '}
+        Signature {index + 1}/{signataires.length} -{' '}
         {courant.role === 'bailleur' ? 'Bailleur' : 'Locataire'}
       </h2>
       <Field label="Nom complet du signataire (tapé par le signataire)" required>
         <Input value={nom} onChange={(e) => setNom(e.target.value)} />
       </Field>
       <Checkbox
-        label="Lu et approuvé — je reconnais avoir pris connaissance de l'intégralité du document"
+        label="Lu et approuvé - je reconnais avoir pris connaissance de l'intégralité du document"
         checked={luApprouve}
         onChange={(e) => setLuApprouve(e.target.checked)}
       />

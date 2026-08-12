@@ -1,10 +1,10 @@
 /**
- * Charte visuelle de Bailiz — source unique.
+ * Charte visuelle de Bailiz - source unique.
  *
  * Le site vitrine (`site/src/styles/global.css`) reprend ces mêmes valeurs en
  * variables CSS : les deux surfaces doivent être manifestement le même produit,
  * sinon le passage de bailiz.fr à bailiz.fr/app ressemble à une sortie de site.
- * Toute retouche ici se répercute là-bas à la main — il n'y a que deux fichiers,
+ * Toute retouche ici se répercute là-bas à la main - il n'y a que deux fichiers,
  * et les faire dépendre l'un de l'autre imposerait une étape de build commune
  * entre deux projets qui n'en partagent aucune.
  *
@@ -20,7 +20,7 @@
  * Toutes les paires réellement employées ont été mesurées avant d'être
  * retenues. Les combinaisons de texte atteignent AA (4,5:1) au minimum, la
  * plupart AAA. Les bordures de champs atteignent 3:1 sur blanc, comme l'exige
- * le critère WCAG 1.4.11 pour les limites de composants d'interface — ce que
+ * le critère WCAG 1.4.11 pour les limites de composants d'interface - ce que
  * l'ancienne palette (slate-300, 1,7:1) ne faisait pas.
  */
 
@@ -78,7 +78,7 @@ export default {
         },
         /*
          * Marque. Un teal profond, franchement désaturé : le proptech français
-         * est massivement bleu, et s'en écarter aide à être reconnu — sans
+         * est massivement bleu, et s'en écarter aide à être reconnu - sans
          * verser dans une couleur que personne n'oserait sur un document
          * juridique. `brand-600` porte les actions principales (6,4:1 avec du
          * blanc), `brand-700` les liens dans le texte (8,8:1).
@@ -95,7 +95,7 @@ export default {
       },
       borderRadius: {
         // `lg` porte 97 usages : c'est lui qui donne le ton. 10 px arrondit
-        // sans amollir — les documents produits sont à angles droits.
+        // sans amollir - les documents produits sont à angles droits.
         lg: '0.625rem',
         xl: '0.875rem',
       },
@@ -103,7 +103,7 @@ export default {
         /*
          * Ombres teintées du neutre plutôt que du noir pur : une ombre grise
          * sur une surface tiède se voit, et fait sale. Volontairement peu
-         * nombreuses — l'élévation se dit ici par la bordure, pas par l'ombre.
+         * nombreuses - l'élévation se dit ici par la bordure, pas par l'ombre.
          */
         sm: '0 1px 2px 0 rgb(26 24 21 / 0.05)',
         md: '0 2px 8px -2px rgb(26 24 21 / 0.08), 0 1px 2px 0 rgb(26 24 21 / 0.04)',

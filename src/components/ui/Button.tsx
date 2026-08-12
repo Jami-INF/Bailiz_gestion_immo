@@ -6,7 +6,7 @@ type Size = 'sm' | 'md' | 'lg';
 /*
  * L'action principale porte la couleur de marque, et elle est la seule à la
  * porter : c'est ce qui la rend repérable d'un coup d'œil sur un écran de
- * formulaire long. Plus d'ombre sur les aplats — la couleur suffit à les faire
+ * formulaire long. Plus d'ombre sur les aplats - la couleur suffit à les faire
  * avancer, et une ombre sur un bouton plein date la page.
  */
 const variants: Record<Variant, string> = {

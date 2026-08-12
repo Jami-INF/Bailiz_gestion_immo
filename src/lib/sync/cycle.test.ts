@@ -516,13 +516,13 @@ describe('convergence sur plusieurs allers-retours', () => {
   it('fait converger deux appareils qui travaillent en alternance', async () => {
     const depot = new DepotMemoire();
 
-    // Tour 1 — appareil A crée un bien.
+    // Tour 1 - appareil A crée un bien.
     await db.biens.put(bien({ id: 'bien-A' }));
     await journaliser('biens', 'bien-A', 'maj');
     await synchroniser(depot);
     const A1 = await capturer();
 
-    // Tour 1 — appareil B crée un locataire, sans avoir vu le bien.
+    // Tour 1 - appareil B crée un locataire, sans avoir vu le bien.
     await reinitialiser();
     await db.locataires.put(locataire({ id: 'loc-B' }));
     await journaliser('locataires', 'loc-B', 'maj');
@@ -530,7 +530,7 @@ describe('convergence sur plusieurs allers-retours', () => {
     await synchroniser(depot);
     const B1 = await capturer();
 
-    // Tour 2 — A revient : il doit recevoir le locataire de B.
+    // Tour 2 - A revient : il doit recevoir le locataire de B.
     await restaurer(A1);
     depot.avancer(1);
     await synchroniser(depot);
@@ -538,7 +538,7 @@ describe('convergence sur plusieurs allers-retours', () => {
     expect(await db.biens.get('bien-A')).toBeTruthy();
     const A2 = await capturer();
 
-    // Tour 2 — B revient : il doit recevoir le bien de A.
+    // Tour 2 - B revient : il doit recevoir le bien de A.
     await restaurer(B1);
     depot.avancer(1);
     await synchroniser(depot);

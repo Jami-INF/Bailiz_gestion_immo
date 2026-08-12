@@ -79,7 +79,7 @@ export function DocumentsPage() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 break-words font-medium text-accent-900">
                   <span className="break-words">
-                    {d.reference} — {d.titre}
+                    {d.reference} - {d.titre}
                   </span>
                   {d.signe && (
                     <Badge tone="green">

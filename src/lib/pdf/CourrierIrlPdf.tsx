@@ -30,13 +30,13 @@ interface Props {
 export function CourrierIrlPdf(p: Props) {
   const b = p.parametres.bailleur;
   return (
-    <Document title={`${p.reference} — Révision de loyer IRL`} language="fr">
+    <Document title={`${p.reference} - Révision de loyer IRL`} language="fr">
       <Page size="A4" style={s.page}>
         <EntetePdf reference={p.reference} docTitre="Révision annuelle du loyer (IRL)" />
         <View style={{ marginBottom: 16 }}>
           <Text>{nomBailleur(b)}</Text>
           <Text>{b.adresse}</Text>
-          <Text>{b.email} — {b.telephone}</Text>
+          <Text>{b.email} - {b.telephone}</Text>
         </View>
         <View style={{ alignItems: 'flex-end', marginBottom: 16 }}>
           {p.locataires.map((l) => (
@@ -48,7 +48,7 @@ export function CourrierIrlPdf(p: Props) {
             {formatAdresse(p.bien.adresse)}
           </Text>
         </View>
-        <Text style={s.p}>Objet : révision annuelle du loyer — bail {p.bail.reference}</Text>
+        <Text style={s.p}>Objet : révision annuelle du loyer - bail {p.bail.reference}</Text>
         <Text style={[s.p, { marginTop: 10 }]}>Madame, Monsieur,</Text>
         <Text style={s.p}>
           Conformément à l'article 17-1 de la loi n°89-462 du 6 juillet 1989 et à la clause de

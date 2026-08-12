@@ -17,7 +17,7 @@ export function clausePertinente(clause: ClauseBail, bien?: Bien): boolean {
 /**
  * Sélection des conditions générales d'occupation pour un bail : le pack des
  * Paramètres arrive pré-coché, chaque bail peut en retirer. Le texte se
- * consulte ici mais se modifie dans les Paramètres — un bail ne doit pas
+ * consulte ici mais se modifie dans les Paramètres - un bail ne doit pas
  * devenir un éditeur juridique.
  */
 export function ClausesSelecteur({

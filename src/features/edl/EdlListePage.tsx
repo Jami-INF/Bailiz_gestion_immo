@@ -51,7 +51,7 @@ export function EdlListePage() {
                 <Card className="flex flex-wrap items-center justify-between gap-3 transition-shadow hover:shadow-md">
                   <div>
                     <div className="font-semibold text-accent-900">
-                      {edl.reference} — {edl.type === 'entree' ? 'Entrée' : 'Sortie'} —{' '}
+                      {edl.reference} - {edl.type === 'entree' ? 'Entrée' : 'Sortie'} -{' '}
                       {bien?.nom ?? '?'}
                     </div>
                     <div className="text-sm text-accent-600">
@@ -62,7 +62,7 @@ export function EdlListePage() {
                   <div className="flex flex-wrap items-center gap-2">
                     {!edl.bailId && <Badge tone="neutral">Sans bail</Badge>}
                     <Badge tone={edl.statut === 'signe' ? 'green' : 'orange'}>
-                      {edl.statut === 'signe' ? 'Signé — verrouillé' : `Brouillon (${prog.pct} %)`}
+                      {edl.statut === 'signe' ? 'Signé - verrouillé' : `Brouillon (${prog.pct} %)`}
                     </Badge>
                   </div>
                 </Card>

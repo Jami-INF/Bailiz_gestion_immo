@@ -4,7 +4,7 @@ import { Button, Card, Checkbox } from '@/components/ui';
 
 /**
  * Colonne d'aperçu du bail : rendu PDF en direct et actions de sortie
- * (partage, téléchargement, impression, enregistrement). Purement présentatif —
+ * (partage, téléchargement, impression, enregistrement). Purement présentatif -
  * l'état et la génération restent portés par le formulaire.
  */
 export function ApercuBailPanel({

@@ -12,7 +12,7 @@ beforeEach(async () => {
   await Promise.all([db.edls.clear(), db.biens.clear(), db.baux.clear(), db.parametres.clear()]);
 });
 
-describe('creerEtatDesLieux — entrée', () => {
+describe('creerEtatDesLieux - entrée', () => {
   it("crée un EDL sans bail : le contexte est porté par l'état des lieux lui-même", async () => {
     const bien = unBien({ piecesModele: [{ id: 'pm-1', nom: 'Séjour', ordre: 0, elements: [] }] });
     const edl = await creerEtatDesLieux({
@@ -77,7 +77,7 @@ describe('creerEtatDesLieux — entrée', () => {
     ]);
   });
 
-  it("ignore la trame proposée si le logement porte déjà ses pièces — le bien fait foi", async () => {
+  it("ignore la trame proposée si le logement porte déjà ses pièces - le bien fait foi", async () => {
     const bien = unBien({ piecesModele: [{ id: 'pm-1', nom: 'Chambre', ordre: 0, elements: [] }] });
     const edl = await creerEtatDesLieux({
       type: 'entree',
@@ -91,7 +91,7 @@ describe('creerEtatDesLieux — entrée', () => {
   });
 });
 
-describe('creerEtatDesLieux — sortie', () => {
+describe('creerEtatDesLieux - sortie', () => {
   it("duplique la structure et les états de l'EDL d'entrée quand il existe", async () => {
     const bien = unBien();
     const entree = unEdl({
@@ -175,7 +175,7 @@ describe('completerContexteEdl', () => {
     expect(edl).toMatchObject({ bienId: 'bien-9', locataireIds: ['a', 'b'] });
   });
 
-  it("n'écrase jamais un contexte déjà présent — appliquée deux fois, elle ne change rien", () => {
+  it("n'écrase jamais un contexte déjà présent - appliquée deux fois, elle ne change rien", () => {
     const bail = { bienId: 'bien-9', locataireIds: ['a'] };
     const une = completerContexteEdl({ bienId: 'bien-1', locataireIds: ['z'] }, bail);
     const deux = completerContexteEdl({ ...une }, bail);

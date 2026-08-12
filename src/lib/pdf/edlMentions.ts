@@ -4,7 +4,7 @@ import { formatDateFr } from './commun';
 /**
  * Mentions de rattachement et de provenance imprimées en tête d'un état des
  * lieux. Isolées du composant : ce sont elles qui portent la valeur juridique du
- * document, elles doivent être vérifiables sans passer par le rendu d'un PDF —
+ * document, elles doivent être vérifiables sans passer par le rendu d'un PDF -
  * dont les flux sont compressés, donc illisibles à l'assertion.
  */
 
@@ -18,7 +18,7 @@ export function mentionBail(bail?: Bail, externe?: EtatDesLieux['bailExterne']):
   if (externe?.reference || externe?.dateEffet) {
     const ref = externe.reference ? `Bail ${externe.reference}` : 'Bail';
     const effet = externe.dateEffet ? ` prenant effet le ${formatDateFr(externe.dateEffet)}` : '';
-    return `${ref}${effet} — contrat établi hors application. À annexer au contrat de location.`;
+    return `${ref}${effet} - contrat établi hors application. À annexer au contrat de location.`;
   }
   return 'À annexer au contrat de location.';
 }

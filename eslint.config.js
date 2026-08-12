@@ -6,14 +6,14 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 
 /**
  * Configuration ESLint (flat config). Volontairement resserrée sur ce qui
- * attrape de vrais défauts — règles des hooks, imports/variables mortes,
- * promesses oubliées — sans imposer de style : le formatage reste libre.
+ * attrape de vrais défauts - règles des hooks, imports/variables mortes,
+ * promesses oubliées - sans imposer de style : le formatage reste libre.
  */
 export default tseslint.config(
   /*
    * `site` est le site vitrine (Astro) : un projet distinct, avec sa propre
    * chaîne d'outils et ses propres types générés (`site/.astro/`). Le linter de
-   * l'application n'a rien à y faire — il y signalerait des `any` dans des
+   * l'application n'a rien à y faire - il y signalerait des `any` dans des
    * fichiers qu'Astro réécrit à chaque build.
    */
   { ignores: ['dist', 'dev-dist', 'docs', 'node_modules', 'coverage', 'site'] },

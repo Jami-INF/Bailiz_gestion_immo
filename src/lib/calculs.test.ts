@@ -154,7 +154,7 @@ describe('delaiRestitutionMois', () => {
 
 describe('dateLimiteRestitution', () => {
   it('compte en mois calendaires, pas en tranches de trente jours', () => {
-    // Remise des clés le 31 janvier : un mois plus tard, c'est le 28 février —
+    // Remise des clés le 31 janvier : un mois plus tard, c'est le 28 février -
     // et non le 2 mars comme le donnait un décompte à 30 jours.
     const limite = dateLimiteRestitution(new Date(2026, 0, 31), false);
     expect(limite.getMonth()).toBe(1);

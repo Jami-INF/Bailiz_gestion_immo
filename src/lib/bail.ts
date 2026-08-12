@@ -7,8 +7,8 @@ import type { Bail, RevisionLoyer } from '@/types';
  * ne peut pas être effacé.
  *
  * `genere` en fait partie : c'est l'état d'un bail enregistré depuis le
- * formulaire, et il n'en sort **que par une action manuelle**. L'exclure — ce
- * que faisait le tableau de bord — laissait le logement affiché « Vacant » et
+ * formulaire, et il n'en sort **que par une action manuelle**. L'exclure - ce
+ * que faisait le tableau de bord - laissait le logement affiché « Vacant » et
  * l'échéancier vide tant que l'utilisateur n'avait pas pensé à cliquer
  * « Marquer le logement loué ».
  *
@@ -41,7 +41,7 @@ export function loyerCourant(bail: Pick<Bail, 'loyerHC' | 'revisionsLoyer'>): nu
 /**
  * Base de la prochaine révision : le loyer et l'indice à partir desquels
  * calculer. Après une première révision, c'est le loyer révisé et l'indice
- * alors retenu — sinon les valeurs du contrat.
+ * alors retenu - sinon les valeurs du contrat.
  */
 export function baseRevisionIRL(bail: Bail): { loyer: number; indice: number; trimestre: string } {
   const derniere = derniereRevision(bail);
@@ -63,14 +63,14 @@ export interface TermeDuBail {
   /** Terme du bail : `dateEffet + dureeMois`. */
   date: Date;
   /**
-   * Vrai si le bail se **reconduit tacitement** faute de congé — meublé d'un an.
+   * Vrai si le bail se **reconduit tacitement** faute de congé - meublé d'un an.
    * Faux s'il prend fin de plein droit : bail étudiant de neuf mois et bail
    * mobilité, ni renouvelables ni reconductibles.
    */
   reconduction: boolean;
   /**
    * Date limite pour donner congé en tant que bailleur : trois mois avant le
-   * terme (art. 25-8). Absente quand le bail s'arrête de lui-même — il n'y a
+   * terme (art. 25-8). Absente quand le bail s'arrête de lui-même - il n'y a
    * alors aucun congé à donner, et annoncer une échéance ferait croire le
    * contraire.
    */
@@ -81,7 +81,7 @@ export interface TermeDuBail {
  * Ce qui arrive au terme du bail.
  *
  * L'échéancier annonçait « Fin de bail » pour tous les types, y compris le
- * meublé d'un an — qui se **reconduit** faute de congé. Le message laissait
+ * meublé d'un an - qui se **reconduit** faute de congé. Le message laissait
  * croire que le logement se libérait tout seul, et masquait la seule échéance
  * qui compte vraiment : la date après laquelle il est trop tard pour donner
  * congé.
@@ -110,7 +110,7 @@ function anniversaire(dateEffet: Date, annee: number): Date {
  * elle **ne rétroagit pas** : elle prend effet à compter de la demande
  * (art. 17-1, I, al. 2 de la loi du 6 juillet 1989). Le courrier annonçait
  * jusqu'ici l'anniversaire de l'année civile en cours, donc une date passée dès
- * qu'on s'y prenait en retard — précisément le cas où la règle compte.
+ * qu'on s'y prenait en retard - précisément le cas où la règle compte.
  */
 export function dateApplicationRevision(bail: Bail, aujourdhui = new Date()): Date {
   const effet = new Date(bail.dateEffet);

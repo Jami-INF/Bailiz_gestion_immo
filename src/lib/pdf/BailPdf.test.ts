@@ -60,7 +60,7 @@ const bail: Bail = {
   modePaiement: 'virement bancaire',
   revisionIRL: { trimestreReference: '1er trimestre 2026', valeurIndice: 145.47, revisable: true },
   clauseResolutoire: true,
-  travaux: { depuisDernierBail: 'Remplacement de la chaudière — 3 200 €' },
+  travaux: { depuisDernierBail: 'Remplacement de la chaudière - 3 200 €' },
   clausesParticulieres: [],
   annexesChecklist: [],
   statut: 'genere',
@@ -94,7 +94,7 @@ describe('BailPdf', () => {
   });
 });
 
-describe('BailPdf — conditions générales d’occupation', () => {
+describe('BailPdf - conditions générales d’occupation', () => {
   const clausesActives = CLAUSES_BAIL_DEFAUT.filter((c) => c.active);
   const compterPages = (buffer: Buffer) =>
     (buffer.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;

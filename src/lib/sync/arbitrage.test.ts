@@ -10,7 +10,7 @@ import { journaliser } from './journal';
  *
  * La règle tient en une phrase : **c'est la modification la plus récente à la
  * montre qui l'emporte, pas la dernière synchronisée.** Un appareil resté
- * hors ligne n'écrase donc rien en se reconnectant — mais il peut, à l'inverse,
+ * hors ligne n'écrase donc rien en se reconnectant - mais il peut, à l'inverse,
  * voir sa propre saisie remplacée. Ces tests figent ce comportement, parce
  * qu'il n'est pas devinable et qu'une régression y serait silencieuse.
  */
@@ -79,26 +79,26 @@ describe('tablette hors ligne, puis ordinateur en ligne', () => {
 
   it('la tablette n’écrase pas l’ordinateur : c’est la saisie la plus récente qui gagne', async () => {
     /*
-     * La crainte naturelle — « le dernier connecté écrase tout » — n'est pas
+     * La crainte naturelle - « le dernier connecté écrase tout » - n'est pas
      * fondée. Le cycle commence par recevoir : la tablette découvre une version
      * postérieure à la sienne et l'adopte, au lieu de la recouvrir.
      */
     const depot = new DepotMemoire();
     const depart = await partirDuMemeBail(depot);
 
-    // 10 h — la tablette modifie hors ligne : rien ne part.
+    // 10 h - la tablette modifie hors ligne : rien ne part.
     await restaurer(depart);
     await modifier({ loyer: 999, note: 'tablette', updatedAt: '2026-08-09T10:00:00.000Z' });
     expect(await db.changements.count()).toBe(1);
     const tablette = await capturer();
 
-    // 14 h — l'ordinateur modifie et pousse.
+    // 14 h - l'ordinateur modifie et pousse.
     await restaurer(depart);
     await modifier({ loyer: 777, note: 'ordinateur', updatedAt: '2026-08-09T14:00:00.000Z' });
     depot.avancer(60);
     await synchroniser(depot);
 
-    // 16 h — la tablette retrouve le réseau.
+    // 16 h - la tablette retrouve le réseau.
     await restaurer(tablette);
     depot.avancer(60);
     await synchroniser(depot);
@@ -113,13 +113,13 @@ describe('tablette hors ligne, puis ordinateur en ligne', () => {
     const depot = new DepotMemoire();
     const depart = await partirDuMemeBail(depot);
 
-    // 10 h — l'ordinateur modifie et pousse.
+    // 10 h - l'ordinateur modifie et pousse.
     await restaurer(depart);
     await modifier({ note: 'ordinateur', updatedAt: '2026-08-09T10:00:00.000Z' });
     depot.avancer(60);
     await synchroniser(depot);
 
-    // 14 h — la tablette a modifié plus tard, hors ligne, et se reconnecte après.
+    // 14 h - la tablette a modifié plus tard, hors ligne, et se reconnecte après.
     await restaurer(depart);
     await modifier({ note: 'tablette', updatedAt: '2026-08-09T14:00:00.000Z' });
     depot.avancer(60);
@@ -134,7 +134,7 @@ describe('tablette hors ligne, puis ordinateur en ligne', () => {
     /*
      * Point le plus contre-intuitif, et le plus important à connaître : modifier
      * le loyer sur la tablette et la note sur l'ordinateur ne conserve pas les
-     * deux. La fiche perdante est remplacée d'un bloc — le loyer revient à sa
+     * deux. La fiche perdante est remplacée d'un bloc - le loyer revient à sa
      * valeur d'origine. C'est assumé : un état des lieux moitié d'un appareil
      * et moitié de l'autre n'aurait aucune valeur juridique.
      */
@@ -162,7 +162,7 @@ describe('tablette hors ligne, puis ordinateur en ligne', () => {
   it('ne peut jamais écraser une fiche créée hors ligne', async () => {
     // Une création porte un identifiant que l'autre appareil ignore : il n'y a
     // pas de version concurrente, donc rien à arbitrer. C'est le cas courant du
-    // terrain — un état des lieux saisi dans l'appartement.
+    // terrain - un état des lieux saisi dans l'appartement.
     const depot = new DepotMemoire();
     await db.locataires.put({
       id: 'loc-neuf',
@@ -199,7 +199,7 @@ describe('signalement des saisies remplacées', () => {
   it('nomme la fiche dont la saisie locale vient d’être abandonnée', async () => {
     /*
      * L'arbitrage est le bon, mais le taire laisserait croire que rien n'a été
-     * perdu — et sur un bail, ce qui a disparu peut être un loyer.
+     * perdu - et sur un bail, ce qui a disparu peut être un loyer.
      */
     const depot = new DepotMemoire();
     const depart = await partirDuMemeBail(depot);

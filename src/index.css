@@ -1,8 +1,8 @@
 /*
  * Inter auto-hébergée (fichiers dans `src/assets/fonts`, émis et versionnés par
  * Vite). L'import depuis fonts.googleapis.com envoyait l'adresse IP de
- * l'utilisateur à Google à chaque ouverture — contraire à la politique de
- * confidentialité annoncée (« aucun traceur, aucune donnée transmise ») — et
+ * l'utilisateur à Google à chaque ouverture - contraire à la politique de
+ * confidentialité annoncée (« aucun traceur, aucune donnée transmise ») - et
  * imposait un aller-retour réseau avant le premier rendu, y compris sur un
  * appareil censé fonctionner hors-ligne.
  *
@@ -45,7 +45,7 @@ body {
 
 /*
  * Contrôles natifs : sans `accent-color`, une case cochée prend la couleur
- * d'accentuation du système — bleu sous macOS, autre chose ailleurs. L'écran
+ * d'accentuation du système - bleu sous macOS, autre chose ailleurs. L'écran
  * affichait donc deux couleurs d'action concurrentes, dont une qui changeait
  * d'un poste à l'autre. Réglé ici plutôt que sur chaque composant : cela couvre
  * aussi les contrôles rendus par le navigateur qu'aucune classe n'atteint.

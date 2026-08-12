@@ -39,7 +39,7 @@ import { STATUT_BAIL_UI } from './BauxPage';
 import { BoutonSupprimerBail } from './SupprimerBail';
 
 /**
- * Bail dont le bien a disparu — supprimé ici, ou sur l'autre appareil et la
+ * Bail dont le bien a disparu - supprimé ici, ou sur l'autre appareil et la
  * suppression reçue par synchronisation.
  *
  * Presque tout l'écran de détail cite le bien : les documents, les calculs, les
@@ -63,7 +63,7 @@ function BailOrphelin({ bail }: { bail: Bail }) {
       <Card className="space-y-3">
         <p className="text-sm text-accent-700">
           Ce bail référence un bien qui a été supprimé. Les documents ne peuvent plus être
-          régénérés — ils citent le logement — et les calculs de loyer n'ont plus de support.
+          régénérés - ils citent le logement - et les calculs de loyer n'ont plus de support.
         </p>
         <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <div>
@@ -72,11 +72,11 @@ function BailOrphelin({ bail }: { bail: Bail }) {
           </div>
           <div>
             <dt className="inline text-accent-500">Loyer hors charges : </dt>
-            <dd className="inline text-accent-900">{bail.loyerHC ?? '—'} €</dd>
+            <dd className="inline text-accent-900">{bail.loyerHC ?? '-'} €</dd>
           </div>
           <div>
             <dt className="inline text-accent-500">Charges : </dt>
-            <dd className="inline text-accent-900">{bail.charges?.montant ?? '—'} €</dd>
+            <dd className="inline text-accent-900">{bail.charges?.montant ?? '-'} €</dd>
           </div>
           <div>
             <dt className="inline text-accent-500">Statut : </dt>
@@ -112,7 +112,7 @@ export function BailDetailPage() {
   if (!bail || !locataires || !parametres) return null;
 
   /*
-   * Le bien peut avoir disparu — supprimé ici, ou sur l'autre appareil et la
+   * Le bien peut avoir disparu - supprimé ici, ou sur l'autre appareil et la
    * suppression reçue par synchronisation. Exiger sa présence rendait une page
    * **blanche** : le bail devenait invisible, donc impossible à consulter comme
    * à supprimer. On l'affiche donc sans lui, en désactivant les seules actions
@@ -143,7 +143,7 @@ export function BailDetailPage() {
         brouillon
       />,
     );
-    const titre = `Bail meublé — ${bien.nom} — ${nomsLocs}`;
+    const titre = `Bail meublé - ${bien.nom} - ${nomsLocs}`;
     await enregistrerDocument({
       reference: bail.reference,
       type: 'bail',
@@ -155,7 +155,7 @@ export function BailDetailPage() {
     telechargerDocument({ blob, reference: bail.reference, titre });
   };
 
-  /** Fiche d'aide juridique (préavis, congés, impayés, délais) — archivée et téléchargée. */
+  /** Fiche d'aide juridique (préavis, congés, impayés, délais) - archivée et téléchargée. */
   const genererFicheAide = async () => {
     await genererEtArchiver({
       type: 'fiche_aide',
@@ -167,11 +167,11 @@ export function BailDetailPage() {
     toast('success', "Fiche d'aide juridique générée.");
   };
 
-  /** Grille de vétusté du bail (annexe, décret 2016-382) — reprend celle des Paramètres. */
+  /** Grille de vétusté du bail (annexe, décret 2016-382) - reprend celle des Paramètres. */
   const genererGrilleVetuste = async () => {
     await genererEtArchiver({
       type: 'grille_vetuste',
-      titre: `Grille de vétusté — ${bien.nom} — annexe du bail ${bail.reference}`,
+      titre: `Grille de vétusté - ${bien.nom} - annexe du bail ${bail.reference}`,
       element: (reference) => (
         <GrilleVetustePdf
           reference={reference}
@@ -215,7 +215,7 @@ export function BailDetailPage() {
   /*
    * Depuis la fiche d'un bail, tout le contexte est connu : la création passe
    * directement par `creerEtatDesLieux`, sans détour par le formulaire rapide.
-   * L'exigence d'un EDL d'entrée préalable est propre à ce chemin — un bail
+   * L'exigence d'un EDL d'entrée préalable est propre à ce chemin - un bail
    * rédigé ici a forcément pu recevoir son état des lieux d'entrée ici.
    */
   const creerEdl = async (type: 'entree' | 'sortie') => {
@@ -251,7 +251,7 @@ export function BailDetailPage() {
     const dateApplication = dateApplicationRevision(bail);
     await genererEtArchiver({
       type: 'courrier_irl',
-      titre: `Révision IRL ${new Date().getFullYear()} — ${bien.nom} — ${nomsLocs}`,
+      titre: `Révision IRL ${new Date().getFullYear()} - ${bien.nom} - ${nomsLocs}`,
       bienId: bien.id,
       bailId: bail.id,
       element: (reference) => (
@@ -306,7 +306,7 @@ export function BailDetailPage() {
     <div>
       <PageHeader
         titre={`${bail.reference}`}
-        sousTitre={`${bien.nom} — ${locataires.map((l) => `${l.prenom} ${l.nom}`).join(', ')}`}
+        sousTitre={`${bien.nom} - ${locataires.map((l) => `${l.prenom} ${l.nom}`).join(', ')}`}
         actions={
           <>
             <Badge tone={ui.tone}>{ui.label}</Badge>
@@ -328,7 +328,7 @@ export function BailDetailPage() {
               {formatEuros(loyerCourant(bail))}
               {revisionEnCours && (
                 <span className="block text-xs text-accent-500">
-                  révisé le {format(new Date(revisionEnCours.dateApplication), 'dd/MM/yyyy')} — loyer
+                  révisé le {format(new Date(revisionEnCours.dateApplication), 'dd/MM/yyyy')} - loyer
                   au contrat : {formatEuros(bail.loyerHC)}
                 </span>
               )}
@@ -408,7 +408,7 @@ export function BailDetailPage() {
                 className="flex items-center justify-between rounded-lg border border-accent-200 px-3 py-2 text-sm hover:bg-accent-50"
               >
                 <span className="flex items-center gap-2">
-                  <ClipboardList size={15} className="text-accent-400" /> Entrée — {edlEntree.reference}
+                  <ClipboardList size={15} className="text-accent-400" /> Entrée - {edlEntree.reference}
                 </span>
                 <Badge tone={edlEntree.statut === 'signe' ? 'green' : 'orange'}>
                   {edlEntree.statut === 'signe' ? 'Signé' : 'Brouillon'}
@@ -425,7 +425,7 @@ export function BailDetailPage() {
                 className="flex items-center justify-between rounded-lg border border-accent-200 px-3 py-2 text-sm hover:bg-accent-50"
               >
                 <span className="flex items-center gap-2">
-                  <ClipboardList size={15} className="text-accent-400" /> Sortie — {edlSortie.reference}
+                  <ClipboardList size={15} className="text-accent-400" /> Sortie - {edlSortie.reference}
                 </span>
                 <Badge tone={edlSortie.statut === 'signe' ? 'green' : 'orange'}>
                   {edlSortie.statut === 'signe' ? 'Signé' : 'Brouillon'}
@@ -469,7 +469,7 @@ export function BailDetailPage() {
               <span>
                 <span className="block text-sm font-medium text-accent-900">Attestation de garant</span>
                 <span className="block text-xs text-accent-500">
-                  Acte de cautionnement solidaire — modèle vierge, à compléter et signer à la main.
+                  Acte de cautionnement solidaire - modèle vierge, à compléter et signer à la main.
                 </span>
               </span>
             </button>
@@ -553,7 +553,7 @@ export function BailDetailPage() {
         <div className="space-y-4">
           <p className="text-sm text-accent-600">
             {revisionEnCours ? 'Indice de la dernière révision' : 'Indice de référence au bail'} :{' '}
-            {baseIrl.indice || '—'} ({baseIrl.trimestre || 'trimestre non renseigné'}), pour un
+            {baseIrl.indice || '-'} ({baseIrl.trimestre || 'trimestre non renseigné'}), pour un
             loyer de {formatEuros(baseIrl.loyer)} hors charges. Saisissez le nouvel indice publié
             par l'INSEE pour le même trimestre.
           </p>
@@ -562,7 +562,7 @@ export function BailDetailPage() {
             <span className="font-medium text-accent-900">
               {format(dateApplicationRevision(bail), 'dd/MM/yyyy')}
             </span>{' '}
-            — la révision joue à la date anniversaire du bail et ne rétroagit pas si elle est
+            - la révision joue à la date anniversaire du bail et ne rétroagit pas si elle est
             demandée après (art. 17-1 de la loi du 6 juillet 1989).
           </p>
           <div className="grid grid-cols-2 gap-4">

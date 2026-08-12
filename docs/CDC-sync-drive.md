@@ -1,4 +1,4 @@
-# CDC — Synchronisation Google Drive par fichiers (lot B)
+# CDC - Synchronisation Google Drive par fichiers (lot B)
 
 > Suite du lot A (`docs/CDC-drive-divergence.md`), qui **détecte** la divergence sans la résoudre.
 > Ce lot la **supprime** : les deux appareils convergent vers un même état, sans jamais perdre les
@@ -7,7 +7,7 @@
 ## 1. Besoin
 
 Le lot A a mis un garde-fou : quand l'autre appareil a sauvegardé, on n'envoie plus rien et on
-prévient. C'est un pansement — il faut ensuite choisir *quelle version jeter*.
+prévient. C'est un pansement - il faut ensuite choisir *quelle version jeter*.
 
 Ce qui est demandé : **une seule version, toujours à jour**, alimentée par les deux appareils.
 Concrètement, si l'iPad ajoute un état des lieux pendant que l'ordinateur modifie un bail, les
@@ -23,7 +23,7 @@ Deux contraintes non négociables héritées de l'application :
 ## 2. Pourquoi des fichiers et non le ZIP
 
 Fusionner deux ZIP imposerait, à chaque modification, de télécharger l'archive distante, la
-décompresser, comparer, recompresser et tout ré-envoyer — plusieurs dizaines de mégaoctets dans
+décompresser, comparer, recompresser et tout ré-envoyer - plusieurs dizaines de mégaoctets dans
 les deux sens, à cause des photos. Intenable en 4G, et impossible à faire de façon incrémentale.
 
 En fichiers séparés :
@@ -45,7 +45,7 @@ Le ZIP n'est pas abandonné pour autant : il devient le **filet hebdomadaire** (
 | Dossier Drive, jeton, upload multipart, rotation | ✅ `lib/gdrive.ts` |
 | Hooks Dexie sur toutes les tables métier | ✅ `initAutosaveSurModifications` (utilisés pour le debounce) |
 | Import/export ZIP | ✅ Conservé pour l'export manuel et le filet hebdomadaire |
-| `updatedAt` sur les entités | ⚠️ Présent sur `Bien`, `Locataire`, `Bail`, `EtatDesLieux` — **absent** sur `Photo` et `DocumentGenere` (immuables, cf. §4.3) |
+| `updatedAt` sur les entités | ⚠️ Présent sur `Bien`, `Locataire`, `Bail`, `EtatDesLieux` - **absent** sur `Photo` et `DocumentGenere` (immuables, cf. §4.3) |
 | **Journal des modifications** | ❌ Rien ne dit ce qui a changé depuis la dernière synchronisation |
 | **Marqueurs de suppression** | ❌ Une suppression est invisible pour l'autre appareil : une fusion naïve la **ressusciterait** |
 | **Index local ↔ Drive** | ❌ Aucun lien entre un enregistrement et son fichier distant |
@@ -69,7 +69,7 @@ Bailiz/
 Dossiers **plats** volontairement : Drive interroge par parent, et une requête
 `'<dossier>' in parents and modifiedTime > '<date>'` suffit alors à obtenir tout ce qui a changé
 depuis la dernière synchronisation. Chaque fichier porte
-`appProperties: { table, cle, modifieLe, appareil }` — l'identité du lot A sert ici à savoir
+`appProperties: { table, cle, modifieLe, appareil }` - l'identité du lot A sert ici à savoir
 qui a écrit quoi.
 
 Contenu d'un fichier de `donnees/` :
@@ -109,7 +109,7 @@ Une suppression locale produit :
 
 1. la suppression du fichier de `donnees/` (ou du blob) ;
 2. la création d'un fichier dans `tombstones/`, contenant `{ table, cle, supprimeLe, appareil }`
-   — **aucune donnée personnelle**, seulement une clé technique.
+   - **aucune donnée personnelle**, seulement une clé technique.
 
 À la réception, un tombstone plus récent que l'enregistrement local le supprime. Sans ce
 mécanisme, la suppression RGPD d'un locataire serait annulée au prochain push de l'autre
@@ -123,7 +123,7 @@ synchronisé depuis six mois ne doit de toute façon pas être fusionné à l'av
 **Dernier écrivain gagne, enregistrement par enregistrement**, en comparant `modifieLe` (issu de
 `updatedAt` pour les entités qui en ont, sinon de l'horodatage du journal).
 
-- Égalité d'horodatage : la version distante l'emporte — l'utilisateur a dit faire davantage
+- Égalité d'horodatage : la version distante l'emporte - l'utilisateur a dit faire davantage
   confiance au Drive, et cela rend la convergence déterministe des deux côtés.
 - **Décalage d'horloge** : c'est la limite assumée de la règle. Un appareil dont l'horloge
   retarde de dix minutes peut perdre une modification récente. Atténuation : à chaque
@@ -144,11 +144,11 @@ différentes.
 | `sauvegardeGDrive` | **jamais synchronisé** | Contient l'état de synchronisation propre à l'appareil (`derniereArchiveVue`, `dossierId`) |
 | `derniereSauvegarde` | le plus récent | Information d'affichage |
 
-**La numérotation reste le point faible** — traité par la détection : le maximum évite les doublons *après* convergence,
+**La numérotation reste le point faible** - traité par la détection : le maximum évite les doublons *après* convergence,
 mais deux baux créés hors-ligne le même jour sur deux appareils porteront la même référence
 jusqu'à la première synchronisation. Détection prévue : à la convergence, une référence en double
 est signalée à l'utilisateur, qui renumérote depuis la fiche du bail. Aucune renumérotation
-automatique — une référence figure sur un document déjà imprimé.
+automatique - une référence figure sur un document déjà imprimé.
 
 ### 4.7 Cycle de synchronisation
 
@@ -163,7 +163,7 @@ Un cycle = **pull puis push**, dans cet ordre (on part de l'état distant pour n
 Déclencheurs, repris de l'existant : après chaque signature, 30 s après la dernière modification
 (debounce), à l'ouverture, au retour du réseau, et manuellement.
 
-**Concurrence** : deux appareils qui synchronisent en même temps ne se corrompent pas — chaque
+**Concurrence** : deux appareils qui synchronisent en même temps ne se corrompent pas - chaque
 fichier est indépendant et la règle est déterministe. Le seul risque est un aller-retour
 supplémentaire, résolu au cycle suivant.
 
@@ -201,7 +201,7 @@ ZIP, inchangé.
 > Deux révisions successives, le 9 août 2026. La version initiale prévoyait un déploiement
 > progressif, interrupteur désactivé par défaut. Il a d'abord été inversé (activé par défaut),
 > puis retiré : les deux modes ne coexistaient qu'en apparence, et **chaque couture entre eux
-> avait produit un défaut** — date de sauvegarde partagée qui réduisait la synchro d'ouverture à
+> avait produit un défaut** - date de sauvegarde partagée qui réduisait la synchro d'ouverture à
 > une fois par semaine, vocabulaires de résultat mélangés, garde-fou de divergence devenu sans
 > objet mais toujours évalué à la connexion, où il accueillait un second appareil par un faux
 > avertissement de conflit.
@@ -209,7 +209,7 @@ ZIP, inchangé.
 Ce que la suppression emporte : `pousserSauvegardeGDrive`, `verifierArchiveDistante`,
 `comparerArchives`, `marquerArchiveVue`, `telechargerArchiveGDrive`, le type `ArchiveDrive`, les
 champs `syncActive` / `derniereArchiveVue` / `dernierPush`, l'état `conflit`, et le panneau
-`SyncPanel` — fondu dans le panneau Drive.
+`SyncPanel` - fondu dans le panneau Drive.
 
 La restauration, elle, est **conservée et améliorée** : elle ne vise plus l'archive concurrente
 détectée par le garde-fou, mais la liste des instantanés de `archives/` (§4.9), présentée dans le
@@ -234,7 +234,7 @@ panneau Drive.
 | Lot | Contenu | Vérification |
 |---|---|---|
 | **B1** | Journal des modifications + table `syncEtat` (Dexie v4), neutralisation pendant la sync | Tests : chaque écriture produit une entrée, aucune pendant l'application distante, compaction correcte |
-| **B2** | Protocole : format de fichier, règles de convergence, fusion de `parametres` | Tests unitaires exhaustifs (fonctions pures) — c'est le cœur, il doit être couvert avant tout branchement réseau |
+| **B2** | Protocole : format de fichier, règles de convergence, fusion de `parametres` | Tests unitaires exhaustifs (fonctions pures) - c'est le cœur, il doit être couvert avant tout branchement réseau |
 | **B3** | Opérations Drive (lister par date, lire, écrire, supprimer) | Tests avec `fetch` simulé |
 | **B4** | Cycle pull/push + garde-fous §4.9 | Tests de scénarios : création parallèle, modification concurrente, suppression, reprise après coupure |
 | **B5** | Interface : activation, état, avertissements | Parcours réel |
@@ -252,7 +252,7 @@ panneau Drive.
 - [x] Deux baux créés hors-ligne avec la même référence sont signalés, jamais renumérotés en silence.
 - [x] Les compteurs de séquence convergent vers le maximum, sans régression.
 - [x] `sauvegardeGDrive` n'est jamais écrasé par la version distante.
-- [x] Une base locale vide ne « supprime » pas les données du Drive — **par construction** :
+- [x] Une base locale vide ne « supprime » pas les données du Drive - **par construction** :
       effacer les données du navigateur efface aussi le journal, donc aucune suppression n'est
       en attente. Le garde-fou dédié, d'abord écrit puis retiré à l'épreuve des tests, bloquait
       en réalité la suppression volontaire de toutes ses données (cf. `cycle.ts`).
@@ -263,14 +263,14 @@ panneau Drive.
 ## 5 bis. Journalisation : le piège des hooks Dexie
 
 Un hook Dexie s'exécute **à l'intérieur** de la transaction de la table modifiée. Y écrire dans
-`changements` échoue — cette table n'appartient pas à la transaction — et l'échec est
+`changements` échoue - cette table n'appartient pas à la transaction - et l'échec est
 silencieux. Deux précautions, cumulées :
 
 - les écritures sont **accumulées en mémoire** puis versées au journal par un minuteur, hors de la
   transaction ;
 - le versement passe par `Dexie.ignoreTransaction`, qui détache explicitement. Ne pas s'en
   remettre au seul minuteur : la propagation de zone dépend de l'environnement, et **les tests
-  Node ne la reproduisent pas** — le défaut n'a été vu qu'en exécutant l'application.
+  Node ne la reproduisent pas** - le défaut n'a été vu qu'en exécutant l'application.
 
 En complément, `rattraperChangements` compare la base à l'état de synchronisation et journalise
 ce qui manque : première activation sur une base déjà remplie, ou écriture perdue entre le hook et
@@ -287,7 +287,7 @@ Consignés ici pour ne pas être réintroduits : tous étaient invisibles à la 
 | Le contenu binaire n'était jamais rapatrié (condition impossible dans la boucle) | Photos et PDF absents sur le second appareil |
 | La réception des métadonnées écrasait le blob local | Photo réduite à sa légende, contenu perdu |
 | Les métadonnées d'un blob étaient réécrites sans réutiliser le fichier existant | Un doublon sur le Drive à chaque envoi |
-| La suppression ne retirait pas le contenu binaire distant | Photo d'un locataire supprimé conservée sur le Drive — contraire à l'effacement RGPD |
+| La suppression ne retirait pas le contenu binaire distant | Photo d'un locataire supprimé conservée sur le Drive - contraire à l'effacement RGPD |
 | Les réglages distants l'emportaient à chaque cycle (comparaison de dates sans signification) | Bailleur, grille de vétusté, catalogue de clauses et modèle de fiche de visite écrasés à chaque synchronisation |
 | Le singleton `parametres` passait par la boucle de réception générique | Configuration Drive de l'appareil effacée, déconnexion à chaque cycle |
 | Le garde-fou « suppression massive » se déclenchait dès 1 suppression sur 1 | Usage quotidien bloqué |

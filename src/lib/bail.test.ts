@@ -140,7 +140,7 @@ describe('dateApplicationRevision', () => {
     expect(d).toEqual(aujourdhui);
   });
 
-  it('ne renvoie jamais une date passée — la régression corrigée', () => {
+  it('ne renvoie jamais une date passée - la régression corrigée', () => {
     // L'ancien calcul posait l'anniversaire de l'année civile en cours, donc une
     // date déjà écoulée dès qu'on s'y prenait en retard.
     const aujourdhui = new Date('2025-09-20T00:00:00.000Z');

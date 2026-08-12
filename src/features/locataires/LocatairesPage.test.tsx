@@ -80,7 +80,7 @@ describe('suppression RGPD', () => {
       id: 'doc-1',
       reference: 'EDL-2026-0001',
       type: 'edl_entree',
-      titre: 'EDL — Claire Durand',
+      titre: 'EDL - Claire Durand',
       bailId: 'bail-1',
       edlId: 'edl-1',
       blob: new Blob(['x']),

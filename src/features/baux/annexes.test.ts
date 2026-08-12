@@ -62,7 +62,7 @@ describe('annexesParDefaut', () => {
   });
 });
 
-describe('annexesParDefaut — dossier de diagnostic technique conditionnel', () => {
+describe('annexesParDefaut - dossier de diagnostic technique conditionnel', () => {
   const avec = (m: Partial<Bien>) => annexesParDefaut({ ...bien('monopropriete'), ...m });
   const libelles = (items: ReturnType<typeof annexesParDefaut>) => items.map((i) => i.libelle).join(' | ');
 
@@ -86,7 +86,7 @@ describe('annexesParDefaut — dossier de diagnostic technique conditionnel', ()
     expect(libelles(sans)).not.toMatch(/installation intérieure/i);
 
     const avecGaz = avec({ installationGazPlusDe15Ans: true, installationElectriquePlusDe15Ans: false });
-    expect(libelles(avecGaz)).toMatch(/installation intérieure de gaz — installation de plus de 15 ans/i);
+    expect(libelles(avecGaz)).toMatch(/installation intérieure de gaz - installation de plus de 15 ans/i);
     expect(libelles(avecGaz)).not.toMatch(/électricité/i);
   });
 

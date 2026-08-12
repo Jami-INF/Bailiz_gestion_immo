@@ -1,4 +1,4 @@
-# Guide de déploiement — bailiz.fr sur OVH
+# Guide de déploiement - bailiz.fr sur OVH
 
 > Met en œuvre `docs/CDC-site-vitrine-seo.md` §9. Procédure complète, de la zone DNS au premier
 > déploiement automatique, puis vérification et dépannage.
@@ -13,7 +13,7 @@
 | Élément | Où le trouver |
 |---|---|
 | Domaine `bailiz.fr` | ✅ Réservé chez OVH |
-| Hébergement mutualisé 100 Mo | ✅ Inclus, rattaché au domaine — **cluster129** |
+| Hébergement mutualisé 100 Mo | ✅ Inclus, rattaché au domaine - **cluster129** |
 | Zone DNS | ✅ Correcte, rien à modifier (§1) |
 | Certificats SSL apex + www | ✅ Actifs, Let's Encrypt (§2) |
 | Accès **SFTP** (port 22) | ✅ `ftp.cluster129.hosting.ovh.net`, home `/home/bailiza`. **FTPS ne fonctionne pas sur ce cluster** (§4) |
@@ -21,13 +21,13 @@
 | Secrets GitHub | ✅ Posés (§4) |
 
 **Le seul point encore inconnu** : `.htaccess` est-il honoré sur cette offre ? S'il était ignoré,
-les redirections et les en-têtes de cache tomberaient — le site fonctionnerait, mais sans sa
+les redirections et les en-têtes de cache tomberaient - le site fonctionnerait, mais sans sa
 canonicalisation ni son cache. Le §7 le teste explicitement ; ce n'est pas bloquant pour la mise en
 ligne, mais il faut le savoir plutôt que de croire le site correctement configuré.
 
 ---
 
-## 1. Zone DNS — ✅ déjà en place
+## 1. Zone DNS - ✅ déjà en place
 
 Vérifié le 11 août 2026, rien à modifier :
 
@@ -39,7 +39,7 @@ Vérifié le 11 août 2026, rien à modifier :
 
 L'inverse de `51.91.236.255` répond `cluster029.hosting.ovh.net`, et `cluster129.hosting.ovh.net`
 résout vers cette même adresse : l'hébergement est bien rattaché au domaine. L'apex comme le `www`
-sont servis par Apache et renvoient tous deux `200` — **aucune redirection au niveau d'OVH**. C'est
+sont servis par Apache et renvoient tous deux `200` - **aucune redirection au niveau d'OVH**. C'est
 la configuration attendue : la canonicalisation `www` → apex est faite par le `.htaccess`, où elle
 est contrôlable et versionnée.
 
@@ -48,12 +48,12 @@ est contrôlable et versionnée.
 > Manager qui fait foi : cluster129.**
 
 Deux enregistrements `TXT` (`@ "1|www.bailiz.fr"` et `www "3|welcome"`) sont des marqueurs internes
-d'OVH décrivant l'état de configuration du domaine — le second correspond à la page « site en
+d'OVH décrivant l'état de configuration du domaine - le second correspond à la page « site en
 construction » actuellement servie. Ils sont sans effet sur le routage HTTP. **Ne pas les
 supprimer à la main** : OVH les met à jour lui-même.
 
 Les enregistrements `MX`, `SPF`, `DKIM` et `autodiscover` indiquent qu'une offre e-mail est active
-sur le domaine — voir la remarque en fin de §8.
+sur le domaine - voir la remarque en fin de §8.
 
 ```bash
 # Pour recontrôler à tout moment
@@ -62,7 +62,7 @@ dig +short bailiz.fr A && dig +short -x 51.91.236.255
 
 ---
 
-## 2. Certificat SSL — ✅ déjà actif
+## 2. Certificat SSL - ✅ déjà actif
 
 Vérifié le 11 août 2026 : **deux certificats Let's Encrypt valides**, l'un pour `bailiz.fr`, l'autre
 pour `www.bailiz.fr`, expirant le 9 novembre 2026 et renouvelés automatiquement par OVH. HTTPS
@@ -104,7 +104,7 @@ www/                     ← racine du site (docroot)
 
 Pas de multisite à déclarer, pas de sous-domaine : `app` est un simple sous-dossier.
 
-La connexion FTP aboutit dans `/home/bailiza`, qui **contient** `www/` — ce n'est donc pas la
+La connexion FTP aboutit dans `/home/bailiza`, qui **contient** `www/` - ce n'est donc pas la
 racine du site. La cible du miroir est par conséquent `www/`, en relatif (§4).
 
 ---
@@ -119,19 +119,19 @@ qu'une fois.
 
 Vous obtenez trois valeurs :
 
-| Valeur | Pour bailiz.fr — ✅ confirmé |
+| Valeur | Pour bailiz.fr - ✅ confirmé |
 |---|---|
 | Serveur | **`ftp.cluster129.hosting.ovh.net`** |
-| Protocole retenu | **SFTP, port 22** — FTPS échoue sur ce cluster (voir plus bas) |
+| Protocole retenu | **SFTP, port 22** - FTPS échoue sur ce cluster (voir plus bas) |
 | Utilisateur principal | `bailiza` |
 | Répertoire home | `/home/bailiza`, qui contient `www/` |
 
-> **Le cluster est le 129**, et non le 029 que renvoie le reverse DNS de l'IP web — les deux noms
+> **Le cluster est le 129**, et non le 029 que renvoie le reverse DNS de l'IP web - les deux noms
 > FTP sont des alias sur la même adresse (`5.135.48.84`), mais c'est la valeur du Manager qui fait
 > foi. N'utilisez pas `ftp.bailiz.fr` : le `CNAME` existe dans la zone et résoudrait, mais l'hôte
 > canonique du cluster est celui qu'OVH documente et maintient.
 
-Le compte SFTP a pour **répertoire cible `.`** — la racine du compte, c'est-à-dire
+Le compte SFTP a pour **répertoire cible `.`** - la racine du compte, c'est-à-dire
 `/home/bailiza`, qui **contient** `www`. La cible du miroir est donc **`www/`**, en chemin
 **relatif** : un chemin absolu (`/www/`) casserait si le compte était chrooté, le relatif
 fonctionne dans les deux cas.
@@ -150,7 +150,7 @@ fonctionne dans les deux cas.
 | Essai | Résultat |
 |---|---|
 | FTPS (port 21, `AUTH TLS`) | ❌ `server does not support or allow SSL`. FileZilla le confirme : « Ce serveur ne gère pas FTP sur TLS » |
-| SFTP (port 22, mot de passe) | ❌ `Permission denied (publickey,password)` — réponse identique pour un utilisateur inventé, donc non concluante en soi |
+| SFTP (port 22, mot de passe) | ❌ `Permission denied (publickey,password)` - réponse identique pour un utilisateur inventé, donc non concluante en soi |
 | **FTP simple (port 21)** | ✅ **Se connecte avec les mêmes identifiants** |
 
 La connexion FTP réussie est la pièce décisive : **les identifiants sont bons**. Le refus SFTP ne
@@ -163,7 +163,7 @@ Ce que cela impose comme choix est traité au §4 bis.
 ### Mode de transfert retenu : FTP simple, à contrecœur
 
 Aucun canal chiffré n'étant disponible (constat ci-dessus), le déploiement se fait en **FTP simple**
-— décision prise en connaissance de cause, le 11 août 2026.
+- décision prise en connaissance de cause, le 11 août 2026.
 
 **Ce que cela expose.** Le mot de passe circule en clair entre le runner GitHub et OVH. Qui le
 capterait pourrait remplacer le contenu de `/app/`, donc servir une version altérée d'une
@@ -190,16 +190,16 @@ et le mot de passe cesse de transiter en clair.
 Un utilisateur dédié restreint à `./www` **n'aboutit pas au même endroit** que le compte principal :
 il arrive directement dans le dossier du site. La cible du miroir doit alors être `.` et non `www/`.
 
-Cette valeur se règle par une **variable de dépôt** — Settings → Secrets and variables → Actions →
+Cette valeur se règle par une **variable de dépôt** - Settings → Secrets and variables → Actions →
 onglet **Variables** (et non *Secrets* : ce n'est pas une donnée sensible) :
 
 | Compte utilisé | Point d'arrivée | `OVH_CIBLE` |
 |---|---|---|
-| Principal (`bailiza`, répertoire cible `.`) | racine du compte, contenant `www` | `www/` — c'est la valeur par défaut, la variable peut rester absente |
+| Principal (`bailiza`, répertoire cible `.`) | racine du compte, contenant `www` | `www/` - c'est la valeur par défaut, la variable peut rester absente |
 | Dédié (répertoire cible `./www`) | dossier du site | **`.`** |
 
 Le workflow ne fait pas confiance à ce réglage : il **sonde le point d'arrivée** et compare à la
-cible configurée. En cas de désaccord il s'arrête avant d'écrire — un miroir avec `--delete` lancé
+cible configurée. En cas de désaccord il s'arrête avant d'écrire - un miroir avec `--delete` lancé
 un cran trop haut supprimerait le site au lieu de son contenu.
 
 ### Secrets GitHub
@@ -218,10 +218,10 @@ Settings → Secrets and variables → **Actions**. Le workflow attend **exactem
 
 ---
 
-## 5. Le workflow de déploiement — ✅ en place
+## 5. Le workflow de déploiement - ✅ en place
 
 Écrit dans `.github/workflows/deploy.yml`, **en remplacement** des étapes GitHub Pages
-(`upload-pages-artifact` et `deploy-pages`). Les barrières de qualité — lint, couverture, build —
+(`upload-pages-artifact` et `deploy-pages`). Les barrières de qualité - lint, couverture, build -
 sont conservées telles quelles : elles sont la raison d'être de cette CI.
 
 Reproduit ci-dessous à l'identique ; le fichier fait foi.
@@ -296,13 +296,13 @@ jobs:
       # --- Transfert --------------------------------------------------------
       #
       # FTP simple, en clair. C'est un choix par défaut d'infrastructure, pas une
-      # préférence : cette offre OVH n'expose aucun canal chiffré — FTPS n'est
+      # préférence : cette offre OVH n'expose aucun canal chiffré - FTPS n'est
       # pas annoncé par le serveur (« does not support or allow SSL ») et SFTP
       # n'est pas accordé au compte. Vérifié le 11 août 2026 (cf.
       # docs/DEPLOIEMENT-OVH.md §4).
       #
       # Ce que cela expose : le mot de passe circule en clair entre le runner et
-      # OVH. Qui le capterait pourrait remplacer /app/ — donc altérer une
+      # OVH. Qui le capterait pourrait remplacer /app/ - donc altérer une
       # application qui manipule les données personnelles des locataires dans le
       # navigateur. L'enjeu est l'intégrité du code servi, pas la confidentialité
       # de fichiers déjà publics.
@@ -323,11 +323,11 @@ jobs:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
           # `--env-password` lit le mot de passe ici : il ne passe pas par la
-          # ligne de commande, donc pas par `ps`, ni par le script lftp — où un
+          # ligne de commande, donc pas par `ps`, ni par le script lftp - où un
           # mot de passe contenant `"` ou `,` produirait une commande malformée.
           LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
           # `www/` si la connexion aboutit à la racine du compte, `.` si elle
-          # aboutit déjà dans le dossier du site — ce qui est le cas d'un
+          # aboutit déjà dans le dossier du site - ce qui est le cas d'un
           # utilisateur dédié restreint. Variable de dépôt (pas un secret :
           # ce n'est pas une donnée sensible), `www/` par défaut.
           CIBLE: ${{ vars.OVH_CIBLE || 'www/' }}
@@ -335,7 +335,7 @@ jobs:
           # Un retour à la ligne collé par mégarde en fin de secret suffit à
           # faire rejeter le mot de passe, sans que rien ne le laisse deviner :
           # le serveur répond comme pour un mot de passe faux. Seuls CR et LF
-          # sont retirés — un espace peut être légitime dans un mot de passe.
+          # sont retirés - un espace peut être légitime dans un mot de passe.
           BRUT="$LFTP_PASSWORD"
           LFTP_PASSWORD="$(printf '%s' "$LFTP_PASSWORD" | tr -d '\r\n')"
           export LFTP_PASSWORD
@@ -373,7 +373,7 @@ jobs:
             TROUVE="dossier du site"
             ATTENDU="."
           fi
-          echo "Disposition détectée : $TROUVE — cible attendue « $ATTENDU », cible configurée « $CIBLE »"
+          echo "Disposition détectée : $TROUVE - cible attendue « $ATTENDU », cible configurée « $CIBLE »"
 
           [ "$CIBLE" = "$ATTENDU" ] || {
             echo "::error::Incohérence entre le point d'arrivée et la cible du miroir. \
@@ -408,22 +408,22 @@ jobs:
       - name: Vérifier la mise en ligne
         run: |
           sleep 5
-          echo "— HTML servi sans JavaScript"
+          echo "- HTML servi sans JavaScript"
           curl -sS --fail --max-time 20 https://bailiz.fr/ | grep -q "<h1>" \
             || { echo "::error::la vitrine ne renvoie pas de <h1>"; exit 1; }
 
-          echo "— application présente"
+          echo "- application présente"
           curl -sS --fail --max-time 20 -o /dev/null https://bailiz.fr/app/ \
             || { echo "::error::/app/ ne répond pas"; exit 1; }
 
-          echo "— application en noindex"
+          echo "- application en noindex"
           curl -sS --max-time 20 https://bailiz.fr/app/ | grep -q 'content="noindex,follow"' \
             || echo "::warning::le noindex de /app/ est absent"
 
-          echo "— redirection www vers l'apex"
+          echo "- redirection www vers l'apex"
           curl -sS --max-time 20 -o /dev/null -w '%{http_code} %{redirect_url}\n' \
             https://www.bailiz.fr/ | grep -q '^301 https://bailiz.fr/' \
-            || echo "::warning::www ne redirige pas en 301 — .htaccess ignoré ?"
+            || echo "::warning::www ne redirige pas en 301 - .htaccess ignoré ?"
 
           # --- Intégrité du bundle applicatif ---
           #
@@ -434,7 +434,7 @@ jobs:
           #
           # C'est l'application qui est vérifiée, et pas la vitrine : c'est elle
           # qui manipule les données personnelles des locataires.
-          echo "— intégrité du bundle applicatif"
+          echo "- intégrité du bundle applicatif"
           BUNDLE=$(cd _site/app && ls assets/index-*.js | head -1)
           LOCALE=$(sha256sum "_site/app/$BUNDLE" | cut -d' ' -f1)
           DISTANTE=$(curl -sS --fail --max-time 30 "https://bailiz.fr/app/$BUNDLE" | sha256sum | cut -d' ' -f1)
@@ -443,7 +443,7 @@ jobs:
           else
             echo "::error::Le bundle servi ne correspond pas à celui qui vient d'être \
           construit. Attendu $LOCALE, obtenu $DISTANTE. Transfert incomplet, cache \
-          intermédiaire, ou fichier altéré — ne pas ignorer."
+          intermédiaire, ou fichier altéré - ne pas ignorer."
             exit 1
           fi
 
@@ -467,12 +467,12 @@ vitrine. L'assemblage préalable dans `_site/` est là pour rendre cette erreur 
   Les passes 2 et 3 ne coûtent presque rien.
 - **`.htaccess`** est bien transféré : `lftp mirror` inclut les fichiers cachés.
 - **Le mot de passe passe par `LFTP_PASSWORD`**, jamais par le script. Écrit en ligne, il aurait
-  fallu l'entourer de guillemets — et un mot de passe contenant `"` ou `,` aurait produit une
+  fallu l'entourer de guillemets - et un mot de passe contenant `"` ou `,` aurait produit une
   commande malformée, avec un échec d'authentification incompréhensible à déboguer.
 
 ---
 
-## 6. La bascule — à faire en un seul commit
+## 6. La bascule - à faire en un seul commit
 
 Tant que le déploiement GitHub Pages est actif, l'application est servie sous
 `/Bailiz_gestion_immo/`. Elle passera sous `/app/`. **Les deux changements doivent partir
@@ -484,7 +484,7 @@ Dans `vite.config.ts` :
 -  // Base relative : indispensable pour GitHub Pages où l'app est servie
 -  // sous /<nom-du-repo>/ et non à la racine du domaine.
 -  base: './',
-+  // L'application est servie sous bailiz.fr/app/ — cf. docs/CDC-site-vitrine-seo.md §3.5.
++  // L'application est servie sous bailiz.fr/app/ - cf. docs/CDC-site-vitrine-seo.md §3.5.
 +  // Une seule origine avec la vitrine : les données IndexedDB des utilisateurs
 +  // survivent à toute réorganisation ultérieure des chemins.
 +  base: '/app/',
@@ -499,7 +499,7 @@ Et dans le manifeste PWA, juste en dessous :
 +        scope: '/app/',
 ```
 
-Le service worker suit automatiquement : émis en `/app/sw.js`, sa portée vaut `/app/` par défaut —
+Le service worker suit automatiquement : émis en `/app/sw.js`, sa portée vaut `/app/` par défaut -
 il ne peut pas intercepter les requêtes de la vitrine.
 
 **Le même commit doit contenir** : ce diff, le nouveau `deploy.yml`, et rien d'autre. C'est le
@@ -525,7 +525,7 @@ Poussez sur `main`, suivez l'exécution dans l'onglet **Actions**. Puis, dans l'
 curl -sI https://bailiz.fr/ | head -1
 ```
 
-### Le HTML est complet sans JavaScript — le critère central
+### Le HTML est complet sans JavaScript - le critère central
 
 ```bash
 curl -s https://bailiz.fr/ | grep -c "<h1>"
@@ -541,7 +541,7 @@ curl -sI https://www.bailiz.fr/ | grep -i "^location"
 ```
 
 Les deux doivent renvoyer `https://bailiz.fr/`. Une absence de réponse signale un `.htaccess`
-ignoré — vérifiez qu'il est bien présent à la racine et que l'offre autorise `mod_rewrite`.
+ignoré - vérifiez qu'il est bien présent à la racine et que l'offre autorise `mod_rewrite`.
 
 ### Les en-têtes de cache
 
@@ -595,14 +595,14 @@ Puis **Sitemaps** → soumettre `sitemap-index.xml`.
 C'est la seule mesure de référencement qui compte les premiers mois. N'attendez pas de résultats
 avant 6 à 12 mois, et jugez sur les impressions et les requêtes, pas sur des positions isolées.
 
-### L'ancienne URL — et le réglage GitHub Pages
+### L'ancienne URL - et le réglage GitHub Pages
 
 `jami-inf.github.io/Bailiz_gestion_immo/` **doit rester en ligne, et doit continuer à servir
 l'application**, pas une page de renvoi statique.
 
 La raison est technique et décisive : les données des utilisateurs sont dans l'IndexedDB de
 **cette origine-là**. Pour les récupérer, il leur faut l'**application** qui tourne sur cette
-origine — c'est elle qui contient la fonction d'export. La remplacer par une page de renvoi leur
+origine - c'est elle qui contient la fonction d'export. La remplacer par une page de renvoi leur
 retirerait le seul moyen d'accéder à leurs baux et à leurs états des lieux.
 
 **Réglage à appliquer** : Settings → Pages → Source → **GitHub Actions**.
@@ -614,7 +614,7 @@ retirerait le seul moyen d'accéder à leurs baux et à leurs états des lieux.
 - **Ne pas mettre « None »** : cela supprimerait le site et, avec lui, le chemin d'export.
 
 Le message de déménagement viendra plus tard, sous forme d'un bandeau **dans** l'ancienne
-application (un déploiement ponctuel), jamais d'une redirection sèche — qui ferait croire à une
+application (un déploiement ponctuel), jamais d'une redirection sèche - qui ferait croire à une
 perte de données.
 
 ### Liens à mettre à jour
@@ -650,7 +650,7 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 | Un job **Jekyll** échoue sur les fichiers `.astro` | GitHub Pages est réglé sur « Deploy from a branch » : le workflow automatique `pages-build-deployment` lance Jekyll sur la racine du dépôt, et lit les `---` des fichiers `.astro` comme du front matter YAML | **Aucun correctif dans le code.** Settings → Pages → Source → **GitHub Actions**. Ne pas mettre « None » : cf. §8 |
 | `npm ci --prefix site` ou le build vitrine échoue en CI, mais passe en local | Version de Node du runner inférieure à celle exigée par Astro (`>=22.12.0`) | `node-version: 22` dans le workflow. Le vérifier après chaque montée de version majeure d'Astro : `node -p "require('./site/node_modules/astro/package.json').engines"` |
 | `403 Forbidden` à la racine | Fichiers déposés à côté de `www/` et non dedans | Vérifier la cible du miroir : `www/` relatif, jamais `/www/` |
-| `Le dossier 'www' est absent du point d'arrivée` | Le répertoire cible du compte SFTP a changé — la connexion aboutit déjà dans le docroot | Remettre le répertoire cible à `.` dans le Manager, ou basculer la cible du miroir sur `.` dans le workflow |
+| `Le dossier 'www' est absent du point d'arrivée` | Le répertoire cible du compte SFTP a changé - la connexion aboutit déjà dans le docroot | Remettre le répertoire cible à `.` dans le Manager, ou basculer la cible du miroir sur `.` dans le workflow |
 | `500 Internal Server Error` | Une directive de `.htaccess` non supportée | Commenter les blocs `<IfModule>` un par un pour isoler |
 | Redirections et cache sans effet | `mod_rewrite` / `mod_headers` inactifs | Vérifier l'offre ; sans eux, le site fonctionne mais perd §7 |
 | Boucle de redirection HTTPS | Certificat pas encore actif | Attendre la fin de la génération Let's Encrypt (§2) |
@@ -660,20 +660,20 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 | Le PDF ne s'affiche plus | CSP trop stricte | Console → `Refused to load` → ajuster `site/public/.htaccess` |
 | La vitrine reste sur une vieille version | HTML mis en cache | Vérifier `Cache-Control: no-cache` sur `.html` (§7) |
 | Le service worker sert une page périmée | Ancien SW encore enregistré | DevTools → Application → Service Workers → *Unregister*, puis recharger |
-| lftp : `server does not support or allow SSL` | FTPS indisponible sur ce cluster | Passer en SFTP (§4) — c'est ce que fait le workflow |
+| lftp : `server does not support or allow SSL` | FTPS indisponible sur ce cluster | Passer en SFTP (§4) - c'est ce que fait le workflow |
 | lftp : le job reste bloqué puis expire | `ssh` attend la confirmation de l'empreinte du serveur | Vérifier que l'étape `ssh-keyscan` s'est exécutée et a écrit dans `~/.ssh/known_hosts` |
 | lftp : `Login incorrect` en SFTP | SFTP non activé pour cet utilisateur | Manager → FTP-SSH → l'utilisateur doit avoir SSH coché |
 | `GetPass() failed -- assume anonymous login` | lftp réclame un mot de passe qu'il n'a pas, et ne peut pas le demander | Définir `LFTP_PASSWORD` et utiliser `open -u "$UTILISATEUR" --env-password` |
 | `Permission denied, please try again.` alors que les identifiants sont bons | Le serveur présente l'invite en `keyboard-interactive`, exclu par `PreferredAuthentications=password` seul | Ajouter `,keyboard-interactive` |
-| Échec d'authentification, cause indéterminée | — | Lire la sortie de l'étape « Test d'authentification SFTP » : elle isole les identifiants de la configuration lftp |
+| Échec d'authentification, cause indéterminée | - | Lire la sortie de l'étape « Test d'authentification SFTP » : elle isole les identifiants de la configuration lftp |
 | `Permission denied (publickey,password)` | Le serveur répond et propose bien le mot de passe : ce sont les identifiants qui sont rejetés | Réinitialiser le mot de passe dans le Manager, le recoller dans le secret, tester en local (voir plus bas) |
-| Le secret contient un retour à la ligne | Copier-coller depuis un gestionnaire de mots de passe | Le workflow le retire et émet un avertissement — mais corriger le secret |
+| Le secret contient un retour à la ligne | Copier-coller depuis un gestionnaire de mots de passe | Le workflow le retire et émet un avertissement - mais corriger le secret |
 | FileZilla expire alors que la CI atteint le serveur | Port 22 filtré par le réseau local ou le FAI | Sans conséquence pour la CI ; tester depuis un autre réseau ou en partage de connexion mobile |
 
 ### Trancher un refus d'authentification
 
 Le serveur `ftp.cluster129.hosting.ovh.net` **répond sur le port 22** et annonce accepter
-`publickey,password` — la vérification a été faite. Un refus vient donc des identifiants, ou du
+`publickey,password` - la vérification a été faite. Un refus vient donc des identifiants, ou du
 fait que le compte n'a pas réellement droit au SFTP malgré l'interrupteur du Manager.
 
 **`Permission denied (publickey,password)` ne dit rien de la cause.** Vérifié : le serveur renvoie
@@ -683,8 +683,8 @@ provisionné, offre sans SFTP : même réponse. Inutile de chercher à distingue
 
 ### Le test qui discrimine : FTP simple avec les mêmes identifiants
 
-C'est le seul essai qui sépare les deux causes, parce qu'il change **un seul paramètre** — le
-protocole — en gardant le même compte et le même mot de passe. Dans FileZilla ou en ligne de
+C'est le seul essai qui sépare les deux causes, parce qu'il change **un seul paramètre** - le
+protocole - en gardant le même compte et le même mot de passe. Dans FileZilla ou en ligne de
 commande :
 
 ```bash
@@ -707,7 +707,7 @@ sftp -v -o PreferredAuthentications=password -o PubkeyAuthentication=no \
 |---|---|
 | Invite de mot de passe puis `sftp>` | Les identifiants sont bons : le secret du dépôt est en cause (mot de passe erroné, ou retour à la ligne collé avec) |
 | `Next authentication method: password` puis `Permission denied` | Le mot de passe a bien été présenté et refusé → voir le test FTP ci-dessus |
-| Pas de ligne `Next authentication method: password` | Le mot de passe n'a jamais été envoyé — problème de client, pas de compte |
+| Pas de ligne `Next authentication method: password` | Le mot de passe n'a jamais été envoyé - problème de client, pas de compte |
 | Expiration du délai | Le port 22 est filtré **sur ce réseau**, pas chez OVH : la CI, elle, atteint le serveur. Refaire le test en partage de connexion mobile |
 
 **Si le SFTP n'est pas accordé par l'offre**, il n'y a plus de canal chiffré vers cet hébergement,
@@ -719,9 +719,9 @@ et trois issues :
    compte ne donnerait accès qu'à des fichiers déjà publics. À ne pas faire avec le compte
    principal.
 3. **Déplacer l'hébergement sur Cloudflare Pages** (le repli du §3.4). Déploiement piloté par
-   Git — plus de transfert de fichiers, plus de mot de passe, déploiements atomiques et retour
+   Git - plus de transfert de fichiers, plus de mot de passe, déploiements atomiques et retour
    arrière en un clic. Le domaine reste chez OVH, seule la zone DNS change. Coût : réécrire le
-   `.htaccess` en `_headers` et `_redirects`, et renoncer à la mention « hébergé en France » —
+   `.htaccess` en `_headers` et `_redirects`, et renoncer à la mention « hébergé en France » -
    qui relève de la confiance perçue, non de la confidentialité réelle (§3.4).
 | Un commentaire ajouté dans le script `lftp -c` casse le transfert | lftp traite l'apostrophe comme un délimiteur de chaîne | Ne mettre **aucun** commentaire dans le script lftp : les explications restent côté shell |
 | lftp : `Login failed` | Mauvais secret, ou utilisateur FTP non propagé | Tester d'abord la connexion depuis un client FTP local |
@@ -738,7 +738,7 @@ et trois issues :
 1. **Commiter et pousser** sur `main`. Le commit contient `vite.config.ts` (base + manifeste),
    `.github/workflows/deploy.yml`, `eslint.config.js`, `index.html` (noindex), `.gitignore`,
    `site/` et les deux documents. C'est une bascule : elle se relit avant d'être poussée.
-2. **Dérouler la vérification du §7** — le workflow en automatise une partie, mais pas
+2. **Dérouler la vérification du §7** - le workflow en automatise une partie, mais pas
    **le parcours PDF complet sous la CSP**, qui ne peut se tester qu'à la main.
 3. Search Console, page de renvoi sur l'ancienne URL, liens sortants (§8).
 

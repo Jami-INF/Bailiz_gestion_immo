@@ -3,7 +3,7 @@ import type { Parametres } from '@/types';
 /**
  * Format des fichiers échangés et **règles de convergence**. Tout ce module est
  * pur : aucune écriture, aucun appel réseau. C'est ici que se décide qui gagne
- * quand deux appareils ont modifié la même chose — donc ici que se perdraient
+ * quand deux appareils ont modifié la même chose - donc ici que se perdraient
  * des données si la règle était fausse.
  */
 
@@ -115,7 +115,7 @@ export const LIBELLE_SECTION: Record<SectionParametres, string> = {
 
 /**
  * Empreinte de chaque section : son contenu sérialisé. Les paramètres n'ont
- * pas de date de modification — comparer au contenu de la dernière version
+ * pas de date de modification - comparer au contenu de la dernière version
  * synchronisée est le seul moyen de savoir qui, du local ou du distant, a
  * réellement changé.
  */
@@ -152,7 +152,7 @@ export interface FusionParametres {
  * appareils tranchent dans le même sens, sinon chacun réimposerait sa version
  * au cycle suivant, indéfiniment.
  *
- * Sans empreinte de référence — cet appareil n'a jamais synchronisé — on ne
+ * Sans empreinte de référence - cet appareil n'a jamais synchronisé - on ne
  * peut que regarder si la section est encore celle d'un appareil neuf : si oui
  * elle n'a rien à défendre et adopte le Drive, sinon elle a été configurée ici
  * et prime. L'autre appareil, lui, dispose d'une référence : il adoptera cette
@@ -192,7 +192,7 @@ export function fusionnerParametres(
     Math.max(local.compteursSequence[cle] ?? 0, distant.compteursSequence[cle] ?? 0);
 
   // L'année sert de remise à zéro : on prend la plus récente, et les compteurs
-  // de l'année la plus récente — sinon un appareil resté sur l'an dernier
+  // de l'année la plus récente - sinon un appareil resté sur l'an dernier
   // ferait remonter des numéros déjà attribués.
   const anneeLocale = local.compteursSequence.annee ?? 0;
   const anneeDistante = distant.compteursSequence.annee ?? 0;

@@ -18,7 +18,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('tableau de bord — état des logements', () => {
+describe('tableau de bord - état des logements', () => {
   it('annonce le logement loué dès qu’un bail est enregistré', async () => {
     // Régression : le tableau ne comptait que les statuts « signé » et « actif »,
     // qu'aucune action n'attribue automatiquement. Un bail créé puis laissé tel
@@ -74,7 +74,7 @@ describe('tableau de bord — état des logements', () => {
   });
 });
 
-describe('tableau de bord — alerte de restitution du dépôt', () => {
+describe('tableau de bord - alerte de restitution du dépôt', () => {
   /** EDL de sortie signé le jour dit, sans dégradation. */
   async function edlSortieSigne(dateSignature: string, avecDegradation = false) {
     const pieces = unEdl().pieces.map((p) => ({
@@ -127,7 +127,7 @@ describe('tableau de bord — alerte de restitution du dépôt', () => {
   });
 });
 
-describe('tableau de bord — alerte de stockage saturé', () => {
+describe('tableau de bord - alerte de stockage saturé', () => {
   it('prévient avant que le navigateur refuse d’écrire', async () => {
     vi.spyOn(navigator.storage, 'estimate').mockResolvedValue({
       usage: 900 * 1024 * 1024,

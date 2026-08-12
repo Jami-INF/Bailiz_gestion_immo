@@ -18,7 +18,7 @@ interface PhotoAffichee {
 /**
  * Visionneuse plein écran : agrandit une photo d'état des lieux, permet de
  * naviguer dans le lot et de **basculer entre les photos d'entrée et de
- * sortie** — c'est ce va-et-vient qui rend la comparaison exploitable sur le
+ * sortie** - c'est ce va-et-vient qui rend la comparaison exploitable sur le
  * terrain, sans quitter l'élément en cours de relevé.
  */
 export function VisionneusePhotos({
@@ -29,7 +29,7 @@ export function VisionneusePhotos({
 }: {
   groupes: GroupePhotos[];
   groupeInitial?: number;
-  /** Élément concerné, rappelé en en-tête (ex. « Séjour — Canapé »). */
+  /** Élément concerné, rappelé en en-tête (ex. « Séjour - Canapé »). */
   titre?: string;
   onClose: () => void;
 }) {
@@ -86,7 +86,7 @@ export function VisionneusePhotos({
           {titre && <p className="truncate text-sm font-medium">{titre}</p>}
           <p className="text-xs text-white/70">
             {groupe?.libelle}
-            {total > 1 ? ` — ${index + 1}/${total}` : ''}
+            {total > 1 ? ` - ${index + 1}/${total}` : ''}
           </p>
         </div>
         <button
@@ -164,7 +164,7 @@ export function VisionneusePhotos({
       {courante && (
         <div className="px-4 py-3 text-center text-xs text-white/70">
           {courante.legende}
-          {courante.dateCapture && ` — ${format(new Date(courante.dateCapture), 'dd/MM/yyyy à HH:mm')}`}
+          {courante.dateCapture && ` - ${format(new Date(courante.dateCapture), 'dd/MM/yyyy à HH:mm')}`}
         </div>
       )}
     </div>

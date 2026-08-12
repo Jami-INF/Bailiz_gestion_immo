@@ -28,7 +28,7 @@ import {
 } from './protocole';
 
 /**
- * Cycle de synchronisation : **pull puis push**, dans cet ordre — on part de
+ * Cycle de synchronisation : **pull puis push**, dans cet ordre - on part de
  * l'état distant pour ne jamais écraser ce que l'autre appareil a produit.
  *
  * Ce module ne parle qu'à l'interface `DepotDistant` : il est donc rejouable
@@ -58,7 +58,7 @@ export type ResultatCycle =
        * C'est le seul cas où une saisie disparaît sans que personne ne l'ait
        * demandé : on travaille hors ligne sur la tablette, l'autre appareil
        * modifie la même fiche plus tard, et la reconnexion adopte sa version.
-       * L'arbitrage est le bon — la modification la plus récente gagne — mais
+       * L'arbitrage est le bon - la modification la plus récente gagne - mais
        * le taire laisserait croire que rien n'a été perdu.
        */
       saisiesRemplacees: SaisieRemplacee[];
@@ -68,8 +68,8 @@ export type ResultatCycle =
   | { etat: 'bloque'; raison: RaisonBlocage; details?: string };
 
 /*
- * Pas de garde-fou « base locale vide » : le cas visé — un appareil réinstallé
- * qui viderait le dépôt — ne peut pas se produire. Effacer les données du
+ * Pas de garde-fou « base locale vide » : le cas visé - un appareil réinstallé
+ * qui viderait le dépôt - ne peut pas se produire. Effacer les données du
  * navigateur efface aussi le journal, donc aucune suppression n'est en attente,
  * et le cycle se contente alors de tout rapatrier. À l'inverse, un utilisateur
  * qui supprime réellement toutes ses données doit pouvoir les propager : c'est
@@ -235,7 +235,7 @@ export async function synchroniser(
 
   /*
    * Index par nom d'un espace, construit au plus **une fois par cycle** et
-   * seulement si l'on en a besoin — jamais une requête par enregistrement : une
+   * seulement si l'on en a besoin - jamais une requête par enregistrement : une
    * suppression RGPD efface des dizaines de photos d'un coup, et autant
    * d'allers-retours saturerait le quota Drive.
    *
@@ -243,7 +243,7 @@ export async function synchroniser(
    * interrompu entre l'écriture des métadonnées et sa mémorisation laisse un
    * orphelin, et repartir d'une création en produirait un second du même nom.
    * Deux homonymes, c'est une version qui en masque une autre au hasard du
-   * listage — d'où la liste complète, et non le seul premier trouvé.
+   * listage - d'où la liste complète, et non le seul premier trouvé.
    */
   const indexParNom = new Map<Espace, Map<string, FichierDistant[]>>();
   const tousParNom = async (espace: Espace, nom: string): Promise<FichierDistant[]> => {
@@ -369,7 +369,7 @@ export async function synchroniser(
 
     /*
      * Table à contenu binaire : l'enveloppe ne porte que les métadonnées.
-     * L'écrire telle quelle effacerait le blob local — une photo réduite à sa
+     * L'écrire telle quelle effacerait le blob local - une photo réduite à sa
      * légende, invisible et irrécupérable. On conserve donc le contenu déjà
      * présent, et on ne le télécharge que s'il manque vraiment.
      */
@@ -481,7 +481,7 @@ export async function synchroniser(
     } else {
       // Contenu binaire : les métadonnées vont dans `donnees` (mises à jour sur
       // le **même** fichier, sinon chaque envoi créerait un doublon), et le blob
-      // ne part qu'une fois — il est immuable.
+      // ne part qu'une fois - il est immuable.
       const enr = enregistrement as Record<string, unknown>;
       const blob = enr[CHAMP_BLOB[table]] as Blob | undefined;
       const { [CHAMP_BLOB[table]]: _blob, ...meta } = enr;
@@ -536,7 +536,7 @@ export async function synchroniser(
 
   /*
    * Après convergence : deux appareils hors-ligne ont pu attribuer la même
-   * référence. On le signale sans rien renuméroter — une référence figure sur un
+   * référence. On le signale sans rien renuméroter - une référence figure sur un
    * document imprimé, parfois signé.
    */
   const doublons = [
@@ -562,7 +562,7 @@ export async function synchroniser(
  * Il n'a **pas de date de modification** : impossible de savoir par horodatage
  * qui a changé quoi. On compare donc, **section par section**, au contenu de la
  * dernière version synchronisée. Sans ces empreintes, le distant l'emporterait
- * à chaque cycle et effacerait les réglages modifiés localement — bailleur,
+ * à chaque cycle et effacerait les réglages modifiés localement - bailleur,
  * grille de vétusté, catalogue de clauses, modèle de fiche de visite.
  *
  * Renvoie les sections que la fusion a dû trancher au détriment du local.

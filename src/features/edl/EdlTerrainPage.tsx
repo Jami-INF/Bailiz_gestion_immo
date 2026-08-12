@@ -146,7 +146,7 @@ export function EdlTerrainPage() {
    * Rattache l'état des lieux à un bail existant.
    *
    * Écrit hors de `maj` à dessein : `maj` refuse toute écriture après signature,
-   * or le rattachement n'est pas une modification du constat — c'est un
+   * or le rattachement n'est pas une modification du constat - c'est un
    * classement, et son intérêt principal est justement pour un document déjà
    * signé qu'on relie au bail rédigé ensuite.
    */
@@ -158,7 +158,7 @@ export function EdlTerrainPage() {
 
   /**
    * Report d'un état d'entrée relevé sur un état des lieux **papier**. Le
-   * comparatif ne sait pas — et n'a pas à savoir — d'où vient l'état d'entrée :
+   * comparatif ne sait pas - et n'a pas à savoir - d'où vient l'état d'entrée :
    * une fois reporté, la dégradation se calcule exactement comme si l'entrée
    * avait été faite dans l'application.
    */
@@ -171,7 +171,7 @@ export function EdlTerrainPage() {
    *
    * Dans un logement en bon état, la quasi-totalité des éléments partagent le
    * même état : on pose la valeur commune, puis on corrige les exceptions. Les
-   * éléments déjà statués ne sont jamais réécrits — un raccourci ne doit pas
+   * éléments déjà statués ne sont jamais réécrits - un raccourci ne doit pas
    * pouvoir effacer une observation faite sur place.
    */
   const renseignerRestants = (piece: PieceEDL, etat: EtatNote) => {
@@ -289,7 +289,7 @@ export function EdlTerrainPage() {
       updatedAt: nowISO(),
     });
     setModaleRectifier(false);
-    toast('warning', 'État des lieux rouvert pour rectification — à re-signer par les deux parties.');
+    toast('warning', 'État des lieux rouvert pour rectification - à re-signer par les deux parties.');
   };
 
   const ajouterAvenant = async () => {
@@ -321,7 +321,7 @@ export function EdlTerrainPage() {
           </button>
           <div className="text-center">
             <div className="text-sm font-bold text-accent-900">
-              {edl.reference} — {sortie ? 'Sortie' : 'Entrée'}
+              {edl.reference} - {sortie ? 'Sortie' : 'Entrée'}
             </div>
             {oublis.length > 0 && !signe ? (
               <button
@@ -329,7 +329,7 @@ export function EdlTerrainPage() {
                 onClick={() => setModaleOublis(true)}
                 className="text-xs font-medium text-amber-700 underline underline-offset-2"
               >
-                {oublis.length} élément(s) non renseigné(s) — voir la liste
+                {oublis.length} élément(s) non renseigné(s) - voir la liste
               </button>
             ) : (
               <div className="text-xs text-accent-500">
@@ -394,7 +394,7 @@ export function EdlTerrainPage() {
       {/*
        * Sortie établie sans état des lieux d'entrée : le rappeler en permanence,
        * et pas seulement à la création. Le constat reste valable, mais il ne
-       * prouve pas de dégradation — c'est ce qui décide de la suite (retenue ou
+       * prouve pas de dégradation - c'est ce qui décide de la suite (retenue ou
        * restitution intégrale), donc cela ne doit pas se découvrir à la fin.
        */}
       {sansEtatEntree && (
@@ -418,7 +418,7 @@ export function EdlTerrainPage() {
         <div className="mx-4 mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
           <p className="flex items-center gap-2 font-medium">
             <Lock size={14} /> Document signé le{' '}
-            {edl.signatures && format(new Date(edl.signatures.dateSignature), "dd/MM/yyyy 'à' HH:mm:ss")} —
+            {edl.signatures && format(new Date(edl.signatures.dateSignature), "dd/MM/yyyy 'à' HH:mm:ss")} -
             verrouillé. Complément mineur : avenant daté. Modification substantielle : rectifier et
             faire re-signer les deux parties.
           </p>
@@ -449,7 +449,7 @@ export function EdlTerrainPage() {
 
       {!signe && edl.rectifications && edl.rectifications.length > 0 && (
         <div className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <span className="font-medium">Rectification en cours</span> — cet état des lieux doit être{' '}
+          <span className="font-medium">Rectification en cours</span> - cet état des lieux doit être{' '}
           <strong>re-signé par les deux parties</strong>. La version signée le{' '}
           {format(new Date(edl.rectifications[edl.rectifications.length - 1].dateSignature), "dd/MM/yyyy 'à' HH:mm")}{' '}
           reste conservée dans les Documents ; la nouvelle version l'annulera et la remplacera.
@@ -546,7 +546,7 @@ export function EdlTerrainPage() {
                   {sortie && entreeAReporter && (
                     <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
                       <span className="text-sm font-medium text-sky-900">
-                        État à l'entrée — à recopier de l'état des lieux papier :
+                        État à l'entrée - à recopier de l'état des lieux papier :
                       </span>
                       <div className="mt-1.5 grid grid-cols-5 gap-1.5">
                         {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
@@ -576,12 +576,12 @@ export function EdlTerrainPage() {
                       <span className={`rounded px-2.5 py-1 text-sm font-bold uppercase tracking-wide text-white ${COULEURS_ETAT[el.etatEntree]}`}>
                         {ETAT_LABELS[el.etatEntree]}
                       </span>
-                      {el.commentaireEntree && <span className="text-sm text-accent-500">— {el.commentaireEntree}</span>}
+                      {el.commentaireEntree && <span className="text-sm text-accent-500">- {el.commentaireEntree}</span>}
                     </div>
                   )}
                   {el.manquant ? (
                     <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                      Élément présent à l'entrée et manquant/retiré à la sortie — noté comme dégradation.
+                      Élément présent à l'entrée et manquant/retiré à la sortie - noté comme dégradation.
                     </p>
                   ) : (
                   <>
@@ -663,7 +663,7 @@ export function EdlTerrainPage() {
                         photoIds={el.photoIdsEntree ?? []}
                         onOuvrir={() =>
                           setVisionneuse({
-                            titre: `${onglet.nom} — ${el.nom}`,
+                            titre: `${onglet.nom} - ${el.nom}`,
                             groupes: [
                               { libelle: 'Entrée', photoIds: el.photoIdsEntree ?? [] },
                               { libelle: 'Sortie', photoIds: el.photoIds },
@@ -677,7 +677,7 @@ export function EdlTerrainPage() {
                       <span className="mb-1 block text-xs font-medium text-accent-600">Photos</span>
                       <PhotoCapture
                         edlId={edl.id}
-                        legende={`${onglet.nom} — ${el.nom}`}
+                        legende={`${onglet.nom} - ${el.nom}`}
                         photoIds={el.photoIds}
                         lectureSeule={signe}
                         onChange={(photoIds) => majElement(onglet.pieceId!, el.id, { photoIds })}
@@ -685,7 +685,7 @@ export function EdlTerrainPage() {
                           el.photoIds.length
                             ? () =>
                                 setVisionneuse({
-                                  titre: `${onglet.nom} — ${el.nom}`,
+                                  titre: `${onglet.nom} - ${el.nom}`,
                                   groupes: sortie
                                     ? [
                                         { libelle: 'Entrée', photoIds: el.photoIdsEntree ?? [] },
@@ -813,7 +813,7 @@ export function EdlTerrainPage() {
             </div>
             {/*
              * Rattachement d'un bail après coup. Autorisé même sur un état des
-             * lieux signé : c'est un lien de classement, pas une rectification —
+             * lieux signé : c'est un lien de classement, pas une rectification -
              * le PDF archivé et son empreinte ne sont pas régénérés, le document
              * signé reste celui qui fait foi. Ne pas rattacher de bail est un
              * usage normal, d'où une proposition et non une alerte.
@@ -841,10 +841,10 @@ export function EdlTerrainPage() {
                       if (e.target.value) void rattacherBail(e.target.value);
                     }}
                   >
-                    <option value="">—</option>
+                    <option value="">-</option>
                     {(bauxDuBien ?? []).map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.reference} — effet {format(new Date(b.dateEffet), 'dd/MM/yyyy')}
+                        {b.reference} - effet {format(new Date(b.dateEffet), 'dd/MM/yyyy')}
                       </option>
                     ))}
                   </Select>
@@ -857,7 +857,7 @@ export function EdlTerrainPage() {
                 <ul className="space-y-1 text-sm text-accent-700">
                   {edl.avenants.map((a, i) => (
                     <li key={i}>
-                      {format(new Date(a.date), 'dd/MM/yyyy')} — {a.texte}
+                      {format(new Date(a.date), 'dd/MM/yyyy')} - {a.texte}
                     </li>
                   ))}
                 </ul>
@@ -962,7 +962,7 @@ export function EdlTerrainPage() {
               <p className="font-medium text-accent-800">Version signée actuelle (conservée) :</p>
               <p className="text-xs">
                 Signée le {format(new Date(edl.signatures.dateSignature), "dd/MM/yyyy 'à' HH:mm:ss")}
-                {edl.pdfHash ? ` — empreinte ${edl.pdfHash.slice(0, 16)}…` : ''}.
+                {edl.pdfHash ? ` - empreinte ${edl.pdfHash.slice(0, 16)}…` : ''}.
               </p>
             </div>
           )}
@@ -1030,7 +1030,7 @@ export function EdlTerrainPage() {
               rows={5}
               value={texteAvenant}
               onChange={(e) => setTexteAvenant(e.target.value)}
-              placeholder="Ex. : Complément demandé par le locataire — rayure constatée sur le parquet du séjour…"
+              placeholder="Ex. : Complément demandé par le locataire - rayure constatée sur le parquet du séjour…"
             />
           </Field>
           <p className="text-xs text-accent-500">L'avenant est daté automatiquement et apparaîtra sur le PDF.</p>

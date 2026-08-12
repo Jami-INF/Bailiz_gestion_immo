@@ -103,7 +103,7 @@ describe('FicheVisitePdf', () => {
     expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
   });
 
-  it("joint l'acte de cautionnement si — et seulement si — un garant physique est retenu", async () => {
+  it("joint l'acte de cautionnement si - et seulement si - un garant physique est retenu", async () => {
     // Modèle privé de la section « garant » : la seule différence entre les
     // deux rendus est alors la page de l'acte de cautionnement.
     const modele = {

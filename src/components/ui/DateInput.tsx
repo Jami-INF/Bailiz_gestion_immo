@@ -86,7 +86,7 @@ export function DateInput({
       </div>
       {invalide && (
         <p className="mt-1 text-xs font-medium text-red-600">
-          Date invalide — saisissez JJ/MM/AAAA (ex. 06/07/2026) ou utilisez le calendrier.
+          Date invalide - saisissez JJ/MM/AAAA (ex. 06/07/2026) ou utilisez le calendrier.
         </p>
       )}
     </div>

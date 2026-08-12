@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { db } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 
-/** Délai d'inactivité avant écriture — assez court pour ne rien perdre, assez
+/** Délai d'inactivité avant écriture - assez court pour ne rien perdre, assez
  *  long pour ne pas écrire à chaque touche du clavier. */
 const DELAI_ECRITURE_MS = 600;
 
@@ -34,7 +34,7 @@ export interface OptionsBrouillon<T> {
  * Ce sont les **données du formulaire** qui sont conservées, pas l'entité :
  * un bien à demi renseigné n'a rien à faire dans la liste des biens, dans le
  * sélecteur d'un bail ou dans une sauvegarde. Le formulaire reste donc atomique
- * — on enregistre quand on a fini — sans que la saisie soit à la merci d'un
+ * - on enregistre quand on a fini - sans que la saisie soit à la merci d'un
  * rechargement.
  *
  * @param cle     identifiant du formulaire (`bien:nouveau`, `bien:<id>`)

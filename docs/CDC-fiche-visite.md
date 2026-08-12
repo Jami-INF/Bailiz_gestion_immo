@@ -1,4 +1,4 @@
-# CDC — Fiche de visite (récapitulatif logement + dossier à préparer)
+# CDC - Fiche de visite (récapitulatif logement + dossier à préparer)
 
 > Complète `README.md` et `docs/DOCUMENTATION_TECHNIQUE.md`. Périmètre : un nouveau document
 > généré depuis la fiche d'un **bien**, plus un **modèle éditable dans les Paramètres**.
@@ -16,13 +16,13 @@ Trois conséquences :
    plusieurs fois, et la sélection traîne.
 2. **Le bailleur improvise** : la liste des pièces exigibles est **limitative** (décret
    n°2015-1437, art. 22-2 de la loi n°89-462). Demander une pièce interdite (RIB, attestation de
-   bonne tenue de compte, carte Vitale…) est une faute — de bonne foi, faute de mémo sous la main.
+   bonne tenue de compte, carte Vitale…) est une faute - de bonne foi, faute de mémo sous la main.
 3. **Rien n'est réutilisable** : la même fiche devrait servir pour tous les candidats d'un même
    logement, et d'une relocation à l'autre.
 
 L'objectif : un **document A4 imprimable, remis en main propre à la fin de la visite** (ou envoyé
 avant), qui récapitule le logement et ses conditions, rappelle les infos pratiques de la visite,
-et liste — sous forme de **cases à cocher** — les pièces du dossier. Le tout à partir d'un
+et liste - sous forme de **cases à cocher** - les pièces du dossier. Le tout à partir d'un
 **modèle modifiable dans les réglages**, comme la grille de vétusté.
 
 ## 2. Ce qui existe déjà (à réutiliser, ne pas refaire)
@@ -30,7 +30,7 @@ et liste — sous forme de **cases à cocher** — les pièces du dossier. Le to
 | Brique | État |
 |---|---|
 | Pipeline document annexe | ✅ `genererEtArchiver` (`lib/pdf/generer.ts`) : référence `DOC-ANNEE-XXXX`, rendu, archivage, ouverture |
-| Bibliothèque de documents | ✅ `DocumentsPage` filtre par `TYPE_DOCUMENT_LABELS` — un nouveau type y apparaît sans code supplémentaire |
+| Bibliothèque de documents | ✅ `DocumentsPage` filtre par `TYPE_DOCUMENT_LABELS` - un nouveau type y apparaît sans code supplémentaire |
 | Composants PDF | ✅ `EntetePdf`, `PiedDePagePdf`, `CaseACocher`, `Rempl`, `pdfStyles` (`lib/pdf/commun.tsx`) |
 | Modèle éditable en Paramètres | ✅ Précédent exact : `grilleVetuste` (tableau éditable + « Réinitialiser » + `GRILLE_VETUSTE_DEFAUT`) |
 | Données du logement | ✅ `Bien` : adresse, étage, bâtiment, type, surface Boutin, nb pièces, DPE, chauffage, eau chaude, TIC, annexes, copropriété, encadrement des loyers, `dossierTechniqueUrl` |
@@ -38,7 +38,7 @@ et liste — sous forme de **cases à cocher** — les pièces du dossier. Le to
 | Adresse formatée / URL sûre | ✅ `formatAdresse`, `urlExterneSure` |
 | Sauvegarde | ✅ `backup.ts` exporte et réimporte `parametres`, `biens` et `photos` en bloc : les nouveaux champs suivent automatiquement |
 | Photos en base | ⚠️ `db.photos` (Blob compressé 1600 px / JPEG 0,7) existe, mais `Photo.edlId` est **obligatoire** : une photo ne peut aujourd'hui appartenir qu'à un état des lieux |
-| **Conditions financières** | ❌ **Le loyer, les charges et le dépôt n'existent que sur le `Bail`** — un logement vacant n'en a pas. Ils passent sur le `Bien` (§3) |
+| **Conditions financières** | ❌ **Le loyer, les charges et le dépôt n'existent que sur le `Bail`** - un logement vacant n'en a pas. Ils passent sur le `Bien` (§3) |
 | Infos d'accès (interphone, code, stationnement) | ❌ N'existent nulle part dans le modèle |
 | Photo du logement | ❌ Un bien n'a aucune illustration |
 
@@ -67,7 +67,7 @@ nouveau PDF**.
   à qui veut. Pas de gestion de candidatures dans ce lot (cf. §8).
 - **Les conditions de location passent sur le `Bien`** (`conditionsLocation` : loyer HC, charges,
   dépôt, disponibilité, accès, conditions particulières). C'est la **source unique** :
-  - la fiche de visite les lit directement — plus rien à ressaisir à chaque candidat ;
+  - la fiche de visite les lit directement - plus rien à ressaisir à chaque candidat ;
   - le **formulaire de bail les pré-remplit** dès qu'un bien enregistré est choisi (sans jamais
     écraser une valeur déjà saisie) ;
   - **l'enregistrement d'un bail les met à jour** sur le bien : le loyer bougeant peu, la fiche
@@ -80,30 +80,30 @@ nouveau PDF**.
 
 ## 4. Spécifications
 
-### 4.1 Contenu du PDF — page 1 : le logement
+### 4.1 Contenu du PDF - page 1 : le logement
 
 Titre : **« Fiche de visite »**, sous-titre = nom du bien. Chaque bloc est **omis proprement s'il
 est vide** (jamais de libellé suivi d'un tiret orphelin) ; les blocs marqués (opt) sont pilotés
 par les interrupteurs du modèle (§4.2).
 
-**a) Photo du logement** — si `Bien.photoId` est renseigné : image en pleine largeur sous le
+**a) Photo du logement** - si `Bien.photoId` est renseigné : image en pleine largeur sous le
 titre, hauteur fixe, cadrage `objectFit: cover` (une photo portrait ne doit pas pousser tout le
 reste en page 2). Absente = aucun cadre vide, la fiche commence directement au descriptif.
 
 **b) Le logement**
 - Adresse complète (`formatAdresse`), **bâtiment** et **étage** mis en avant.
 - Type (T1/T2…), **surface loi Boutin** en m², nombre de pièces principales.
-- **Meublé** — mention explicite « logement loué meublé, équipé conformément au décret
+- **Meublé** - mention explicite « logement loué meublé, équipé conformément au décret
   n°2015-981 » (l'app ne fait que du meublé).
 - Chauffage (type + énergie), eau chaude (type + énergie).
 - **Classe DPE** + rappel de décence si D à G (« G : location interdite depuis 2025 ; F : 2028 ;
-  E : 2034 ») — information factuelle, pas d'alarme.
+  E : 2034 ») - information factuelle, pas d'alarme.
 - Accès aux technologies (`equipementsTIC`) si renseigné.
-- **Annexes** : cave, parking, grenier (type + description) — ce qui se visite aussi.
+- **Annexes** : cave, parking, grenier (type + description) - ce qui se visite aussi.
 - Régime : copropriété ou monopropriété.
 - Équipements privatifs / parties communes si renseignés (listes courtes, en ligne).
 
-**c) Conditions de location** (opt) — lues sur `Bien.conditionsLocation`
+**c) Conditions de location** (opt) - lues sur `Bien.conditionsLocation`
 - Loyer hors charges, **charges** (forfait ou provisions) et **total charges comprises**, calculé.
 - **Ce que couvrent les charges** (texte libre : eau froide, ordures ménagères, entretien des
   parties communes, chauffage collectif…).
@@ -114,22 +114,22 @@ reste en page 2). Absente = aucun cadre vide, la fiche commence directement au d
 - **Assurance habitation obligatoire** du locataire, attestation exigible à la remise des clés.
 - **Aucuns frais d'agence ni honoraires** : bailleur particulier, location en direct.
 - **Zone d'encadrement des loyers** (si `zoneEncadrementLoyers`) : loyer de référence, loyer de
-  référence majoré, et complément de loyer éventuel — mentions dues au candidat.
+  référence majoré, et complément de loyer éventuel - mentions dues au candidat.
 - **Conditions particulières** (texte libre : animaux, non-fumeur, jardin partagé…).
 
 **d) Informations pratiques de la visite** (opt)
 - **Date et heure** de la visite, durée estimée.
 - **Comment venir / accès** : code d'entrée ou interphone, digicode, étage, ascenseur,
-  stationnement, transports — texte libre par bien.
+  stationnement, transports - texte libre par bien.
 - **À apporter** : pièce d'identité, de quoi noter, et le dossier s'il est déjà prêt
   (texte du modèle, modifiable).
-- **Contact du bailleur** (opt) : nom, téléphone, e-mail — repris de `Parametres.bailleur`.
+- **Contact du bailleur** (opt) : nom, téléphone, e-mail - repris de `Parametres.bailleur`.
 - **Pas de dossier technique** : ni lien, ni QR code. Les diagnostics (DPE, ERP, CREP…) sont
-  remis plus tard, en annexe du bail, pas au stade de la visite — décision du bailleur.
+  remis plus tard, en annexe du bail, pas au stade de la visite - décision du bailleur.
 
-### 4.2 Contenu du PDF — page 2 : le dossier à préparer
+### 4.2 Contenu du PDF - page 2 : le dossier à préparer
 
-Titre : **« Votre dossier de candidature — pièces à préparer »**. Nouvelle page
+Titre : **« Votre dossier de candidature - pièces à préparer »**. Nouvelle page
 (`break`), pour être détachée et remise telle quelle.
 
 - **Texte d'introduction** (modèle) : à quoi sert le dossier, sous quelle forme le transmettre.
@@ -146,19 +146,19 @@ Titre : **« Votre dossier de candidature — pièces à préparer »**. Nouvell
 
 Fidèle au décret n°2015-1437. `[cond:…]` = section conditionnelle.
 
-**1. Pièce d'identité** — *une seule, en cours de validité, avec photographie*
-- Carte nationale d'identité (recto-verso) — française ou étrangère
+**1. Pièce d'identité** - *une seule, en cours de validité, avec photographie*
+- Carte nationale d'identité (recto-verso) - française ou étrangère
 - Passeport (pages d'identité)
 - Permis de conduire
 - Carte de séjour temporaire, carte de résident, carte de ressortissant d'un État de l'UE/EEE
 
-**2. Justificatif de domicile** — *une seule pièce*
+**2. Justificatif de domicile** - *une seule pièce*
 - Trois dernières quittances de loyer
 - À défaut : attestation du précédent bailleur (loyer et charges payés)
 - À défaut : attestation d'hébergement + pièce d'identité de l'hébergeant
 - Dernier avis de taxe foncière ou titre de propriété (si propriétaire)
 
-**3. Justificatif d'activité professionnelle** — *une seule pièce, selon la situation*
+**3. Justificatif d'activité professionnelle** - *une seule pièce, selon la situation*
 - Contrat de travail ou de stage, ou attestation de l'employeur (poste, rémunération, date
   d'embauche, période d'essai)
 - Carte d'étudiant ou certificat de scolarité pour l'année en cours
@@ -167,7 +167,7 @@ Fidèle au décret n°2015-1437. `[cond:…]` = section conditionnelle.
 - Arrêté de nomination (fonctionnaire)
 - Carte d'identité professionnelle (profession réglementée)
 
-**4. Justificatifs de ressources** — *toutes les pièces qui vous concernent*
+**4. Justificatifs de ressources** - *toutes les pièces qui vous concernent*
 - Trois derniers bulletins de salaire
 - Dernier ou avant-dernier avis d'imposition (toutes pages)
 - Deux derniers bilans, ou attestation de ressources d'un comptable (indépendant)
@@ -177,14 +177,14 @@ Fidèle au décret n°2015-1437. `[cond:…]` = section conditionnelle.
 - Avis d'attribution de bourse (étudiant) `[cond:etudiant]`
 - Justificatif de revenus fonciers, de rentes ou de valeurs mobilières
 
-**5. Votre garant** `[cond:garant_physique]` — *les mêmes pièces que ci-dessus, à son nom*
+**5. Votre garant** `[cond:garant_physique]` - *les mêmes pièces que ci-dessus, à son nom*
 - Pièce d'identité en cours de validité
 - Justificatif de domicile
 - Justificatif d'activité professionnelle
 - Justificatifs de ressources
 - L'acte de cautionnement vous sera remis à la signature (rien à rédiger de votre côté)
 
-**6. Garantie Visale** `[cond:visale]` — *dispense de garant physique*
+**6. Garantie Visale** `[cond:visale]` - *dispense de garant physique*
 - Numéro de visa certifié Visale, en cours de validité (obtenu gratuitement sur visale.fr)
 - Vérifiez la date de fin de validité du visa : 3 mois (6 mois pour les étudiants, alternants
   et volontaires en service civique)
@@ -193,7 +193,7 @@ Fidèle au décret n°2015-1437. `[cond:…]` = section conditionnelle.
 - Chaque colocataire constitue un dossier complet, garant compris
 - Le bail est signé par tous, avec clause de solidarité
 
-**8. À prévoir pour la signature** — *pas pour la candidature*
+**8. À prévoir pour la signature** - *pas pour la candidature*
 - Attestation d'assurance habitation (risques locatifs), au plus tard à la remise des clés
 - Moyen de paiement du premier loyer et du dépôt de garantie
 - Un RIB **uniquement** si vous choisissez le prélèvement, et à votre initiative
@@ -211,7 +211,7 @@ fournis.
 certifié) ; réponse sous X jours ; en cas d'accord, signature du bail puis état des lieux d'entrée
 à la remise des clés.
 
-### 4.3 Page jointe — acte de cautionnement (garant personne physique)
+### 4.3 Page jointe - acte de cautionnement (garant personne physique)
 
 Si la situation **« garant personne physique »** est retenue à la génération, l'**acte de
 cautionnement solidaire** (art. 22-1 de la loi n°89-462) est joint à la fiche, après le dossier :
@@ -220,7 +220,7 @@ le candidat repart avec le document que son garant doit remplir, sans échange s
 - Rendu par `ActeCautionnementPage`, la page de l'acte **isolée de son `Document`** pour être
   réutilisable ; `ActeCautionnementPdf` (fiche du bail) l'enveloppe et reste inchangé.
 - **Pré-remplissage avec ce que l'on connaît à ce stade** : bailleur (nom et adresse), adresse du
-  logement, loyer hors charges, charges et total mensuel — y compris en toutes lettres.
+  logement, loyer hors charges, charges et total mensuel - y compris en toutes lettres.
 - **Restent en zones pointillées** : identité et adresse du garant, nom du locataire, durée du
   bail. Elles ne sont pas connues à la visite et se complètent à la main.
 - La section « garant » du dossier annonce la pièce jointe (« acte de cautionnement, joint à
@@ -248,21 +248,21 @@ remplacement et suppression. Une seule photo par bien ; remplacer supprime l'anc
 
 **Pré-remplissage du bail** (`BailRapidePage`) : dès qu'un bien enregistré est choisi (menu
 déroulant, création rapide, ou arrivée depuis la fiche du bien), les champs **vides** du
-formulaire — loyer HC, charges, dépôt — sont remplis depuis `conditionsLocation`. Une valeur déjà
+formulaire - loyer HC, charges, dépôt - sont remplis depuis `conditionsLocation`. Une valeur déjà
 saisie n'est **jamais** écrasée.
 
 **Retour d'information** : à l'enregistrement d'un bail portant sur un bien enregistré, les
 `conditionsLocation` du bien sont mises à jour (loyer, charges, dépôt) dans la **même transaction**
 que l'écriture du bail. Les textes libres (accès, détail des charges…) ne sont pas touchés.
 
-### 4.5 Génération de la fiche — depuis la fiche du bien
+### 4.5 Génération de la fiche - depuis la fiche du bien
 
 Nouvelle carte **« Fiche de visite »** dans `BienDetailPage` → modale courte, puisque les
 conditions viennent désormais du bien :
 
 | Champ | Pré-remplissage |
 |---|---|
-| Date et heure de visite | Aujourd'hui / heure vide — **jamais mémorisées** |
+| Date et heure de visite | Aujourd'hui / heure vide - **jamais mémorisées** |
 | Situations à inclure (garant physique, Visale, colocation, étudiant, indépendant) | `conditionsLocation.situations`, sinon garant physique seul |
 
 - Rappel en lecture seule des conditions du bien (loyer CC, dépôt, disponibilité) avec un lien
@@ -270,13 +270,13 @@ conditions viennent désormais du bien :
 - Les champs non renseignés sur le bien deviennent des **zones pointillées** (`Rempl` en mode
   brouillon) : la fiche s'imprime et se complète à la main, comme le bail.
 - « Générer la fiche » → `genererEtArchiver({ type: 'fiche_visite', bienId })`, titre
-  « Fiche de visite — {nom du bien} », archivage dans la bibliothèque, ouverture immédiate.
+  « Fiche de visite - {nom du bien} », archivage dans la bibliothèque, ouverture immédiate.
   Les situations cochées sont mémorisées sur le bien.
-- Régénérer écrase la version non signée de même référence — comportement déjà assuré par
+- Régénérer écrase la version non signée de même référence - comportement déjà assuré par
   `enregistrerDocument`.
 - La carte affiche la date de la dernière fiche générée pour ce bien, s'il y en a une.
 
-### 4.6 Réglages — modèle éditable
+### 4.6 Réglages - modèle éditable
 
 Nouvelle carte **« Fiche de visite »** dans `ParametresPage`, sous la grille de vétusté (même
 ergonomie : édition sur `onBlur`, écriture directe dans `db.parametres`, pas de bouton
@@ -285,7 +285,7 @@ ergonomie : édition sur `onBlur`, écriture directe dans `db.parametres`, pas d
 - **Blocs à imprimer** : trois interrupteurs (conditions financières, informations pratiques,
   coordonnées du bailleur).
 - **Textes libres** : introduction du dossier, modalités de candidature, à apporter à la visite,
-  mentions légales — quatre zones de texte multi-ligne.
+  mentions légales - quatre zones de texte multi-ligne.
 - **Sections de pièces** : liste ordonnée ; par section → titre, note, condition (menu :
   toujours / garant physique / Visale / colocation / étudiant / indépendant), monter/descendre,
   supprimer, ajouter une section ; par pièce → libellé, précision, activer/désactiver, supprimer,
@@ -346,7 +346,7 @@ export interface ConditionsLocation {
   chargesDetail?: string;
   depotGarantie?: number;
   dateDisponibilite?: string;
-  /** Accès, interphone, étage, stationnement — imprimé sur la fiche de visite. */
+  /** Accès, interphone, étage, stationnement - imprimé sur la fiche de visite. */
   acces?: string;
   conditionsParticulieres?: string;
   /** Sections conditionnelles retenues à la dernière génération. */
@@ -366,7 +366,7 @@ export interface ConditionsLocation {
 - **Dexie v3** : `photos: 'id, edlId, bienId'`. Aucune donnée à transformer (index ajouté ; les
   clés `undefined` sont simplement absentes de l'index, ce qui laisse
   `db.photos.where('edlId')` intact pour l'EDL et la RGPD).
-- **Paramètres** : `ficheVisite` est optionnel, mais `getParametres()` doit **normaliser** — un
+- **Paramètres** : `ficheVisite` est optionnel, mais `getParametres()` doit **normaliser** - un
   utilisateur existant n'a pas le champ, et les pages ne doivent pas gérer ce cas partout.
   `getParametres` complète l'objet lu avec les défauts manquants (un seul endroit, testé). La
   restauration de sauvegarde (`backup.ts:181`) repasse par cette normalisation à la lecture
@@ -404,7 +404,7 @@ export interface ConditionsLocation {
   `signe: true`. Il reste régénérable à volonté, comme le bail.
 - **Impression** : A4, marges de `pdfStyles.page` inchangées. Le logement tient sur la page 1 ;
   le dossier **commence toujours sur une nouvelle page**, pour être détaché et remis tel quel.
-  La liste complète occupe 2 à 3 pages selon les situations retenues — c'est assumé. Une section
+  La liste complète occupe 2 à 3 pages selon les situations retenues - c'est assumé. Une section
   peut se couper d'une page à l'autre (sinon une demi-page reste blanche), mais **jamais juste
   après son titre** (`minPresenceAhead`) ni au milieu d'une pièce (`wrap={false}` par pièce).
 - **Hors-ligne** : aucune ressource réseau (ni police distante, ni image externe).
@@ -440,7 +440,7 @@ export interface ConditionsLocation {
 - [x] Depuis un bien, « Fiche de visite » ouvre une modale courte et génère un PDF de 2 pages.
 - [x] La page 1 rappelle l'adresse complète (bâtiment, étage), les caractéristiques, les
       conditions financières avec **total charges comprises calculé**, et les infos de visite.
-- [x] Un champ non renseigné apparaît en **zone pointillée**, jamais en libellé vide ou « — ».
+- [x] Un champ non renseigné apparaît en **zone pointillée**, jamais en libellé vide ou « - ».
 - [x] La page 2 liste les pièces en cases à cocher ; les sections « garant physique », « Visale »,
       « colocation », « étudiant », « indépendant » n'apparaissent **que** si cochées.
 - [x] Le bloc « ce que le bailleur ne peut pas vous demander » est présent par défaut et
@@ -461,7 +461,7 @@ export interface ConditionsLocation {
 
 - Gestion des candidatures : saisie des candidats, comparatif, scoring, statut, relances.
 - Planification de créneaux de visite, envoi d'e-mails ou de SMS, export d'agenda.
-- Import ou vérification d'un dossier (DossierFacile, pièces jointes) — seul le **lien** est cité.
+- Import ou vérification d'un dossier (DossierFacile, pièces jointes) - seul le **lien** est cité.
 - Annonce de location (portails, photos, texte d'annonce) : ce document est remis en visite, il
   n'est pas une annonce publiée.
 - Calcul de solvabilité (règle des 3 fois le loyer) : appréciation du bailleur, hors de l'outil.

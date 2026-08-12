@@ -18,7 +18,7 @@ import { DepotMemoire } from './depotMemoire';
  * Activation de la synchronisation entre appareils.
  *
  * Il n'y a plus qu'un seul mode : brancher le Drive, c'est synchroniser. Ce qui
- * se joue ici, c'est qu'elle ne s'éteigne jamais toute seule — un appareil qui
+ * se joue ici, c'est qu'elle ne s'éteigne jamais toute seule - un appareil qui
  * cesse silencieusement d'échanger est pire qu'un appareil jamais branché.
  */
 
@@ -81,8 +81,8 @@ describe('reconnexion Google Drive', () => {
 
 describe('purge du journal', () => {
   it('vide le journal quand la synchronisation est éteinte', async () => {
-    // Les hooks l'alimentent quoi qu'il arrive — une suppression ne laisse
-    // aucune trace récupérable — mais sans synchronisation il ne ferait que
+    // Les hooks l'alimentent quoi qu'il arrive - une suppression ne laisse
+    // aucune trace récupérable - mais sans synchronisation il ne ferait que
     // grossir indéfiniment.
     await configurer({ clientId: 'x', actif: false });
     await journaliser('biens', 'b1', 'maj');
@@ -104,7 +104,7 @@ describe('cycles concurrents', () => {
      * Avec un battement toutes les cinq minutes, croiser un cycle déjà en cours
      * est banal. Le confondre avec un dépôt inaccessible afficherait
      * « reconnectez Google Drive » à un utilisateur dont le Drive marche très
-     * bien — et l'inviterait à un geste inutile, voire inquiétant.
+     * bien - et l'inviterait à un geste inutile, voire inquiétant.
      */
     await avecReseau(true, async () => {
       // Dépôt impossible à ouvrir : c'est « indisponible », pas « ignore ».
@@ -137,8 +137,8 @@ const avecReseau = async (enLigne: boolean, action: () => Promise<void>) => {
 
 /*
  * `clientId` vide : le dépôt refuse de s'ouvrir **avant** de charger le script
- * Google, ce qui met le cycle exactement dans l'état à couvrir — « indisponible »
- * — sans jamais toucher au réseau. Indispensable sous jsdom, où une balise
+ * Google, ce qui met le cycle exactement dans l'état à couvrir - « indisponible »
+ * - sans jamais toucher au réseau. Indispensable sous jsdom, où une balise
  * `<script>` vers accounts.google.com ne se résoudrait jamais.
  */
 const driveInutilisable = () => configurer({ clientId: '', actif: true });
@@ -179,7 +179,7 @@ describe('signal d’état de synchronisation', () => {
     /*
      * Le battement relance un cycle toutes les cinq minutes. Si « en_cours »
      * recouvrait l'avertissement, le bandeau « Reconnecter » disparaîtrait puis
-     * reviendrait à chaque tour — y compris sous le doigt de qui s'apprête à le
+     * reviendrait à chaque tour - y compris sous le doigt de qui s'apprête à le
      * toucher. Une fois l'alerte posée, elle ne bouge plus tant que rien n'a
      * changé.
      */
@@ -218,7 +218,7 @@ describe('signal d’état de synchronisation', () => {
     /*
      * Le trou le plus grave avant ce signal : le battement lance un cycle
      * toutes les cinq minutes sans lire son résultat. Une horloge décalée
-     * arrêtait donc la synchronisation pour des jours, en silence — et
+     * arrêtait donc la synchronisation pour des jours, en silence - et
      * l'ordinateur imprimait d'anciennes données en se croyant à jour.
      */
     await avecReseau(true, async () => {

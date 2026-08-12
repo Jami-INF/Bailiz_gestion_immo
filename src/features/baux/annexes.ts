@@ -11,25 +11,25 @@ import { uid } from '@/lib/ids';
  *
  * Règle appliquée : une pièce n'est **retirée que lorsqu'on sait qu'elle n'est
  * pas due**. Tant que l'information manque sur la fiche du bien, la pièce reste
- * listée avec sa condition en toutes lettres — mieux vaut une ligne à vérifier
+ * listée avec sa condition en toutes lettres - mieux vaut une ligne à vérifier
  * qu'un diagnostic oublié, dont l'absence est opposable au bailleur.
  */
 function diagnostics(bien: Bien): AnnexeChecklistItem[] {
   const items: { libelle: string; lien?: string }[] = [];
 
-  items.push({ libelle: 'Diagnostic de performance énergétique (DPE) — valable 10 ans' });
+  items.push({ libelle: 'Diagnostic de performance énergétique (DPE) - valable 10 ans' });
 
   // Avant 1949 : constat de risque d'exposition au plomb (art. L.1334-5 et
   // L.1334-7 du code de la santé publique).
   if (bien.periodeConstruction === 'avant_1949') {
     items.push({
       libelle:
-        "Constat de risque d'exposition au plomb (CREP) — immeuble construit avant le 1er janvier 1949",
+        "Constat de risque d'exposition au plomb (CREP) - immeuble construit avant le 1er janvier 1949",
     });
   } else if (!bien.periodeConstruction) {
     items.push({
       libelle:
-        "Constat de risque d'exposition au plomb (CREP) — uniquement si le permis de construire est antérieur au 1er janvier 1949",
+        "Constat de risque d'exposition au plomb (CREP) - uniquement si le permis de construire est antérieur au 1er janvier 1949",
     });
   }
 
@@ -39,8 +39,8 @@ function diagnostics(bien: Bien): AnnexeChecklistItem[] {
       libelle:
         "État de l'installation intérieure de gaz" +
         (bien.installationGazPlusDe15Ans
-          ? ' — installation de plus de 15 ans'
-          : " — uniquement si le logement est alimenté en gaz et que l'installation a plus de 15 ans"),
+          ? ' - installation de plus de 15 ans'
+          : " - uniquement si le logement est alimenté en gaz et que l'installation a plus de 15 ans"),
     });
   }
   if (bien.installationElectriquePlusDe15Ans !== false) {
@@ -48,8 +48,8 @@ function diagnostics(bien: Bien): AnnexeChecklistItem[] {
       libelle:
         "État de l'installation intérieure d'électricité" +
         (bien.installationElectriquePlusDe15Ans
-          ? ' — installation de plus de 15 ans'
-          : " — uniquement si l'installation a plus de 15 ans"),
+          ? ' - installation de plus de 15 ans'
+          : " - uniquement si l'installation a plus de 15 ans"),
     });
   }
 
@@ -59,7 +59,7 @@ function diagnostics(bien: Bien): AnnexeChecklistItem[] {
   if (bien.zoneRisquesERP !== false) {
     items.push({
       libelle:
-        'État des risques et pollutions (ERP) — daté de moins de 6 mois à la signature',
+        'État des risques et pollutions (ERP) - daté de moins de 6 mois à la signature',
       lien: LIEN_GEORISQUES,
     });
   }
@@ -67,7 +67,7 @@ function diagnostics(bien: Bien): AnnexeChecklistItem[] {
   // Zone d'exposition au bruit d'un aérodrome (art. L.112-11 du code de l'urbanisme).
   if (bien.zoneBruitAerodrome) {
     items.push({
-      libelle: "État des nuisances sonores aériennes — logement en zone d'exposition au bruit",
+      libelle: "État des nuisances sonores aériennes - logement en zone d'exposition au bruit",
     });
   }
 

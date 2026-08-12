@@ -135,7 +135,7 @@ export function LocataireFormModal({
           </Field>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Date de naissance" hint="Facultative — aide à identifier le locataire sur le bail.">
+          <Field label="Date de naissance" hint="Facultative - aide à identifier le locataire sur le bail.">
             <Controller
               control={control}
               name="dateNaissance"
@@ -172,7 +172,7 @@ export function LocataireFormModal({
           <div className="space-y-3 rounded-lg bg-accent-50 p-4">
             <Field
               label="Type de garantie"
-              hint="Visale : garantie publique gratuite d'Action Logement — pas de caution personnelle à saisir."
+              hint="Visale : garantie publique gratuite d'Action Logement - pas de caution personnelle à saisir."
             >
               <Select {...register('garantType')}>
                 <option value="physique">Personne physique (caution)</option>

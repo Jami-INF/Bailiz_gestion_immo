@@ -40,8 +40,8 @@ export interface PlanContrat {
 
 /**
  * Plan du contrat : numérotation calculée plutôt qu'écrite en dur. Une partie
- * ou une sous-partie non imprimée — pas de colocation, aucune condition
- * générale retenue, logement sans partie commune — ne doit laisser aucun trou
+ * ou une sous-partie non imprimée - pas de colocation, aucune condition
+ * générale retenue, logement sans partie commune - ne doit laisser aucun trou
  * dans la numérotation, et le sommaire ne doit jamais diverger du corps.
  */
 export function planDuContrat({

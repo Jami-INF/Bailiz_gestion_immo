@@ -64,7 +64,7 @@ const nav = [
  *
  * Deux régimes, et il faut afficher le bon : sous synchronisation, la date qui
  * compte est celle du dernier **échange** avec le Drive. `derniereSauvegarde`
- * n'y est plus rafraîchie que par l'instantané hebdomadaire — annoncer une
+ * n'y est plus rafraîchie que par l'instantané hebdomadaire - annoncer une
  * sauvegarde vieille de six jours alors qu'un cycle vient de réussir ferait
  * croire à une panne, et pousserait à exporter à la main pour rien.
  */
@@ -94,7 +94,7 @@ function SauvegardeStatut() {
   const sauvegarder = async () => {
     /*
      * Même contrainte que ci-dessus : `pousserSiActive` traverse le dossier
-     * local — deux lectures IndexedDB — avant d'arriver au jeton Google. Sur
+     * local - deux lectures IndexedDB - avant d'arriver au jeton Google. Sur
      * iPad la fenêtre serait alors bloquée. On demande donc l'autorisation ici,
      * dans le geste, avant tout le reste. Sans Drive connecté, il n'y a rien à
      * autoriser et on enchaîne directement.
@@ -157,7 +157,7 @@ function SauvegardeStatut() {
  * l'iPad vient de saisir, c'est la pire défaillance : invisible et durable.
  *
  * Il est ici et pas dans la barre latérale parce que celle-ci est **masquée sur
- * mobile et en mode replié** — c'est-à-dire sur l'iPad, l'appareil le plus
+ * mobile et en mode replié** - c'est-à-dire sur l'iPad, l'appareil le plus
  * exposé. Un avertissement invisible là où il est nécessaire ne vaut pas mieux
  * que pas d'avertissement.
  */
@@ -172,7 +172,7 @@ function BandeauSync() {
    * « En cours » n'est affiché qu'au-delà d'une seconde. Un cycle qui n'a rien à
    * échanger dure une fraction de seconde : le montrer ferait clignoter un
    * bandeau toutes les cinq minutes pour rien. Passé ce délai, en revanche, des
-   * données sont réellement en train d'arriver — et c'est précisément le moment
+   * données sont réellement en train d'arriver - et c'est précisément le moment
    * où il ne faut pas imprimer.
    */
   const [attenteVisible, setAttenteVisible] = useState(false);
@@ -189,7 +189,7 @@ function BandeauSync() {
    * L'ordre n'est pas négociable : `demanderAutorisationGoogle` doit être la
    * première instruction du gestionnaire de clic. Safari/iOS n'autorise la
    * fenêtre Google que tant que dure l'activation du geste, et le moindre accès
-   * à IndexedDB avant elle suffit à la faire expirer — la fenêtre est alors
+   * à IndexedDB avant elle suffit à la faire expirer - la fenêtre est alors
    * bloquée sans erreur, ce qui donne un bouton qui « ne fait rien ».
    */
   const reconnecter = async () => {
@@ -210,7 +210,7 @@ function BandeauSync() {
       }
       reinitialiserAvertissements();
       const resultat = await lancerCycle(true);
-      if (resultat.etat === 'ok') toast('success', 'Google Drive reconnecté — données synchronisées.');
+      if (resultat.etat === 'ok') toast('success', 'Google Drive reconnecté - données synchronisées.');
       else if (resultat.etat !== 'bloque') toast('warning', "Reconnecté, mais l'échange n'a pas abouti : réessayez.");
     } finally {
       setEnCours(false);
@@ -228,7 +228,7 @@ function BandeauSync() {
   };
 
   /*
-   * Une saisie écrasée n'est pas une panne — la synchronisation a fonctionné et
+   * Une saisie écrasée n'est pas une panne - la synchronisation a fonctionné et
    * tranché en faveur de la version la plus récente. Mais c'est le seul endroit
    * où du travail disparaît sans que personne ne l'ait demandé : il faut le
    * nommer, et laisser l'utilisateur en prendre acte.
@@ -263,19 +263,19 @@ function BandeauSync() {
     return (
       <div className="flex items-center justify-center gap-2 bg-accent-100 px-4 py-1.5 text-xs font-medium text-accent-700">
         <RefreshCw size={14} className="animate-spin" />
-        Synchronisation en cours — attendez la fin avant d&apos;imprimer un document.
+        Synchronisation en cours - attendez la fin avant d&apos;imprimer un document.
       </div>
     );
   }
 
   const message =
     etat.etat === 'reconnexion'
-      ? "Synchronisation en attente — l'autorisation Google a expiré"
+      ? "Synchronisation en attente - l'autorisation Google a expiré"
       : etat.etat === 'bloque'
         ? etat.raison === 'horloge'
-          ? "Synchronisation interrompue — l'horloge de cet appareil est trop décalée"
-          : 'Synchronisation interrompue — des suppressions inhabituelles ont été reçues'
-        : 'Synchronisation en échec — vos données restent enregistrées sur cet appareil';
+          ? "Synchronisation interrompue - l'horloge de cet appareil est trop décalée"
+          : 'Synchronisation interrompue - des suppressions inhabituelles ont été reçues'
+        : 'Synchronisation en échec - vos données restent enregistrées sur cet appareil';
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
@@ -397,8 +397,8 @@ export function AppLayout() {
    * sauvegarde ZIP : l'instantané hebdomadaire la rafraîchit lui-même, et le
    * cycle d'ouverture ne se déclenchait alors plus qu'une fois par semaine.
    *
-   * Cycle silencieux et non interactif : sans autorisation Google valide — le
-   * cas courant sur Safari/iPad — il est simplement reporté, sans message.
+   * Cycle silencieux et non interactif : sans autorisation Google valide - le
+   * cas courant sur Safari/iPad - il est simplement reporté, sans message.
    */
   useEffect(() => {
     void purgerJournalSiInactif();
@@ -475,7 +475,7 @@ export function AppLayout() {
         >
           {/*
             Bloc de marque calé sur l'en-tête de la vitrine : même glyphe, même
-            graisse, même interlettrage. Cliquable, il ramène à bailiz.fr —
+            graisse, même interlettrage. Cliquable, il ramène à bailiz.fr -
             l'application était jusqu'ici une porte à sens unique.
 
             Sauf en fenêtre autonome : cf. `useModeAutonome`. On rend alors le
@@ -491,7 +491,7 @@ export function AppLayout() {
               } ${autonome ? '' : 'hover:opacity-80'}`}
               {...(autonome
                 ? {}
-                : { href: '/', title: 'Retour à la présentation de Bailiz — bailiz.fr' })}
+                : { href: '/', title: 'Retour à la présentation de Bailiz - bailiz.fr' })}
             >
               <Logo taille={36} />
               {!navRepliee && (
@@ -573,7 +573,7 @@ export function AppLayout() {
         <BandeauMiseAJour masque={pleinEcran} />
         {!enLigne && (
           <div className="flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
-            <WifiOff size={14} /> Hors-ligne — vos données restent enregistrées sur cet appareil
+            <WifiOff size={14} /> Hors-ligne - vos données restent enregistrées sur cet appareil
           </div>
         )}
         {/* Hors-ligne d'abord : sans réseau, reconnecter n'aurait aucun sens. */}

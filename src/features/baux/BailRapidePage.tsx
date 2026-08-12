@@ -290,7 +290,7 @@ export function BailRapidePage() {
         await db.transaction('rw', [db.biens, db.locataires, db.baux], async () => {
           if (!saisieEnr.bienId || !resolveBien(saisieEnr.bienId)) await db.biens.put(bien);
           // Bien enregistré : ses conditions de location suivent le bail (loyer,
-          // charges, dépôt) — la fiche du bien et la fiche de visite restent justes.
+          // charges, dépôt) - la fiche du bien et la fiche de visite restent justes.
           else
             await db.biens.put({
               ...bien,
@@ -315,7 +315,7 @@ export function BailRapidePage() {
         await enregistrerDocument({
           reference: bailMaj.reference,
           type: 'bail',
-          titre: `Bail meublé — ${bien.nom} — ${nomsMaj}`,
+          titre: `Bail meublé - ${bien.nom} - ${nomsMaj}`,
           blob,
           bienId: bien.id,
           bailId: bailMaj.id,
@@ -368,13 +368,13 @@ export function BailRapidePage() {
 
       const noms = nomsPersonnes(locataires);
       etape = 'E6 (enregistrement des PDF)';
-      await enregistrerDocument({ reference, type: 'bail', titre: `Bail meublé — ${bien.nom} — ${noms}`, blob: blobBail, bienId: bien.id, bailId: bail.id });
-      await enregistrerDocument({ reference: refGrille, type: 'grille_vetuste', titre: `Grille de vétusté — ${bien.nom} — annexe du bail ${reference}`, blob: blobGrille, bienId: bien.id, bailId: bail.id });
+      await enregistrerDocument({ reference, type: 'bail', titre: `Bail meublé - ${bien.nom} - ${noms}`, blob: blobBail, bienId: bien.id, bailId: bail.id });
+      await enregistrerDocument({ reference: refGrille, type: 'grille_vetuste', titre: `Grille de vétusté - ${bien.nom} - annexe du bail ${reference}`, blob: blobGrille, bienId: bien.id, bailId: bail.id });
 
       toast('success', `Bail ${reference} enregistré. L'inventaire du mobilier sera réalisé avec l'état des lieux d'entrée.`);
       navigate(`/baux/${bail.id}`);
     } catch (e) {
-      console.error(`Enregistrement du bail — échec ${etape}`, e);
+      console.error(`Enregistrement du bail - échec ${etape}`, e);
       toast('error', `Échec à l'étape ${etape} : ${decrireErreur(e)}`);
     } finally {
       setEnregistrement(false);
@@ -387,7 +387,7 @@ export function BailRapidePage() {
         titre={edition ? `Modifier le bail${bailExistant ? ` ${bailExistant.reference}` : ''}` : 'Nouveau bail'}
         sousTitre={
           edition
-            ? 'Le bail reste modifiable et régénérable à volonté — c’est le document imprimé qui fait foi. « Enregistrer les modifications » met à jour le bail et régénère son PDF.'
+            ? 'Le bail reste modifiable et régénérable à volonté - c’est le document imprimé qui fait foi. « Enregistrer les modifications » met à jour le bail et régénère son PDF.'
             : 'Un seul écran, avec aperçu du document. Choisissez un bien et des locataires enregistrés, ou saisissez-les ici. Générez un PDF prêt à imprimer, ou enregistrez le bail complet (inventaire + grille de vétusté).'
         }
       />
@@ -400,13 +400,13 @@ export function BailRapidePage() {
               Indivision et personne morale demandent une identité structurée
               (coïndivisaires, dénomination, RCS, représentant légal) qui n'a pas
               sa place dans un formulaire de bail : on la lit, on ne la ressaisit
-              pas. Le cas courant — bailleur personne physique — reste modifiable
+              pas. Le cas courant - bailleur personne physique - reste modifiable
               ici, pour qu'un premier bail se produise sans détour par les
               Paramètres.
             */}
             {saisie.bailleur.qualite !== 'personne_physique' ? (
               <div className="rounded-lg border border-accent-200 bg-accent-50 p-3 text-sm">
-                <p className="font-medium text-accent-900">{nomBailleur(saisie.bailleur) || '—'}</p>
+                <p className="font-medium text-accent-900">{nomBailleur(saisie.bailleur) || '-'}</p>
                 <p className="mt-0.5 text-accent-600">
                   {QUALITE_BAILLEUR_LABELS[saisie.bailleur.qualite]} · {saisie.bailleur.adresse || 'adresse non renseignée'}
                 </p>
@@ -455,7 +455,7 @@ export function BailRapidePage() {
           <Section titre="Logement">
             {/*
               Aucun bien enregistré : le sélecteur n'aurait que « Saisir un
-              logement ici » comme option, déjà sélectionnée par défaut — ce qui
+              logement ici » comme option, déjà sélectionnée par défaut - ce qui
               affichait le formulaire de saisie libre juste sous le bouton
               « Créer un logement », donnant l'impression de deux formulaires
               d'ajout pour la même chose. Un seul point d'entrée tant qu'aucun
@@ -477,7 +477,7 @@ export function BailRapidePage() {
                         value={saisie.bienId ?? ''}
                         onChange={(e) => choisirBien(e.target.value || undefined)}
                       >
-                        <option value="">— Saisir un logement ici —</option>
+                        <option value="">- Saisir un logement ici -</option>
                         {biens.map((b) => (
                           <option key={b.id} value={b.id}>
                             {b.nom} ({b.adresse.ville})
@@ -514,7 +514,7 @@ export function BailRapidePage() {
                       </Field>
                       <Field label="Type" required>
                         <Select value={saisie.bien.type ?? ''} onChange={(e) => majBien({ type: (e.target.value || undefined) as TypeBien })}>
-                          <option value="">—</option>
+                          <option value="">-</option>
                           {TYPES_BIEN.map((t) => (
                             <option key={t} value={t}>
                               {t}
@@ -546,7 +546,7 @@ export function BailRapidePage() {
                       </Field>
                       <Field label="Classe DPE">
                         <Select value={saisie.bien.classeDPE ?? ''} onChange={(e) => majBien({ classeDPE: (e.target.value || undefined) as ClasseDPE })}>
-                          <option value="">—</option>
+                          <option value="">-</option>
                           {CLASSES_DPE.map((c) => (
                             <option key={c} value={c}>
                               {c}

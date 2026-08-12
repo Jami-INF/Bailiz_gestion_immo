@@ -167,7 +167,7 @@ export async function pousserSiActive(
  *
  * `indisponible` devient `permission_requise` : c'est la cause de très loin la
  * plus fréquente (autorisation Google expirée) et la seule sur laquelle
- * l'utilisateur peut agir. `ignore` devient `inactif` et reste muet — un cycle
+ * l'utilisateur peut agir. `ignore` devient `inactif` et reste muet - un cycle
  * croisé par un autre n'est pas un incident, et l'annoncer comme une
  * autorisation expirée enverrait reconnecter un Drive qui fonctionne.
  */
@@ -236,7 +236,7 @@ function planifierPush(): void {
       /*
        * `permission_requise` : le jeton Google n'est pas persisté (aucun
        * serveur pour détenir un refresh token) et son renouvellement silencieux
-       * échoue dès que le navigateur bloque les cookies tiers — c'est le cas par
+       * échoue dès que le navigateur bloque les cookies tiers - c'est le cas par
        * défaut sur Safari/iOS. Sans message, l'utilisateur croit ses données
        * sauvegardées alors que plus rien ne part : on prévient, une seule fois
        * par session pour ne pas harceler.
@@ -256,7 +256,7 @@ function planifierPush(): void {
  * Observe toutes les tables métier : chaque création/modification/suppression
  * déclenche un push regroupé (30 s après la dernière écriture). À appeler une
  * seule fois au montage de l'app, avec la fonction toast pour le message.
- * Nécessaire quelle que soit la destination (dossier local OU Google Drive —
+ * Nécessaire quelle que soit la destination (dossier local OU Google Drive -
  * ne pas conditionner à autosaveSupportee(), qui ne concerne que le dossier).
  */
 export function initAutosaveSurModifications(
@@ -279,7 +279,7 @@ export function initAutosaveSurModifications(
      * Chaque écriture est notée pour la synchronisation par fichiers. Les hooks
      * s'exécutent dans la transaction de la table modifiée : `noterChangement`
      * se contente d'accumuler en mémoire et écrit juste après, hors transaction.
-     * Les suppressions surtout comptent — elles ne laissent aucune trace qu'un
+     * Les suppressions surtout comptent - elles ne laissent aucune trace qu'un
      * rattrapage pourrait retrouver.
      */
     table.hook('creating', (cle) => {
@@ -295,7 +295,7 @@ export function initAutosaveSurModifications(
       planifierPush();
     });
   }
-  // Reprise automatique : un push (Drive) resté en échec hors-ligne — EDL signé
-  // à la cave, par exemple — repart au retour du réseau.
+  // Reprise automatique : un push (Drive) resté en échec hors-ligne - EDL signé
+  // à la cave, par exemple - repart au retour du réseau.
   window.addEventListener('online', () => planifierPush());
 }

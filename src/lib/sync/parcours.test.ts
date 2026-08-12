@@ -10,7 +10,7 @@ import { journaliser, rattraperChangements, TABLES_SYNCHRONISEES } from './journ
  * jamais en même temps.** L'iPad saisit sur place (état des lieux, photos,
  * signature), l'ordinateur imprime ensuite.
  *
- * Ce n'est pas le scénario du conflit — il n'y en a pas — mais celui du
+ * Ce n'est pas le scénario du conflit - il n'y en a pas - mais celui du
  * **passage de témoin**. Le risque n'est plus « deux versions qui s'écrasent »
  * mais « l'ordinateur imprime avant d'avoir tout reçu ». Ces tests vérifient
  * donc une seule chose, sous toutes les coupures possibles : après convergence,
@@ -255,7 +255,7 @@ describe('allers-retours répétés entre les deux appareils', () => {
     /*
      * L'usage courant : on corrige un bail sur l'ordinateur, on repart avec
      * l'iPad, on ajoute une photo, on revient imprimer. Rien ne doit dériver au
-     * fil des allers-retours — ni doublon, ni fiche perdue, ni file d'attente
+     * fil des allers-retours - ni doublon, ni fiche perdue, ni file d'attente
      * qui ne se vide plus.
      */
     const depot = new DepotMemoire();

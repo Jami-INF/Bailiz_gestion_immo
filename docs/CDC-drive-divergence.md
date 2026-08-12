@@ -1,4 +1,4 @@
-# CDC — Détection de divergence entre appareils (sauvegarde Google Drive)
+# CDC - Détection de divergence entre appareils (sauvegarde Google Drive)
 
 > Lot **A** d'un chantier en deux temps. Objectif : ne plus jamais travailler sur deux versions
 > divergentes sans le savoir. La **fusion** des modifications (lot B, synchronisation par
@@ -16,7 +16,7 @@ scénario réel :
 3. Rien ne le signale. Les deux versions ont divergé, et c'est la moins à jour qui a l'air d'être
    la bonne.
 
-Le travail de lundi n'est pas perdu — la rotation conserve les dix dernières archives — mais
+Le travail de lundi n'est pas perdu - la rotation conserve les dix dernières archives - mais
 personne ne sait qu'il faut aller le rechercher, et une journée de terrain intense sur
 l'ordinateur peut faire sortir l'archive de l'iPad de la fenêtre de rotation.
 
@@ -61,13 +61,13 @@ aujourd'hui aucun moment où il pourrait s'en apercevoir.
 - Un identifiant stable par appareil (`crypto.randomUUID()`) et un nom lisible sont conservés
   dans **`localStorage`**, sous les clés `bailiz.appareil.id` et `bailiz.appareil.nom`.
 - **Impérativement hors de la sauvegarde** : stockés dans `Parametres`, ils seraient exportés
-  dans le ZIP, et un appareil restauré hériterait de l'identité de l'autre — la détection ne
+  dans le ZIP, et un appareil restauré hériterait de l'identité de l'autre - la détection ne
   fonctionnerait plus jamais.
 - Nom par défaut déduit de la plateforme (« iPad », « iPhone », « Mac », « Windows »,
   « Android », sinon « Cet appareil »), **modifiable** dans le panneau Drive : c'est ce nom qui
   s'affichera dans l'avertissement.
 - Perte du `localStorage` : l'appareil se voit attribuer une nouvelle identité et considérera ses
-  propres archives comme étrangères. Conséquence acceptée — un avertissement de trop, jamais un
+  propres archives comme étrangères. Conséquence acceptée - un avertissement de trop, jamais un
   écrasement silencieux.
 
 ### 4.2 Marquage des archives poussées
@@ -95,7 +95,7 @@ Il est mis à jour dans **quatre** cas, et seulement ceux-là :
 2. après une restauration depuis le Drive (§4.6) ;
 3. quand l'utilisateur choisit explicitement « sauvegarder quand même » (§4.5) ;
 4. à la **première** vérification, si l'archive la plus récente ne porte pas de marquage
-   d'appareil — voir la migration ci-dessous.
+   d'appareil - voir la migration ci-dessous.
 
 **Migration des archives existantes.** Les archives poussées avant cette fonctionnalité n'ont pas
 d'`appProperties`. Sans précaution, la première vérification les signalerait comme « venues d'un
@@ -115,7 +115,7 @@ Nouvelle fonction `verifierArchiveDistante(interactif)` dans `lib/gdrive.ts`, qu
 |---|---|
 | `a_jour` | L'archive la plus récente est celle que cet appareil connaît (ou qu'il a poussée) |
 | `aucune` | Le dossier ne contient aucune archive |
-| `divergence` | Une archive plus récente, poussée par un autre appareil, existe — avec sa date, son nom d'appareil et son identifiant Drive |
+| `divergence` | Une archive plus récente, poussée par un autre appareil, existe - avec sa date, son nom d'appareil et son identifiant Drive |
 | `indisponible` | Pas de jeton, hors-ligne, ou Drive inactif : la vérification est simplement reportée, ce n'est pas une erreur |
 
 La fonction ne modifie rien, hors le cas de migration du §4.3.
@@ -131,10 +131,10 @@ Dans `pousserSauvegardeGDrive`, **avant l'upload** et après l'obtention du jeto
 
 Conséquences sur l'agrégation de `pousserSiActive` : `'conflit'` est **prioritaire sur `'ok'`**.
 Le dossier local a pu être sauvegardé avec succès, mais l'utilisateur doit être averti de l'état
-du Drive — c'est le seul état à la fois actionnable et dangereux.
+du Drive - c'est le seul état à la fois actionnable et dangereux.
 
-Notification (`planifierPush`) : avertissement **une seule fois par session** — comme
-`reconnexionSignalee` — sans quoi chaque modification déclencherait le même message toutes les
+Notification (`planifierPush`) : avertissement **une seule fois par session** - comme
+`reconnexionSignalee` - sans quoi chaque modification déclencherait le même message toutes les
 30 secondes.
 
 ### 4.6 Interface
@@ -147,13 +147,13 @@ divergence n'est pas résolue :
 
 Trois actions :
 
-1. **Restaurer cette sauvegarde** — télécharge l'archive (`alt=media`), l'ouvre avec
+1. **Restaurer cette sauvegarde** - télécharge l'archive (`alt=media`), l'ouvre avec
    `lireSauvegarde`, puis `importerSauvegarde(..., 'remplacer')` après confirmation explicite
    rappelant que **les modifications locales absentes de cette archive seront perdues**. Met à
    jour `derniereArchiveVue`.
-2. **Sauvegarder quand même** — marque l'archive distante comme vue et pousse. L'archive de
+2. **Sauvegarder quand même** - marque l'archive distante comme vue et pousse. L'archive de
    l'autre appareil reste dans l'historique de rotation.
-3. **Vérifier le Drive** — relance la vérification (bouton également disponible hors conflit,
+3. **Vérifier le Drive** - relance la vérification (bouton également disponible hors conflit,
    avec affichage de l'état : à jour, aucune archive, ou date de la dernière).
 
 **À l'ouverture de l'application** : vérification silencieuse si une autorisation valide existe.

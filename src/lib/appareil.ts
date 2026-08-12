@@ -4,7 +4,7 @@
  *
  * Volontairement dans `localStorage` et **jamais dans `Parametres`** : les
  * paramètres partent dans le ZIP de sauvegarde, et un appareil restauré
- * hériterait alors de l'identité de l'autre — les deux se croiraient le même.
+ * hériterait alors de l'identité de l'autre - les deux se croiraient le même.
  */
 
 const CLE_ID = 'bailiz.appareil.id';
@@ -13,7 +13,7 @@ const CLE_ID = 'bailiz.appareil.id';
  * Identifiant stable de cet appareil, créé au premier appel. En cas de
  * `localStorage` indisponible ou effacé, un nouvel identifiant est attribué :
  * l'appareil ne se reconnaîtra plus dans ses propres écritures, sans autre
- * conséquence — la convergence s'arbitre sur les horodatages, jamais sur
+ * conséquence - la convergence s'arbitre sur les horodatages, jamais sur
  * l'identité.
  */
 export function identifiantAppareil(): string {

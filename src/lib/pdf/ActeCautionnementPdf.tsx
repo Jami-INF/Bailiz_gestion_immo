@@ -18,7 +18,7 @@ interface Props {
 }
 
 /**
- * Acte de cautionnement solidaire (caution personne physique) — art. 22-1 de la
+ * Acte de cautionnement solidaire (caution personne physique) - art. 22-1 de la
  * loi n°89-462 du 6 juillet 1989. Reprend les éléments connus du bail ; tout ce
  * qui manque devient une zone pointillée à compléter à la main après impression.
  * Ne s'applique pas à la garantie Visale, dont le contrat de cautionnement est
@@ -61,7 +61,7 @@ export function ActeCautionnementPage({
       <View style={s.titreBloc}>
         <Text style={s.titre}>Acte de cautionnement solidaire</Text>
         <Text style={s.sousTitre}>
-          Article 22-1 de la loi n°89-462 du 6 juillet 1989 — engagement de caution d'un bail
+          Article 22-1 de la loi n°89-462 du 6 juillet 1989 - engagement de caution d'un bail
           d'habitation{typeBailLabel ? ` (${typeBailLabel})` : ''}. À compléter à la main et à
           signer après impression.
         </Text>
@@ -167,7 +167,7 @@ export function ActeCautionnementPage({
           </View>
           <View style={[s.blocSignature, { width: '47%' }]}>
             <Text style={[s.petit, s.gras]}>
-              La caution — <Rempl v={nomCaution} brouillon taille={20} />
+              La caution - <Rempl v={nomCaution} brouillon taille={20} />
             </Text>
             <View style={{ height: 70 }} />
             <Text style={s.petit}>Mention manuscrite + signature</Text>

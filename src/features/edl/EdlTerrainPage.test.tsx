@@ -125,7 +125,7 @@ describe('récapitulatif des éléments non renseignés', () => {
 
     // La modale se ferme et l'onglet Cuisine est affiché.
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    // « Retirer <élément> » ne figure que sur la pièce affichée — contrairement
+    // « Retirer <élément> » ne figure que sur la pièce affichée - contrairement
     // aux noms d'éléments, qui se retrouvent aussi dans la liste des catégories.
     expect(await screen.findByRole('button', { name: /Retirer Réfrigérateur/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Retirer Murs/ })).not.toBeInTheDocument();

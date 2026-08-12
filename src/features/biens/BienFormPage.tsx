@@ -206,19 +206,19 @@ export function BienFormPage() {
     setEtape(0);
     setReprise(null);
     await brouillon.oublier();
-    toast('success', id ? 'Saisie en cours écartée — fiche enregistrée rétablie.' : 'Brouillon effacé.');
+    toast('success', id ? 'Saisie en cours écartée - fiche enregistrée rétablie.' : 'Brouillon effacé.');
   };
 
   return (
     <div>
       <PageHeader
-        titre={id ? `Modifier — ${bien.nom}` : 'Nouveau bien'}
+        titre={id ? `Modifier - ${bien.nom}` : 'Nouveau bien'}
         sousTitre="Saisie enregistrée en continu sur cet appareil : vous pouvez fermer et revenir."
       />
       {reprise && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
           <span>
-            <span className="font-medium">Saisie reprise</span> — modifications non enregistrées du{' '}
+            <span className="font-medium">Saisie reprise</span> - modifications non enregistrées du{' '}
             {format(new Date(reprise), "dd/MM/yyyy 'à' HH:mm")}.
           </span>
           <Button variant="secondary" size="sm" onClick={() => void abandonnerBrouillon()}>
@@ -236,7 +236,7 @@ export function BienFormPage() {
               label="Nom du bien"
               required
               error={erreurs.nom}
-              hint="Petit nom interne pour vous y retrouver — il n'apparaît pas sur les documents officiels."
+              hint="Petit nom interne pour vous y retrouver - il n'apparaît pas sur les documents officiels."
             >
               <Input
                 value={bien.nom}
@@ -341,7 +341,7 @@ export function BienFormPage() {
                     maj({ periodeConstruction: (e.target.value || undefined) as PeriodeConstruction | undefined })
                   }
                 >
-                  <option value="">— Non renseignée —</option>
+                  <option value="">- Non renseignée -</option>
                   {Object.entries(PERIODE_CONSTRUCTION_LABELS).map(([v, l]) => (
                     <option key={v} value={v}>
                       {l}
@@ -452,7 +452,7 @@ export function BienFormPage() {
                   value={bien.classeDPE ?? ''}
                   onChange={(e) => maj({ classeDPE: (e.target.value || undefined) as ClasseDPE | undefined })}
                 >
-                  <option value="">— Non renseignée —</option>
+                  <option value="">- Non renseignée -</option>
                   {(['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const).map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -613,7 +613,7 @@ export function BienFormPage() {
               <p className="pl-8 text-xs text-accent-500">
                 Plan de prévention des risques, sismicité 2 à 5, potentiel radon 3, secteur
                 d'information sur les sols, recul du trait de côte : la quasi-totalité des communes
-                est concernée par au moins un de ces motifs. À vérifier sur georisques.gouv.fr —
+                est concernée par au moins un de ces motifs. À vérifier sur georisques.gouv.fr -
                 l'ERP doit dater de moins de 6 mois à la signature.
               </p>
               <Checkbox
@@ -650,7 +650,7 @@ export function BienFormPage() {
             <p className="text-sm text-accent-600">
               Ces conditions sont portées par le logement, pas par le bail : elles pré-remplissent
               le formulaire de bail, alimentent la fiche de visite, et sont mises à jour à
-              l'enregistrement d'un bail. Tout est facultatif — un champ vide devient une zone à
+              l'enregistrement d'un bail. Tout est facultatif - un champ vide devient une zone à
               compléter à la main sur la fiche de visite.
             </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -716,7 +716,7 @@ export function BienFormPage() {
               Total charges comprises :{' '}
               <span className="font-medium text-accent-800">
                 {cond.loyerHC === undefined
-                  ? '—'
+                  ? '-'
                   : formatEuros(cond.loyerHC + (cond.charges?.montant ?? 0))}
               </span>
               {cond.loyerHC && cond.depotGarantie && cond.depotGarantie > 2 * cond.loyerHC ? (

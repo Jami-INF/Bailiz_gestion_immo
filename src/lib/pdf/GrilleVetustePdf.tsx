@@ -21,9 +21,9 @@ export function GrilleVetustePdf({ reference, grille, bailReference }: Props) {
   const exempleRetenue = exemple ? retenueApresVetuste(500, exemple, 4) : 500;
 
   return (
-    <Document title={`${reference} — Grille de vétusté`} language="fr">
+    <Document title={`${reference} - Grille de vétusté`} language="fr">
       <Page size="A4" style={s.page}>
-        <EntetePdf reference={reference} docTitre="Grille de vétusté — annexe au bail" />
+        <EntetePdf reference={reference} docTitre="Grille de vétusté - annexe au bail" />
         <Text style={s.titre}>Grille de vétusté</Text>
         <Text style={s.sousTitre}>
           {bailReference ? `Annexe au contrat de location ${bailReference}. ` : ''}
@@ -65,7 +65,7 @@ export function GrilleVetustePdf({ reference, grille, bailReference }: Props) {
         </Text>
         {exemple && (
           <Text style={s.p}>
-            Exemple — poste « {exemple.poste} » ({exemple.dureeVieAnnees} ans de durée de vie,
+            Exemple - poste « {exemple.poste} » ({exemple.dureeVieAnnees} ans de durée de vie,
             franchise {exemple.franchiseAnnees} an{exemple.franchiseAnnees > 1 ? 's' : ''},
             abattement {exemple.abattementAnnuelPct} %/an) : pour un élément âgé de 4 ans et un
             devis de remise en état de {formatEuros(500)}, le coefficient est de{' '}

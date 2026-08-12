@@ -111,7 +111,7 @@ describe('journal', () => {
   it('retire aussi les entrées absorbées par le compactage', async () => {
     /*
      * Une visite d'EDL enregistre dix fois la même fiche. Le compactage n'en
-     * envoie qu'une — mais si les neuf autres restent, le journal ne se vide
+     * envoie qu'une - mais si les neuf autres restent, le journal ne se vide
      * jamais : le compteur « en attente d'envoi » ment, et la fiche repart à
      * chaque cycle jusqu'à épuisement des entrées.
      */
@@ -196,7 +196,7 @@ describe('journalisation depuis un hook Dexie', () => {
   /**
    * Le chemin réellement emprunté dans l'application : un hook s'exécute
    * **dans** la transaction de la table modifiée. Écrire dans `changements`
-   * depuis cette zone échoue silencieusement — d'où ce test, qui reproduit le
+   * depuis cette zone échoue silencieusement - d'où ce test, qui reproduit le
    * branchement d'`initAutosaveSurModifications`.
    */
   const brancher = () => {

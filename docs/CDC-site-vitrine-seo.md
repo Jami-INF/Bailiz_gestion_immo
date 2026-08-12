@@ -1,4 +1,4 @@
-# CDC — Mise en ligne sur bailiz.fr : site vitrine, landing page et référencement
+# CDC - Mise en ligne sur bailiz.fr : site vitrine, landing page et référencement
 
 > Complète `cdc.md` (produit), `README.md` et `docs/DOCUMENTATION_TECHNIQUE.md`.
 > Périmètre : **rendre Bailiz trouvable et compréhensible avant utilisation**. Nom de domaine
@@ -11,14 +11,14 @@
 
 ## 1. Besoin
 
-Bailiz existe, fonctionne et couvre un besoin réel — mais il est **introuvable**. Aujourd'hui :
+Bailiz existe, fonctionne et couvre un besoin réel - mais il est **introuvable**. Aujourd'hui :
 
 1. **L'adresse est illisible et non mémorisable** : `jami-inf.github.io/Bailiz_gestion_immo/`.
    Impossible à dicter au téléphone, impossible à mettre sur une carte, et le nom du dépôt
    (« gestion_immo ») contredit le positionnement.
 2. **Il n'y a rien à indexer.** L'application est une SPA en rendu client : le HTML servi est une
    coquille (`<div id="root">`). Un moteur qui n'exécute pas le JavaScript ne voit rien, et celui
-   qui l'exécute ne trouve qu'un tableau de bord vide — aucun texte décrivant le produit.
+   qui l'exécute ne trouve qu'un tableau de bord vide - aucun texte décrivant le produit.
    Le routage est en `HashRouter` : toutes les URL internes sont des fragments (`#/baux`), qui ne
    constituent **pas** des pages distinctes pour un moteur de recherche.
 3. **Il n'y a rien pour convaincre.** Un visiteur qui arrive tombe directement dans l'outil, sans
@@ -29,7 +29,7 @@ Bailiz existe, fonctionne et couvre un besoin réel — mais il est **introuvabl
 4. **Aucune mesure.** Aucune idée du nombre de visiteurs, des pages d'entrée, ni du taux de
    passage vers l'outil. On ne peut pas améliorer ce qu'on ne mesure pas.
 
-L'objectif de ce lot : **bailiz.fr sert une page qui vend, et Google la trouve** — sans renier la
+L'objectif de ce lot : **bailiz.fr sert une page qui vend, et Google la trouve** - sans renier la
 promesse « pas de compte, pas de traceur, vos données restent chez vous ».
 
 ---
@@ -42,15 +42,15 @@ promesse « pas de compte, pas de traceur, vos données restent chez vous ».
 | Déploiement automatisé | ✅ `.github/workflows/deploy.yml` : lint + couverture + build + Pages |
 | PWA installable, hors-ligne | ✅ `vite-plugin-pwa`, précache complet, `registerType: 'prompt'` |
 | Charte visuelle | ✅ Design system Tailwind interne (`accent-*`), fonte Inter auto-hébergée |
-| Icônes | ⚠️ `icon.svg` + `icon-maskable.svg` uniquement — pas de PNG, pas d'`apple-touch-icon`, pas d'image de partage (`og:image`) |
+| Icônes | ⚠️ `icon.svg` + `icon-maskable.svg` uniquement - pas de PNG, pas d'`apple-touch-icon`, pas d'image de partage (`og:image`) |
 | Contenu légal | ⚠️ `MentionsLegalesPage` est **dans** la SPA : juste, complet, mais non indexable et invisible avant d'entrer dans l'outil |
-| Argumentaire produit | ⚠️ Il existe — mais dans le `README.md`, écrit pour un développeur, pas pour un bailleur |
-| Base Vite | ⚠️ `base: './'` (relatif, imposé par le chemin `/<repo>/` de Pages) — à revoir avec un domaine propre |
+| Argumentaire produit | ⚠️ Il existe - mais dans le `README.md`, écrit pour un développeur, pas pour un bailleur |
+| Base Vite | ⚠️ `base: './'` (relatif, imposé par le chemin `/<repo>/` de Pages) - à revoir avec un domaine propre |
 | Routage | ⚠️ `HashRouter` : sans conséquence pour l'app, rédhibitoire pour toute page publique |
 | Pages publiques, sitemap, robots, métadonnées | ❌ Rien |
-| Mesure d'audience | ❌ Rien (revendiqué comme tel dans les mentions légales — cf. §11) |
+| Mesure d'audience | ❌ Rien (revendiqué comme tel dans les mentions légales - cf. §11) |
 | Nom de domaine | ✅ `bailiz.fr` réservé chez OVH |
-| Hébergement | ✅ Mutualisé OVH inclus avec le domaine — ⚠️ quota et options à vérifier (§3.4, lot L0) |
+| Hébergement | ✅ Mutualisé OVH inclus avec le domaine - ⚠️ quota et options à vérifier (§3.4, lot L0) |
 | Déploiement vers OVH | ❌ Le workflow pousse aujourd'hui vers GitHub Pages ; il faut un envoi SFTP (§9.4) |
 
 **Conclusion** : le produit est prêt, l'emballage n'existe pas. Le travail porte sur une **surface
@@ -88,12 +88,12 @@ même CI. Astro produit du HTML statique sans JavaScript par défaut, ce qui est
 besoin, et c'est la stack déjà pratiquée par ailleurs.
 
 **Assemblage au build** : `site/dist/` → racine de l'artefact ; `dist/` (app Vite) → `/app/`.
-Un seul artefact, un seul déploiement, un seul domaine — donc pas de cookie tiers, pas de CORS,
+Un seul artefact, un seul déploiement, un seul domaine - donc pas de cookie tiers, pas de CORS,
 pas de sous-domaine à faire vivre.
 
-*Alternatives écartées* : pré-rendu de la SPA (`vite-plugin-ssg`) — mélange le marketing et le
+*Alternatives écartées* : pré-rendu de la SPA (`vite-plugin-ssg`) - mélange le marketing et le
 métier dans le même bundle React, et alourdit une landing qui doit être quasi vide de JS ;
-sous-domaine `app.bailiz.fr` — deux origines, deux certificats, un `localStorage`/IndexedDB
+sous-domaine `app.bailiz.fr` - deux origines, deux certificats, un `localStorage`/IndexedDB
 séparé du domaine principal pour rien.
 
 ### 3.4 Hébergement : OVH mutualisé (compris avec le domaine)
@@ -102,7 +102,7 @@ Le domaine `bailiz.fr` est réservé chez OVH, hébergement mutualisé inclus. C
 retenue.
 
 GitHub Pages était écarté pour **une seule raison** : ni redirection 301 ni en-tête HTTP
-personnalisé. Or il en faut — redirection `www` → apex, `Cache-Control` différencié entre la
+personnalisé. Or il en faut - redirection `www` → apex, `Cache-Control` différencié entre la
 vitrine (courte) et les assets hashés de l'app (immutable), en-têtes de sécurité (`CSP`,
 `Referrer-Policy`, `Permissions-Policy`), compression. OVH mutualisé est de l'Apache : **`.htaccess`
 couvre tout cela**. Le manque disparaît, et avec lui la raison de passer par un tiers.
@@ -112,12 +112,12 @@ Deux gains propres à OVH :
 - **Domaine, DNS et hébergement au même endroit.** Pas de délégation DNS, pas de compte
   supplémentaire à faire vivre.
 - **Hébergement en France.** À énoncer honnêtement : sur le fond cela ne change rien, puisque
-  l'application n'envoie aucune donnée au serveur — la politique de confidentialité est déjà exacte
+  l'application n'envoie aucune donnée au serveur - la politique de confidentialité est déjà exacte
   aujourd'hui. Mais elle mentionne actuellement *« GitHub, Inc., San Francisco, États-Unis »*.
   Sur la page qui vend le respect des données, OVH / Gravelines est un argument de **confiance et
   de conversion**, pas de conformité. Il vaut d'être pris.
 
-**Prérequis à vérifier au Manager OVH** — l'hébergement offert avec un domaine est parfois une
+**Prérequis à vérifier au Manager OVH** - l'hébergement offert avec un domaine est parfois une
 offre symbolique :
 
 | Besoin | Valeur |
@@ -132,7 +132,7 @@ d'écran : monter d'offre, ou basculer sur le repli.
 
 **Ce que coûte OVH** : pas de déploiement piloté par Git, pas de déploiement atomique, pas de
 rollback en un clic. Le workflow doit pousser les fichiers en **SFTP** (§9.4). Sur 20 fichiers et
-2,5 Mo le risque d'état intermédiaire visible est marginal, mais il n'est pas nul — d'où l'envoi
+2,5 Mo le risque d'état intermédiaire visible est marginal, mais il n'est pas nul - d'où l'envoi
 « nouveau dossier puis bascule » spécifié au §9.4.
 
 *Repli* : Cloudflare Pages (statique, gratuit, déploiement depuis GitHub, `_redirects` / `_headers`,
@@ -147,19 +147,19 @@ ici** : l'application est en `noindex`, elle n'apporte ni contenu ni lien à con
 options sont équivalentes au regard du référencement. La décision se prend donc ailleurs.
 
 **Le critère décisif : l'origine est le coffre-fort.** IndexedDB, `localStorage` et le service
-worker sont cloisonnés par origine, et c'est là — et nulle part ailleurs — que vivent les baux, les
+worker sont cloisonnés par origine, et c'est là - et nulle part ailleurs - que vivent les baux, les
 états des lieux et les photos des utilisateurs. `bailiz.fr` et `app.bailiz.fr` sont deux origines
 distinctes.
 
 Une migration de données est déjà imposée aux utilisateurs actuels (GitHub Pages → bailiz.fr). La
 question est de ne jamais la refaire :
 
-- **`bailiz.fr/app/`** — une seule origine pour tout le domaine. Déplacer l'app à la racine, ou
+- **`bailiz.fr/app/`** - une seule origine pour tout le domaine. Déplacer l'app à la racine, ou
   ajouter d'autres outils sur d'autres chemins, ne coûte rien : les données suivent.
-- **`app.bailiz.fr`** — verrouille une seconde origine définitivement. Toute relocalisation
+- **`app.bailiz.fr`** - verrouille une seconde origine définitivement. Toute relocalisation
   ultérieure vers `bailiz.fr/` provoquerait une deuxième perte de données.
 
-Le sous-domaine n'avait qu'un avantage sérieux — l'isolation du service worker — et **il n'en est
+Le sous-domaine n'avait qu'un avantage sérieux - l'isolation du service worker - et **il n'en est
 pas un** : la portée d'un service worker est par défaut le répertoire de son script. Construit avec
 `base: '/app/'`, il est émis en `/app/sw.js` et sa portée vaut `/app/` sans configuration. Son
 manifeste de précache, lui, est généré à partir du seul `dist/` de l'application : les fichiers de
@@ -168,7 +168,7 @@ conséquence.
 
 *Exception* : si la vitrine devait un jour être hébergée ailleurs que l'application, le
 sous-domaine s'imposerait dès maintenant. Sur OVH, les deux ne sont que deux dossiers du même
-hébergement — le scénario n'a pas de raison de se présenter.
+hébergement - le scénario n'a pas de raison de se présenter.
 
 ### 3.6 Positionnement retenu
 
@@ -189,7 +189,7 @@ outils ». Celle-ci reste la direction produit, mais elle n'est pas le discours 
   vitrine pointe vers l'écran correspondant, formulaire ouvert. Le tableau de bord et les entités
   deviennent la coulisse de ceux qui restent, pas la porte d'entrée.
 
-Conséquence sur l'arborescence (§4) : le lancement porte **deux** pages outils, pas quatre —
+Conséquence sur l'arborescence (§4) : le lancement porte **deux** pages outils, pas quatre -
 `/bail-meuble/` et `/etat-des-lieux/`. `/fiche-de-visite/` et `/depot-de-garantie/` suivront ;
 `/outils/` n'a pas lieu d'être tant qu'il n'y a que deux entrées.
 
@@ -206,17 +206,17 @@ essaie de construire. Si un modèle économique arrive, il fera l'objet de son p
 
 ## 4. Arborescence des URL
 
-**Au lancement** (périmètre §3.6 — deux outils, pas un catalogue) :
+**Au lancement** (périmètre §3.6 - deux outils, pas un catalogue) :
 
 ```
-/                                   Landing — bail + état des lieux, preuve, réassurance
+/                                   Landing - bail + état des lieux, preuve, réassurance
 /bail-meuble/                       Outil : bail meublé LMNP
 /etat-des-lieux/                    Outil : état des lieux entrée/sortie avec photos
 /guides/                            Index éditorial
 /guides/<slug>/                     Article (cf. §7)
 /pourquoi-bailiz/                   Hors-ligne, sans compte, données locales, code ouvert
 /mentions-legales/                  Statique, indexable
-/confidentialite/                   Statique, indexable — page de preuve, pas de formalité
+/confidentialite/                   Statique, indexable - page de preuve, pas de formalité
 /app/                               Application (noindex)
 ```
 
@@ -236,9 +236,9 @@ meublé » ou « état des lieux à imprimer ». Il n'a pas de problème de « g
 a un document à produire cette semaine. La page doit lui prouver en un écran qu'il repart avec son
 document, gratuitement, sans s'inscrire.
 
-**Ordre imposé des blocs** — l'ordre est l'argumentaire :
+**Ordre imposé des blocs** - l'ordre est l'argumentaire :
 
-1. **Hero.** Un `<h1>` explicite (pas un slogan) : *Bail meublé et état des lieux — gratuits, sans
+1. **Hero.** Un `<h1>` explicite (pas un slogan) : *Bail meublé et état des lieux - gratuits, sans
    compte.* Sous-titre : ce que ça produit (un PDF conforme, prêt à imprimer).
    **Un CTA principal** : « Rédiger un bail » → `/app/#/baux/nouveau`. Un CTA secondaire :
    « Faire un état des lieux ». Rien à remplir, rien à choisir avant.
@@ -250,7 +250,7 @@ document, gratuitement, sans s'inscrire.
    Deux cartes, pas une grille à trous : on ne suggère pas un catalogue qui n'existe pas (§3.6).
 5. **« Comment ça marche »** en trois étapes : choisir l'outil → remplir → générer le PDF.
    Trois phrases, pas de schéma.
-6. **« Où vont mes données ? »** — le bloc le plus important de la page. Explication concrète et
+6. **« Où vont mes données ? »** - le bloc le plus important de la page. Explication concrète et
    vérifiable (IndexedDB, aucun serveur, sauvegarde vers *votre* Drive si vous l'activez), lien vers
    `/confidentialite/` et vers le dépôt GitHub. **La vérifiabilité est l'argument**, pas le
    ton rassurant.
@@ -262,7 +262,7 @@ document, gratuitement, sans s'inscrire.
    nue / à la colocation ?
 9. **CTA de clôture** + pied de page (outils, guides, légal, GitHub, LinkedIn).
 
-**Interdits** : bandeau cookies (il n'y a pas de cookie — cf. §11), pop-up de newsletter,
+**Interdits** : bandeau cookies (il n'y a pas de cookie - cf. §11), pop-up de newsletter,
 compteur de « +10 000 utilisateurs » non vérifiable, témoignages inventés, chiffres inventés.
 Un produit qui vend l'honnêteté sur les données ne triche pas sur sa page d'accueil.
 
@@ -275,12 +275,12 @@ recherche : elles répondent à une intention précise, là où `/` répond à u
 
 Gabarit :
 
-1. `<h1>` = l'intention (ex. *Modèle de bail meublé à remplir et imprimer — gratuit, sans inscription*)
+1. `<h1>` = l'intention (ex. *Modèle de bail meublé à remplir et imprimer - gratuit, sans inscription*)
 2. Deux phrases, puis **le CTA, au-dessus de la ligne de flottaison**
-3. Ce que le document contient (liste des mentions produites — c'est du contenu unique, et c'est ce
+3. Ce que le document contient (liste des mentions produites - c'est du contenu unique, et c'est ce
    qui prouve le sérieux)
 4. Ce que l'outil fait pour vous (calculs, contrôles, avertissements légaux)
-5. Ce qu'il ne fait pas (ex. pas de signature électronique du bail — cf. `README`). **Le dire
+5. Ce qu'il ne fait pas (ex. pas de signature électronique du bail - cf. `README`). **Le dire
    explicitement** : cela évite une déception, et c'est un signal de sérieux.
 6. Cadre légal en clair, avec les références
 7. FAQ spécifique (3–5 questions, `FAQPage`)
@@ -295,7 +295,7 @@ pouvoir produire son document sans jamais passer par `/`.
 
 Un domaine neuf ne prendra pas les requêtes de tête (« bail meublé », « état des lieux ») : elles
 sont tenues par service-public.fr, PAP, SeLoger et les portails juridiques, et aucun effort
-technique ne compense l'autorité. La stratégie est donc la **traîne longue à intention d'outil** —
+technique ne compense l'autorité. La stratégie est donc la **traîne longue à intention d'outil** -
 des requêtes précises, moins disputées, où l'utilisateur cherche à *faire* quelque chose, pas à lire.
 
 Dix articles au lancement, à titre indicatif :
@@ -317,7 +317,7 @@ Une page qui ne mène à aucun outil n'a pas sa place ici.
 
 ---
 
-## 8. SEO technique — exigences
+## 8. SEO technique - exigences
 
 | Exigence | Détail |
 |---|---|
@@ -326,7 +326,7 @@ Une page qui ne mène à aucun outil n'a pas sa place ici.
 | `<meta description>` | Unique, 140–160 caractères, rédigée pour le clic |
 | Titres | Un seul `<h1>`, hiérarchie `h2`/`h3` sans saut |
 | Canonique | `<link rel="canonical">` absolu sur chaque page |
-| `robots.txt` | `Allow: /` et lien vers le sitemap. **Surtout pas de `Disallow: /app/`** — voir ci-dessous |
+| `robots.txt` | `Allow: /` et lien vers le sitemap. **Surtout pas de `Disallow: /app/`** - voir ci-dessous |
 | Sitemap | `sitemap-index.xml` généré au build (`@astrojs/sitemap`), `/app/` et la 404 exclus |
 | `noindex` | `<meta name="robots" content="noindex,follow">` dans `index.html` de l'app, et sur la 404 |
 | Données structurées | `SoftwareApplication` (avec `offers` à 0 EUR) sur `/`, `FAQPage`, `BreadcrumbList`, `Article` sur les guides. Validées au Rich Results Test |
@@ -339,13 +339,13 @@ Une page qui ne mène à aucun outil n'a pas sa place ici.
 | Favicons | PNG 192/512, `apple-touch-icon` 180, `favicon.ico`, `site.webmanifest` de la vitrine distinct de celui de l'app |
 | Search Console | Domaine vérifié, sitemap soumis, couverture surveillée après mise en ligne |
 
-### Pourquoi l'application est en `noindex` — et pourquoi elle reste explorable
+### Pourquoi l'application est en `noindex` - et pourquoi elle reste explorable
 
 La question mérite d'être posée : pourquoi refuser une page à l'index ?
 
 Parce qu'il n'y a **qu'une seule URL indexable** de toute façon. Le routage est en `HashRouter` :
 `/app/#/baux` et `/app/#/edl` ne sont pas des pages distinctes pour un moteur, seulement des
-fragments d'une même URL. Google ne verrait donc que `bailiz.fr/app/` — et, après rendu du
+fragments d'une même URL. Google ne verrait donc que `bailiz.fr/app/` - et, après rendu du
 JavaScript, un **tableau de bord vide**, sans un mot décrivant le produit.
 
 Cette page n'a rien à gagner et deux choses à perdre :
@@ -353,7 +353,7 @@ Cette page n'a rien à gagner et deux choses à perdre :
 - elle **concurrencerait la vitrine** sur les requêtes de marque, sans jamais pouvoir mieux y
   répondre ;
 - un visiteur qui y atterrirait depuis une recherche tomberait sur un écran vide au lieu d'une
-  explication — mauvaise première visite, et signal de qualité dégradé.
+  explication - mauvaise première visite, et signal de qualité dégradé.
 
 **Erreur à ne pas commettre** : coupler le `noindex` à un `Disallow: /app/` dans `robots.txt`. Les
 deux se neutralisent. Interdire l'exploration empêche le moteur de **lire** la balise `noindex` ;
@@ -366,7 +366,7 @@ plutôt qu'un tableau de bord.
 **Budgets de performance** (mobile, 4G simulée) : LCP < 2,0 s · CLS < 0,05 · INP < 200 ms ·
 **< 30 ko de JavaScript** sur la landing · fonte auto-hébergée, `font-display: swap`, un seul poids
 variable. Aucune ressource tierce (pas de Google Fonts, pas de CDN externe) : c'est bon pour la
-vitesse **et** cohérent avec la promesse — aucune requête vers un tiers, donc aucune fuite d'IP.
+vitesse **et** cohérent avec la promesse - aucune requête vers un tiers, donc aucune fuite d'IP.
 
 ---
 
@@ -391,15 +391,15 @@ www/app/                ← application (build Vite, base '/app/')
 
 Pas de multisite, pas de sous-domaine à déclarer : deux dossiers, une seule origine (§3.5).
 
-### 9.3 `.htaccess` — exigences
+### 9.3 `.htaccess` - exigences
 
 | Règle | Cible |
 |---|---|
 | 301 `www` → apex, forçage HTTPS | Tout le site |
-| `Cache-Control: no-cache, must-revalidate` | HTML de la vitrine — une correction de contenu doit être visible immédiatement |
+| `Cache-Control: no-cache, must-revalidate` | HTML de la vitrine - une correction de contenu doit être visible immédiatement |
 | `Cache-Control: public, max-age=31536000, immutable` | `/app/assets/*` et assets hashés de la vitrine |
-| `Cache-Control: no-cache` | `/app/sw.js`, `/app/index.html`, `/app/manifest.webmanifest` — sinon une mise à jour de l'app peut rester invisible |
-| `Content-Security-Policy` | Restrictive : `default-src 'self'`. Deux exceptions : Google Identity Services (`accounts.google.com/gsi/`) pour la sauvegarde Drive — `script-src`, `style-src`, `connect-src`, `frame-src` ; et `'wasm-unsafe-eval'` dans `script-src`, requis par yoga-layout (moteur de mise en page de `@react-pdf/renderer`) sans quoi la génération des PDF échoue à l'étape E4. À valider contre le besoin réel de l'app (blobs PDF, `data:` images, WASM) avant mise en production |
+| `Cache-Control: no-cache` | `/app/sw.js`, `/app/index.html`, `/app/manifest.webmanifest` - sinon une mise à jour de l'app peut rester invisible |
+| `Content-Security-Policy` | Restrictive : `default-src 'self'`. Deux exceptions : Google Identity Services (`accounts.google.com/gsi/`) pour la sauvegarde Drive - `script-src`, `style-src`, `connect-src`, `frame-src` ; et `'wasm-unsafe-eval'` dans `script-src`, requis par yoga-layout (moteur de mise en page de `@react-pdf/renderer`) sans quoi la génération des PDF échoue à l'étape E4. À valider contre le besoin réel de l'app (blobs PDF, `data:` images, WASM) avant mise en production |
 | `Referrer-Policy: strict-origin-when-cross-origin`, `X-Content-Type-Options: nosniff`, `Permissions-Policy` | Tout le site |
 | `mod_deflate` / Brotli | HTML, CSS, JS, SVG, JSON |
 | `ErrorDocument 404` | Page 404 de la vitrine |
@@ -416,7 +416,7 @@ couverture, build) et remplace ses deux dernières étapes :
 - pour éviter tout état intermédiaire visible : envoi dans `www/_deploy/`, puis bascule par renommage
   en fin de transfert. Sur 20 fichiers et 2,5 Mo la fenêtre est courte, mais le renommage la ferme.
 
-**Ne jamais mettre les identifiants SFTP ailleurs que dans les secrets du dépôt** — le dépôt est
+**Ne jamais mettre les identifiants SFTP ailleurs que dans les secrets du dépôt** - le dépôt est
 public.
 
 ### 9.5 Migration des utilisateurs existants
@@ -426,13 +426,13 @@ public.
 
 **Point de vigilance** : les utilisateurs ayant installé la PWA depuis l'URL GitHub Pages **ne
 suivront pas la migration**. Leur installation pointe sur l'ancienne origine, et leurs données
-IndexedDB y restent — elles ne sont ni perdues ni transférables automatiquement (cf. §3.5 :
+IndexedDB y restent - elles ne sont ni perdues ni transférables automatiquement (cf. §3.5 :
 l'origine est le coffre-fort).
 
 À prévoir :
 
 1. Conserver le dépôt GitHub Pages actif, avec une page de renvoi : « Bailiz a déménagé sur
-   bailiz.fr — **exportez votre sauvegarde ici, puis réimportez-la sur le nouveau site** », lien
+   bailiz.fr - **exportez votre sauvegarde ici, puis réimportez-la sur le nouveau site** », lien
    direct vers l'écran d'export.
 2. Le dispositif d'export/import existant (`lib/backup.ts`) couvre le besoin techniquement ; il
    n'y a qu'à l'expliquer.
@@ -445,7 +445,7 @@ l'origine est le coffre-fort).
 Le choix du sous-répertoire (§3.5) désamorce l'essentiel du risque, mais il reste deux réglages à
 poser.
 
-**Ce qui est acquis par construction** — et qu'il ne faut pas sur-traiter :
+**Ce qui est acquis par construction** - et qu'il ne faut pas sur-traiter :
 
 - la portée d'un service worker vaut par défaut le répertoire de son script. Construit avec
   `base: '/app/'`, il est émis en `/app/sw.js` : **sa portée est `/app/`, sans configuration**, et
@@ -465,16 +465,16 @@ poser.
 
 ---
 
-## 11. Mesure d'audience — et la contradiction à lever
+## 11. Mesure d'audience - et la contradiction à lever
 
 Les mentions légales actuelles affirment : *« Aucun compte, aucun cookie, aucun traceur, aucune
 mesure d'audience. »* Ajouter un outil de mesure sans revoir cette phrase serait un mensonge
 littéral sur la page qui sert précisément à prouver l'honnêteté. Deux options, une seule à retenir :
 
-**Retenue — analyse des logs serveur OVH, sans aucun script client.** L'hébergement mutualisé
+**Retenue - analyse des logs serveur OVH, sans aucun script client.** L'hébergement mutualisé
 fournit les journaux d'accès et un outil de statistiques inclus. Conséquences :
 
-- **zéro JavaScript de mesure, zéro cookie, zéro identifiant, zéro requête tierce** — sur la
+- **zéro JavaScript de mesure, zéro cookie, zéro identifiant, zéro requête tierce** - sur la
   vitrine comme dans l'application. C'est la seule option qui ne dégrade ni le budget de
   performance (§8) ni la promesse ;
 - **aucun bandeau de consentement** ;
@@ -482,7 +482,7 @@ fournit les journaux d'accès et un outil de statistiques inclus. Conséquences 
   HTTP, donc une ligne de log. Pas besoin d'événement JavaScript pour la suivre.
 
 Limites assumées : bruit des robots (à filtrer par *user-agent*), pas de distinction fine des
-sessions, pas de suivi d'interaction intra-page. Suffisant pour la question posée — d'où viennent
+sessions, pas de suivi d'interaction intra-page. Suffisant pour la question posée - d'où viennent
 les visiteurs, quelles pages ils lisent, combien entrent dans l'outil.
 
 *Si les logs se révèlent insuffisants* : **GoatCounter** (hébergé en UE, sans cookie, ~3 ko), sur la
@@ -490,11 +490,11 @@ vitrine uniquement. **Jamais sur `/app/`** : l'application reste strictement mue
 de la promesse.
 
 > À noter : **Plausible auto-hébergé n'est pas déployable sur un mutualisé OVH** (Docker et base
-> PostgreSQL requis). L'option supposerait un VPS — hors périmètre.
+> PostgreSQL requis). L'option supposerait un VPS - hors périmètre.
 
-*Écarté* : Google Analytics — cookies, transferts hors UE, bandeau de consentement obligatoire.
+*Écarté* : Google Analytics - cookies, transferts hors UE, bandeau de consentement obligatoire.
 Contradiction frontale avec le positionnement, pour un gain nul à ce volume.
-*Écarté* : aucune mesure du tout — on ne saurait pas si le lot a fonctionné.
+*Écarté* : aucune mesure du tout - on ne saurait pas si le lot a fonctionné.
 
 **Correction rédactionnelle obligatoire.** La phrase des mentions légales devient : *« Bailiz
 n'utilise ni cookie, ni traceur, ni mesure d'audience par script. La fréquentation du site est
@@ -507,9 +507,9 @@ estimée à partir des journaux de connexion de l'hébergeur, conservés pour un
 
 ## 12. Conformité légale du site public
 
-- `/mentions-legales/` **statique** : éditeur (nom, statut, contact **e-mail** — une adresse
+- `/mentions-legales/` **statique** : éditeur (nom, statut, contact **e-mail** - une adresse
   postale personnelle n'est pas requise pour un site non professionnel, mais un moyen de contact
-  l'est), hébergeur (**OVH SAS, 2 rue Kellermann, 59100 Roubaix, France** — remplace la mention
+  l'est), hébergeur (**OVH SAS, 2 rue Kellermann, 59100 Roubaix, France** - remplace la mention
   GitHub, Inc. actuelle), directeur de publication.
 - `/confidentialite/` **statique** : reprend le contenu de `MentionsLegalesPage`, corrigé du point
   §11, et complété du rappel RGPD au bailleur (il est responsable de traitement pour les données de
@@ -527,13 +527,13 @@ estimée à partir des journaux de connexion de l'hébergeur, conservés pour un
 
 ## 13. Identité visuelle
 
-### 13.1 La charte — « l'encre et le papier »
+### 13.1 La charte - « l'encre et le papier »
 
 Refondue le 11 août 2026. Elle vaut pour les deux surfaces : la vitrine et l'application doivent
 être **manifestement le même produit**, sinon le clic vers `/app/` se lit comme une sortie de site.
 
 **Source unique** : `tailwind.config.js`. Le site vitrine
-(`site/src/styles/global.css`) en reprend les valeurs en variables CSS — deux fichiers, recopiés à
+(`site/src/styles/global.css`) en reprend les valeurs en variables CSS - deux fichiers, recopiés à
 la main, parce que les faire dépendre l'un de l'autre imposerait une étape de build commune entre
 deux projets qui n'en partagent aucune.
 
@@ -552,14 +552,14 @@ contrasté, beaucoup de blanc, une seule couleur d'action employée avec parcimo
 **Contrastes mesurés avant d'être retenus.** Toutes les paires de texte réellement employées
 atteignent AA, la plupart AAA. Deux seuils sont désormais tenus qui ne l'étaient pas :
 
-- `accent-500` (texte discret, libellés de remplacement) : **4,65:1** — l'ancien slate-500 était
+- `accent-500` (texte discret, libellés de remplacement) : **4,65:1** - l'ancien slate-500 était
   sous le seuil ;
 - `accent-400` (bordures de champs) : **3,05:1**, ce qu'exige WCAG 1.4.11 pour les limites de
   composants d'interface. L'ancien slate-300 plafonnait à 1,7:1.
 
 **Contrainte PWA respectée.** Aucun asset ajouté : la charte ne tient qu'à des valeurs de couleur
 et à des règles CSS. Le précache reste à 2,5 Mo, et l'application ne charge toujours **aucune
-ressource tierce** — condition de son fonctionnement hors ligne autant que de sa promesse de
+ressource tierce** - condition de son fonctionnement hors ligne autant que de sa promesse de
 confidentialité.
 
 **Reste à faire** : le mode sombre. Les jetons sont nommés par rôle, ce qui le rend accessible plus
@@ -569,8 +569,8 @@ juste est pire que pas de mode sombre.
 ### 13.2 Ce que porte la marque
 
 `brand-600` est réservé aux **actions principales** et à l'élément de navigation actif. C'est ce
-qui le rend repérable d'un coup d'œil sur un formulaire de bail long. Tout le reste — cartes,
-tableaux, textes — vit dans le neutre.
+qui le rend repérable d'un coup d'œil sur un formulaire de bail long. Tout le reste - cartes,
+tableaux, textes - vit dans le neutre.
 
 Les contrôles natifs (cases à cocher, boutons radio) reçoivent `accent-color` au niveau du
 document : sans cela ils prenaient la couleur d'accentuation du système, et l'écran affichait deux
@@ -587,17 +587,17 @@ Traitée le 11 août 2026. Jusque-là, la vitrine et l'application coexistaient 
 | **Un seul glyphe** | `Logo` (`src/components/ui/Marque.tsx`) reprend le dessin du favicon, repris à l'identique dans l'en-tête de la vitrine. L'application affichait auparavant une icône `Building2` de Lucide : trois dessins pour un produit |
 | **Même signature** | Glyphe de 36 px, mot-logo en 1,25 rem extra-gras, même interlettrage des deux côtés |
 | **Positionnement unifié** | Baseline, `<title>` et manifeste PWA passent de « Gestion locative LMNP » à « Baux et états des lieux », conformément au §3.6 |
-| **Entrée par l'outil** | L'état vide du tableau de bord propose « Rédiger un bail » au lieu de « Créez votre premier bien » — le formulaire de bail sait créer le logement en cours de route |
+| **Entrée par l'outil** | L'état vide du tableau de bord propose « Rédiger un bail » au lieu de « Créez votre premier bien » - le formulaire de bail sait créer le logement en cours de route |
 | **Impasse corrigée** | `/app/#/edl`, destination du second bouton de la landing, n'offrait **aucune action** : une consigne renvoyant ailleurs, sans lien pour y aller. Il propose désormais « Rédiger un bail » ou « Choisir un bail » selon ce qui existe déjà |
-| **Légal remis d'aplomb** | La page interne annonçait encore GitHub Pages comme hébergeur et « aucune mesure d'audience » — deux affirmations devenues fausses. Corrigées, et renvoyant aux pages publiques comme référence |
+| **Légal remis d'aplomb** | La page interne annonçait encore GitHub Pages comme hébergeur et « aucune mesure d'audience » - deux affirmations devenues fausses. Corrigées, et renvoyant aux pages publiques comme référence |
 
 **Pourquoi la page légale reste dupliquée** : l'application doit rester utilisable hors ligne, où
 `bailiz.fr/mentions-legales/` n'est pas atteignable. Le contenu reste donc complet dans l'app, avec
-un renvoi vers la version de référence. C'est un doublon assumé, pas un oubli — et il impose de
+un renvoi vers la version de référence. C'est un doublon assumé, pas un oubli - et il impose de
 répercuter toute correction aux deux endroits.
 
 **Deux fausses pistes écartées après vérification** : l'avertissement juridique est mémorisé en
-base (`disclaimerAccepte`), il ne s'affiche qu'une fois — pas de double friction avec la vitrine.
+base (`disclaimerAccepte`), il ne s'affiche qu'une fois - pas de double friction avec la vitrine.
 Et la fonte Inter est bien servie deux fois sous deux URL, mais la mutualiser romprait le précache
 hors-ligne de l'application pour 48 Ko chargés une seule fois.
 
@@ -620,7 +620,7 @@ la chaîne complète** :
 
 **Le manche que personne ne tient : la sortie du locataire.** Comparer l'entrée et la sortie,
 appliquer une grille de vétusté, justifier chaque euro retenu sur le dépôt de garantie. C'est le
-moment où l'argent change de main et où naissent les litiges — et c'est précisément ce qu'un
+moment où l'argent change de main et où naissent les litiges - et c'est précisément ce qu'un
 document à remplir ne peut pas faire.
 
 **Conséquence sur la landing** : l'argument principal n'est plus « rédigez un bail gratuitement »
@@ -630,8 +630,8 @@ héros, suivie d'un tableau comparatif.
 
 **Règle de rédaction : aucun concurrent n'est nommé, et rien n'est affirmé à leur sujet.** La
 publicité comparative est licite en France, mais doit être objective et vérifiable (art. L122-1 du
-code de la consommation). La comparaison porte donc sur une **catégorie** — « un modèle à remplir »
-— et n'énonce que des faits sur Bailiz. C'est aussi plus honnête : les offres évoluent, une
+code de la consommation). La comparaison porte donc sur une **catégorie** - « un modèle à remplir »
+- et n'énonce que des faits sur Bailiz. C'est aussi plus honnête : les offres évoluent, une
 affirmation vraie aujourd'hui sur un concurrent nommé ne le sera pas dans six mois.
 
 Aucune formule du type « le seul à… » n'est employée : invérifiable, donc à proscrire.
@@ -642,13 +642,13 @@ Aucune formule du type « le seul à… » n'est employée : invérifiable, donc
 
 | Lot | Contenu | Sortie vérifiable |
 |---|---|---|
-| ~~**L0 — Vérification OVH**~~ | ✅ **Fait.** Offre incluse : 100 Mo. Besoin mesuré : 2,5 Mo (app) + 180 Ko (vitrine). OVH est retenu | Marge suffisante ; le repli Cloudflare n'est plus d'actualité |
-| **L1 — Socle & déploiement** | DNS, SSL, `.htaccess` (§9.3), projet Astro `site/`, `base: '/app/'`, service worker cantonné (§10), workflow SFTP avec bascule par renommage (§9.4) | `bailiz.fr` sert une page, `bailiz.fr/app/` sert l'application intacte, hors-ligne compris ; un `git push` déploie les deux |
-| **L2 — Landing** | Page `/` complète (§5), charte, captures, `og:image`, favicons, 404 | Lighthouse ≥ 95 en Performance / SEO / Accessibilité / Bonnes pratiques, mobile |
-| **L3 — Socle SEO & légal** | `robots.txt`, `sitemap.xml`, canoniques, JSON-LD, `noindex` sur l'app, `/mentions-legales/` (hébergeur OVH), `/confidentialite/` (§11), Search Console, page de renvoi sur l'ancienne URL (§9.5) | Sitemap soumis, données structurées validées, `curl` sur `/` renvoie le contenu |
-| **L4 — Pages outils** | `/bail-meuble/`, `/etat-des-lieux/`, `/pourquoi-bailiz/` | 3 pages au gabarit §6, chacune avec son CTA profond et sa FAQ |
-| **L5 — Éditorial** | `/guides/` + 10 articles (§7), collection de contenu Astro, maillage interne | 10 pages indexables, chacune liée à au moins un outil |
-| **L6 — Suivi** | Relevé des logs OVH + Search Console : pages d'entrée, requêtes, passage vers `/app/` ; itérations sur les titres et descriptions | Premier relevé à 4 semaines, puis mensuel |
+| ~~**L0 - Vérification OVH**~~ | ✅ **Fait.** Offre incluse : 100 Mo. Besoin mesuré : 2,5 Mo (app) + 180 Ko (vitrine). OVH est retenu | Marge suffisante ; le repli Cloudflare n'est plus d'actualité |
+| **L1 - Socle & déploiement** | DNS, SSL, `.htaccess` (§9.3), projet Astro `site/`, `base: '/app/'`, service worker cantonné (§10), workflow SFTP avec bascule par renommage (§9.4) | `bailiz.fr` sert une page, `bailiz.fr/app/` sert l'application intacte, hors-ligne compris ; un `git push` déploie les deux |
+| **L2 - Landing** | Page `/` complète (§5), charte, captures, `og:image`, favicons, 404 | Lighthouse ≥ 95 en Performance / SEO / Accessibilité / Bonnes pratiques, mobile |
+| **L3 - Socle SEO & légal** | `robots.txt`, `sitemap.xml`, canoniques, JSON-LD, `noindex` sur l'app, `/mentions-legales/` (hébergeur OVH), `/confidentialite/` (§11), Search Console, page de renvoi sur l'ancienne URL (§9.5) | Sitemap soumis, données structurées validées, `curl` sur `/` renvoie le contenu |
+| **L4 - Pages outils** | `/bail-meuble/`, `/etat-des-lieux/`, `/pourquoi-bailiz/` | 3 pages au gabarit §6, chacune avec son CTA profond et sa FAQ |
+| **L5 - Éditorial** | `/guides/` + 10 articles (§7), collection de contenu Astro, maillage interne | 10 pages indexables, chacune liée à au moins un outil |
+| **L6 - Suivi** | Relevé des logs OVH + Search Console : pages d'entrée, requêtes, passage vers `/app/` ; itérations sur les titres et descriptions | Premier relevé à 4 semaines, puis mensuel |
 
 L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'apporte rien.
 
@@ -657,16 +657,16 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 | Élément | État |
 |---|---|
 | Projet Astro `site/` (Astro 7, zéro dépendance tierce au runtime) | ✅ |
-| Landing `/` — tous les blocs du §5 | ✅ |
+| Landing `/` - tous les blocs du §5 | ✅ |
 | Charte refondue, appliquée aux deux surfaces et aux PDF (§13) | ✅ |
 | Différenciation concurrentielle : section « la sortie » + tableau comparatif (§13 bis) | ✅ |
 | `/bail-meuble/`, `/etat-des-lieux/`, `/pourquoi-bailiz/` | ✅ |
 | `/mentions-legales/`, `/confidentialite/` (hébergeur OVH, mesure d'audience corrigée) | ✅ |
 | 404 en `noindex`, `robots.txt`, sitemap, canoniques, Open Graph, JSON-LD | ✅ |
 | `og.png`, `apple-touch-icon.png`, favicon (`npm run images`) | ✅ |
-| `.htaccess` (redirections, cache, en-têtes, CSP) | ✅ — CSP **à valider** sur un parcours PDF complet |
+| `.htaccess` (redirections, cache, en-têtes, CSP) | ✅ - CSP **à valider** sur un parcours PDF complet |
 | `<meta name="robots" content="noindex,follow">` dans `index.html` de l'app | ✅ |
-| Preuve visuelle : schéma SVG de l'enchaînement bail → EDL → décompte | ✅ — captures d'écran réelles toujours à produire |
+| Preuve visuelle : schéma SVG de l'enchaînement bail → EDL → décompte | ✅ - captures d'écran réelles toujours à produire |
 | Mode sombre de l'application | ❌ Reporté (§13.1) |
 | **`base: '/app/'` dans `vite.config.ts`** | ❌ À faire **au même commit que la bascule CI**, sinon le déploiement GitHub Pages actuel casse |
 | **Workflow de déploiement SFTP vers OVH** (§9.4) | ❌ En cours côté éditeur |
@@ -678,14 +678,14 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 ## 15. Critères d'acceptation globaux
 
 1. `bailiz.fr` répond en HTTPS ; `www.bailiz.fr` redirige en 301 vers l'apex.
-2. `curl -s https://bailiz.fr/` contient le `<h1>` et le texte de la page — **sans exécuter de JS**.
+2. `curl -s https://bailiz.fr/` contient le `<h1>` et le texte de la page - **sans exécuter de JS**.
 3. `bailiz.fr/app/` est fonctionnellement identique à la version actuelle, **hors-ligne inclus**, et
    les 390 tests passent sans modification.
 4. `/app/` renvoie `noindex` ; `robots.txt` le confirme ; aucune URL `/app/` dans le sitemap.
 5. Toutes les pages publiques ont un `title`, une `description` et une canonique **uniques**.
 6. Lighthouse mobile ≥ 95 sur les quatre catégories, pour `/` et une page outil.
 7. Aucune requête réseau vers un domaine tiers sur les pages publiques (vérifié dans l'onglet Réseau).
-8. Aucun bandeau de consentement — parce qu'il n'y a rien qui en exige un.
+8. Aucun bandeau de consentement - parce qu'il n'y a rien qui en exige un.
 9. Le passage vitrine → application se fait en **un clic** depuis chaque page outil, et ouvre le
    bon écran.
 10. Les mentions légales et la politique de confidentialité sont accessibles **sans entrer dans
@@ -720,8 +720,8 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 | # | Question | Décision |
 |---|---|---|
 | 1 | Nom de domaine | ✅ `bailiz.fr` réservé chez OVH |
-| 2 | Hébergement | ✅ OVH mutualisé inclus (§3.4), sous réserve du quota — cf. L0. Repli : Cloudflare Pages |
-| 3 | Sous-domaine ou sous-répertoire | ✅ `bailiz.fr/app/` — une seule origine, aucune migration de données future (§3.5) |
+| 2 | Hébergement | ✅ OVH mutualisé inclus (§3.4), sous réserve du quota - cf. L0. Repli : Cloudflare Pages |
+| 3 | Sous-domaine ou sous-répertoire | ✅ `bailiz.fr/app/` - une seule origine, aucune migration de données future (§3.5) |
 | 4 | Positionnement de lancement | ✅ Bail meublé + état des lieux. « Boîte à outils » reste la direction produit, pas le discours (§3.6) |
 | 5 | Mesure d'audience | ✅ Logs serveur OVH, aucun script client ; mentions légales corrigées (§11) |
 | 6 | Site vitrine : même dépôt ? | ✅ Même dépôt (`site/`) : un déploiement, une CI, aucune désynchronisation |
@@ -730,8 +730,8 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 
 | # | Question | Recommandation |
 |---|---|---|
-| 7 | L'offre OVH incluse tient-elle le quota ? | À vérifier au Manager — c'est le lot L0, et il est bloquant |
-| 8 | Éditeur du site : personne physique ou structure ? | À confirmer — conditionne la rédaction des mentions légales |
+| 7 | L'offre OVH incluse tient-elle le quota ? | À vérifier au Manager - c'est le lot L0, et il est bloquant |
+| 8 | Éditeur du site : personne physique ou structure ? | À confirmer - conditionne la rédaction des mentions légales |
 | 9 | Le tableau de bord reste-t-il l'accueil de l'app ? | Oui pour l'instant ; les liens profonds de la vitrine contournent le sujet (§3.6) |
 
 ---
@@ -741,10 +741,10 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 | Risque | Portée | Parade |
 |---|---|---|
 | Attentes SEO irréalistes | Élevée | Un domaine neuf met **6 à 12 mois** à peser. Les premiers résultats viendront de la traîne longue, pas de « bail meublé ». Le juger sur la Search Console, pas sur des positions isolées |
-| Les utilisateurs installés perdent leur PWA et croient perdre leurs données | Élevée — c'est le seul risque qui touche des utilisateurs réels et existants | Page de renvoi sur l'ancienne URL + procédure d'export/import expliquée (§9.5) |
-| Déploiement SFTP non atomique, ou identifiants exposés | Moyenne — le dépôt est **public** | Secrets GitHub uniquement, envoi dans un dossier temporaire puis bascule par renommage (§9.4) |
+| Les utilisateurs installés perdent leur PWA et croient perdre leurs données | Élevée - c'est le seul risque qui touche des utilisateurs réels et existants | Page de renvoi sur l'ancienne URL + procédure d'export/import expliquée (§9.5) |
+| Déploiement SFTP non atomique, ou identifiants exposés | Moyenne - le dépôt est **public** | Secrets GitHub uniquement, envoi dans un dossier temporaire puis bascule par renommage (§9.4) |
 | Quota OVH atteint après quelques captures d'écran | Moyenne | L0 le tranche avant tout développement ; images en AVIF/WebP (§8) |
-| La vitrine promet plus que l'app ne tient | Moyenne — c'est le pire des risques pour un produit qui vend la franchise | Chaque page outil dit aussi ce que l'outil **ne fait pas** (§6) ; pas de « bientôt disponible » (§3.6) |
-| CSP trop stricte cassant le rendu PDF de l'app | Moyenne — se voit en production, pas en développement | Valider la CSP contre un parcours complet (génération PDF, photos, `blob:`) avant mise en ligne (§9.3) |
-| Le service worker sert une vitrine périmée | **Faible** — largement désamorcée par le choix du sous-répertoire (§10) | `navigateFallback` cantonné, `Cache-Control: no-cache` sur le HTML de la vitrine ; test de non-régression après visite hors-ligne de `/app/` |
+| La vitrine promet plus que l'app ne tient | Moyenne - c'est le pire des risques pour un produit qui vend la franchise | Chaque page outil dit aussi ce que l'outil **ne fait pas** (§6) ; pas de « bientôt disponible » (§3.6) |
+| CSP trop stricte cassant le rendu PDF de l'app | Moyenne - se voit en production, pas en développement | Valider la CSP contre un parcours complet (génération PDF, photos, `blob:`) avant mise en ligne (§9.3) |
+| Le service worker sert une vitrine périmée | **Faible** - largement désamorcée par le choix du sous-répertoire (§10) | `navigateFallback` cantonné, `Cache-Control: no-cache` sur le HTML de la vitrine ; test de non-régression après visite hors-ligne de `/app/` |
 | Deux builds dans une CI qui devient fragile | Faible | Un seul workflow, deux étapes ; l'échec de l'un bloque le déploiement des deux |

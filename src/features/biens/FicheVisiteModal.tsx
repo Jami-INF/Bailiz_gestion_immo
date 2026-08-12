@@ -60,7 +60,7 @@ export function FicheVisiteModal({
       const photoDataUrl = photo ? await blobVersDataUrl(photo.blob) : undefined;
       await genererEtArchiver({
         type: 'fiche_visite',
-        titre: `Fiche de visite — ${bien.nom}`,
+        titre: `Fiche de visite - ${bien.nom}`,
         bienId: bien.id,
         element: (reference) => (
           <FicheVisitePdf
@@ -81,7 +81,7 @@ export function FicheVisiteModal({
       onClose();
     } catch (e) {
       console.error(e);
-      toast('error', `Échec de la génération — ${decrireErreur(e)}`);
+      toast('error', `Échec de la génération - ${decrireErreur(e)}`);
     } finally {
       setEnCours(false);
     }

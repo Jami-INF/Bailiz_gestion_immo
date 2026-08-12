@@ -75,7 +75,7 @@ function Paragraphes({ texte, petit }: { texte: string; petit?: boolean }) {
  * est remis plus tard, en annexe du bail.
  *
  * Ce document n'est pas un contrat : ni signature, ni empreinte. Seul l'acte de
- * cautionnement joint est destiné à être signé — à la main, après impression.
+ * cautionnement joint est destiné à être signé - à la main, après impression.
  */
 export function FicheVisitePdf({
   reference,
@@ -109,7 +109,7 @@ export function FicheVisitePdf({
     .filter((sec) => sec.pieces.length > 0);
 
   return (
-    <Document title={`${reference} — Fiche de visite — ${bien.nom}`} language="fr">
+    <Document title={`${reference} - Fiche de visite - ${bien.nom}`} language="fr">
       {/* ---------------------- Page 1 : le logement ---------------------- */}
       <Page size="A4" style={s.page}>
         <EntetePdf reference={reference} docTitre="Fiche de visite" />
@@ -133,18 +133,18 @@ export function FicheVisitePdf({
             {bien.etage ? `, ${bien.etage} étage` : ''}
           </Ligne>
           <Ligne label="Type">
-            {bien.type} — {bien.nbPieces} pièce{bien.nbPieces > 1 ? 's' : ''} principale
+            {bien.type} - {bien.nbPieces} pièce{bien.nbPieces > 1 ? 's' : ''} principale
             {bien.nbPieces > 1 ? 's' : ''}
             {bien.surfaceBoutin ? `, ${bien.surfaceBoutin} m² (surface loi Boutin)` : ''}
           </Ligne>
           <Ligne label="Location">
-            meublée — le logement est équipé conformément au décret n°2015-981 (literie,
+            meublée - le logement est équipé conformément au décret n°2015-981 (literie,
             occultation, plaques de cuisson, four, réfrigérateur, vaisselle, ustensiles, table et
             sièges, rangements, luminaires, matériel d'entretien)
           </Ligne>
           <Ligne label="Chauffage">
             {bien.chauffage.type === 'collectif' ? 'collectif' : 'individuel'} ({bien.chauffage.energie})
-            {' — eau chaude '}
+            {' - eau chaude '}
             {bien.eauChaude.type === 'collectif' ? 'collective' : 'individuelle'} ({bien.eauChaude.energie})
           </Ligne>
           {bien.classeDPE ? (
@@ -239,8 +239,8 @@ export function FicheVisitePdf({
               {modele.blocs.coordonneesBailleur && (
                 <Ligne label="Votre interlocuteur">
                   {designation || 'le propriétaire'}
-                  {bailleur.telephone ? ` — ${bailleur.telephone}` : ''}
-                  {bailleur.email ? ` — ${bailleur.email}` : ''}
+                  {bailleur.telephone ? ` - ${bailleur.telephone}` : ''}
+                  {bailleur.email ? ` - ${bailleur.email}` : ''}
                 </Ligne>
               )}
             </View>
@@ -252,11 +252,11 @@ export function FicheVisitePdf({
 
       {/* ------------------ Page 2 : le dossier à préparer ----------------- */}
       <Page size="A4" style={s.page}>
-        <EntetePdf reference={reference} docTitre="Fiche de visite — dossier de candidature" />
+        <EntetePdf reference={reference} docTitre="Fiche de visite - dossier de candidature" />
         <View style={s.titreBloc}>
           <Text style={s.titre}>Votre dossier de candidature</Text>
           <Text style={s.sousTitre}>
-            Pièces à préparer — {formatAdresse(bien.adresse)}
+            Pièces à préparer - {formatAdresse(bien.adresse)}
           </Text>
         </View>
 

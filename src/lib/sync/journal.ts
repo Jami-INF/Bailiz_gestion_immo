@@ -8,7 +8,7 @@ import { dateModification } from './protocole';
  *
  * Il tient deux rôles à la fois, et c'est voulu : il dit **ce qui a changé**
  * depuis la dernière synchronisation, et il sert de **file d'attente
- * hors-ligne**. Une entrée n'est retirée qu'après confirmation de l'envoi —
+ * hors-ligne**. Une entrée n'est retirée qu'après confirmation de l'envoi -
  * un état des lieux saisi en cave, l'iPad mis en veille, l'application fermée :
  * rien n'est perdu, tout repart au cycle suivant.
  */
@@ -30,7 +30,7 @@ export type TableSynchronisee = (typeof TABLES_SYNCHRONISEES)[number];
  * Neutralise le journal pendant que la synchronisation écrit les données
  * reçues du Drive. Sans cela, appliquer un pull produirait des entrées de
  * journal, qui seraient repoussées au cycle suivant, qui produiraient un
- * nouveau pull… — la boucle classique de tout mécanisme de réplication.
+ * nouveau pull… - la boucle classique de tout mécanisme de réplication.
  */
 let applicationDistante = false;
 
@@ -75,8 +75,8 @@ export function noterChangement(table: string, cle: string, type: Changement['ty
   /*
    * `setTimeout` et non `queueMicrotask` : Dexie propage la transaction en
    * cours aux microtâches. Écrire dans `changements` depuis un microtask lancé
-   * par un hook échouerait donc — cette table n'appartient pas à la transaction
-   * de la table modifiée — et l'échec passerait inaperçu. Le minuteur, lui,
+   * par un hook échouerait donc - cette table n'appartient pas à la transaction
+   * de la table modifiée - et l'échec passerait inaperçu. Le minuteur, lui,
    * sort de la zone transactionnelle.
    */
   setTimeout(() => {
@@ -99,7 +99,7 @@ export async function viderFileJournalisation(): Promise<void> {
   /*
    * `ignoreTransaction` détache explicitement de la transaction en cours. Sans
    * elle, un vidage déclenché depuis un hook écrirait dans une transaction qui
-   * n'inclut pas `changements`, et échouerait — en silence. Ne pas s'en
+   * n'inclut pas `changements`, et échouerait - en silence. Ne pas s'en
    * remettre au seul minuteur : la propagation de zone dépend de
    * l'environnement, et les tests Node ne la reproduisent pas.
    */
@@ -133,7 +133,7 @@ export function compacter(changements: Changement[]): ChangementCompacte[] {
     if (c.id !== undefined) idsResumes.push(c.id);
     // Le journal est lu dans l'ordre d'insertion : la dernière opération vue
     // est la plus récente, elle remplace la précédente. Les entrées absorbées
-    // restent recensées — sans quoi elles resteraient dans le journal à jamais.
+    // restent recensées - sans quoi elles resteraient dans le journal à jamais.
     const retenu = !existant || c.horodatage >= existant.horodatage ? c : existant;
     parCle.set(cle, { ...retenu, idsResumes });
   }
@@ -147,7 +147,7 @@ export async function changementsEnAttente(): Promise<ChangementCompacte[]> {
 }
 
 /**
- * Retire du journal les entrées effectivement envoyées — y compris celles que
+ * Retire du journal les entrées effectivement envoyées - y compris celles que
  * le compactage a absorbées.
  *
  * On supprime par identifiant, et jamais par clé d'enregistrement : les
@@ -177,7 +177,7 @@ const TABLES_BLOB = ['photos', 'documents'];
  *
  * Deux situations le rendent indispensable :
  * - **première activation** de la synchronisation, alors que la base contient
- *   déjà des biens, des baux et des états des lieux — sans rattrapage, rien ne
+ *   déjà des biens, des baux et des états des lieux - sans rattrapage, rien ne
  *   partirait tant qu'on n'y toucherait pas ;
  * - écriture perdue entre le hook et le journal (onglet fermé dans l'intervalle).
  *

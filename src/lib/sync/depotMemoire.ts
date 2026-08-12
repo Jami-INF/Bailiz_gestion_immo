@@ -65,7 +65,7 @@ export class DepotMemoire implements DepotDistant {
       throw new Error('Coupure réseau simulée');
     }
     // Fichier disparu entre-temps : le contrat impose de le recréer, avec un
-    // identifiant neuf — c'est ce que fait l'API Drive après un 404.
+    // identifiant neuf - c'est ce que fait l'API Drive après un 404.
     const id = idExistant && this.fichiers.has(idExistant) ? idExistant : `f${++this.compteur}`;
     /*
      * Le fichier est daté **après** l'heure serveur relevée au début du cycle,

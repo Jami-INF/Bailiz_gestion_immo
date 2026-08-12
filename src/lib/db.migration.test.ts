@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
  * Migration v6 : l'état des lieux se met à porter son logement et ses parties.
  *
  * Le test ouvre d'abord une base au **schéma v5** (celui d'avant), y écrit des
- * données, la referme, puis laisse l'application ouvrir la sienne — ce qui
+ * données, la referme, puis laisse l'application ouvrir la sienne - ce qui
  * déclenche l'`upgrade`. C'est le seul moyen d'éprouver réellement la
  * migration : la vérifier sur une base neuve ne prouverait rien, or c'est
  * précisément sur les bases existantes qu'elle doit tenir.
@@ -41,7 +41,7 @@ describe('migration v6', () => {
     await ancienne.table('edls').bulkPut([
       { id: 'edl-1', reference: 'EDL-2026-0001', bailId: 'bail-1', type: 'entree', statut: 'signe' },
       // Bail supprimé sans son EDL (base abîmée, ou suppression reçue par
-      // synchronisation) : la migration ne doit pas échouer sur lui — sinon
+      // synchronisation) : la migration ne doit pas échouer sur lui - sinon
       // c'est l'ouverture de l'application qui échoue.
       { id: 'edl-orphelin', reference: 'EDL-2026-0002', bailId: 'disparu', type: 'entree', statut: 'brouillon' },
     ]);

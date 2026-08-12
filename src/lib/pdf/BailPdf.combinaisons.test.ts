@@ -12,7 +12,7 @@ import { BailPdf } from './BailPdf';
  * Les tests existants vérifient le plan du document et le contenu des clauses.
  * Ceux-ci vérifient autre chose, et c'est le mode de panne le plus brutal : un
  * champ absent, une date illisible ou une partie vide font **lever**
- * `renderToBuffer`, et l'utilisateur se retrouve sans document — devant le
+ * `renderToBuffer`, et l'utilisateur se retrouve sans document - devant le
  * locataire, au moment de signer. Une combinaison rare (colocation en
  * monopropriété, bail mobilité sans dépôt, logement sans DPE) n'est jamais
  * exercée à la main : elle doit l'être ici.
@@ -112,7 +112,7 @@ function pdfBail(b: Bail, bi: Bien, locs: Locataire[]) {
   }) as ReactElement<DocumentProps>;
 }
 
-describe('BailPdf — toutes les combinaisons se rendent', () => {
+describe('BailPdf - toutes les combinaisons se rendent', () => {
   const durees: Record<TypeBail, number> = {
     meuble_1an: 12,
     meuble_etudiant_9mois: 9,
@@ -140,7 +140,7 @@ describe('BailPdf — toutes les combinaisons se rendent', () => {
   }
 });
 
-describe('BailPdf — qualité du bailleur', () => {
+describe('BailPdf - qualité du bailleur', () => {
   const bailleurs = {
     'personne physique': parametres.bailleur,
     indivision: {
@@ -184,7 +184,7 @@ describe('BailPdf — qualité du bailleur', () => {
   });
 });
 
-describe('BailPdf — cas dégradés', () => {
+describe('BailPdf - cas dégradés', () => {
   it('se rend sans aucune mention facultative renseignée', async () => {
     // Le bail doit rester imprimable pour être complété à la main : c'est le
     // principe même de l'application.
@@ -203,7 +203,7 @@ describe('BailPdf — cas dégradés', () => {
       dernierLoyerAncienLocataire: 480,
       resiliationResidencePrincipale: true,
       travaux: {
-        depuisDernierBail: 'Réfection de la salle de bain — 4 200 €',
+        depuisDernierBail: 'Réfection de la salle de bain - 4 200 €',
         majorationBailleur: '15 € par mois pendant 24 mois',
         diminutionLocataire: 'Néant',
       },

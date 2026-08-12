@@ -51,7 +51,7 @@ describe('validerSauvegarde', () => {
   });
 
   it('refuse une archive tronquée, en nommant ce qui manque', () => {
-    // Sans ce contrôle, `bulkPut` échouait à mi-parcours — après que le mode
+    // Sans ce contrôle, `bulkPut` échouait à mi-parcours - après que le mode
     // « remplacer » a déjà vidé les tables.
     const { edls: _e, photos: _p, ...tronque } = donneesValides();
     expect(() => validerSauvegarde(tronque)).toThrow(/edls, photos manquant/);

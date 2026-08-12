@@ -162,7 +162,7 @@ export function totalRetenues(lignes: LigneRetenue[]): number {
  * d'entrée, deux mois sinon.
  *
  * Exprimé en **mois**, comme la loi : compter 30 ou 60 jours décalait
- * l'échéance jusqu'à deux jours selon le mois de la remise des clés — et la
+ * l'échéance jusqu'à deux jours selon le mois de la remise des clés - et la
  * majoration de retard court par mois commencé.
  */
 export function delaiRestitutionMois(retenues: boolean): number {

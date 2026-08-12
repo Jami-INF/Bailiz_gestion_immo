@@ -42,7 +42,7 @@ if (avecDom) {
 
   /*
    * jsdom n'expose pas `navigator.storage`. L'application y lit la persistance
-   * et le quota ; sans support, elle doit rester silencieuse — c'est le
+   * et le quota ; sans support, elle doit rester silencieuse - c'est le
    * comportement par défaut installé ici, que les tests concernés remplacent
    * par un espion.
    */

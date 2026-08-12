@@ -67,13 +67,13 @@ jobs:
       # --- Transfert --------------------------------------------------------
       #
       # FTP simple, en clair. C'est un choix par défaut d'infrastructure, pas une
-      # préférence : cette offre OVH n'expose aucun canal chiffré — FTPS n'est
+      # préférence : cette offre OVH n'expose aucun canal chiffré - FTPS n'est
       # pas annoncé par le serveur (« does not support or allow SSL ») et SFTP
       # n'est pas accordé au compte. Vérifié le 11 août 2026 (cf.
       # docs/DEPLOIEMENT-OVH.md §4).
       #
       # Ce que cela expose : le mot de passe circule en clair entre le runner et
-      # OVH. Qui le capterait pourrait remplacer /app/ — donc altérer une
+      # OVH. Qui le capterait pourrait remplacer /app/ - donc altérer une
       # application qui manipule les données personnelles des locataires dans le
       # navigateur. L'enjeu est l'intégrité du code servi, pas la confidentialité
       # de fichiers déjà publics.
@@ -94,11 +94,11 @@ jobs:
           HOTE: ${{ secrets.OVH_FTP_HOST }}
           UTILISATEUR: ${{ secrets.OVH_FTP_USER }}
           # `--env-password` lit le mot de passe ici : il ne passe pas par la
-          # ligne de commande, donc pas par `ps`, ni par le script lftp — où un
+          # ligne de commande, donc pas par `ps`, ni par le script lftp - où un
           # mot de passe contenant `"` ou `,` produirait une commande malformée.
           LFTP_PASSWORD: ${{ secrets.OVH_FTP_PASSWORD }}
           # `www/` si la connexion aboutit à la racine du compte, `.` si elle
-          # aboutit déjà dans le dossier du site — ce qui est le cas d'un
+          # aboutit déjà dans le dossier du site - ce qui est le cas d'un
           # utilisateur dédié restreint. Variable de dépôt (pas un secret :
           # ce n'est pas une donnée sensible), `www/` par défaut.
           CIBLE: ${{ vars.OVH_CIBLE || 'www/' }}
@@ -106,7 +106,7 @@ jobs:
           # Un retour à la ligne collé par mégarde en fin de secret suffit à
           # faire rejeter le mot de passe, sans que rien ne le laisse deviner :
           # le serveur répond comme pour un mot de passe faux. Seuls CR et LF
-          # sont retirés — un espace peut être légitime dans un mot de passe.
+          # sont retirés - un espace peut être légitime dans un mot de passe.
           BRUT="$LFTP_PASSWORD"
           LFTP_PASSWORD="$(printf '%s' "$LFTP_PASSWORD" | tr -d '\r\n')"
           export LFTP_PASSWORD
@@ -144,7 +144,7 @@ jobs:
             TROUVE="dossier du site"
             ATTENDU="."
           fi
-          echo "Disposition détectée : $TROUVE — cible attendue « $ATTENDU », cible configurée « $CIBLE »"
+          echo "Disposition détectée : $TROUVE - cible attendue « $ATTENDU », cible configurée « $CIBLE »"
 
           [ "$CIBLE" = "$ATTENDU" ] || {
             echo "::error::Incohérence entre le point d'arrivée et la cible du miroir. \
@@ -179,22 +179,22 @@ jobs:
       - name: Vérifier la mise en ligne
         run: |
           sleep 5
-          echo "— HTML servi sans JavaScript"
+          echo "- HTML servi sans JavaScript"
           curl -sS --fail --max-time 20 https://bailiz.fr/ | grep -q "<h1>" \
             || { echo "::error::la vitrine ne renvoie pas de <h1>"; exit 1; }
 
-          echo "— application présente"
+          echo "- application présente"
           curl -sS --fail --max-time 20 -o /dev/null https://bailiz.fr/app/ \
             || { echo "::error::/app/ ne répond pas"; exit 1; }
 
-          echo "— application en noindex"
+          echo "- application en noindex"
           curl -sS --max-time 20 https://bailiz.fr/app/ | grep -q 'content="noindex,follow"' \
             || echo "::warning::le noindex de /app/ est absent"
 
-          echo "— redirection www vers l'apex"
+          echo "- redirection www vers l'apex"
           curl -sS --max-time 20 -o /dev/null -w '%{http_code} %{redirect_url}\n' \
             https://www.bailiz.fr/ | grep -q '^301 https://bailiz.fr/' \
-            || echo "::warning::www ne redirige pas en 301 — .htaccess ignoré ?"
+            || echo "::warning::www ne redirige pas en 301 - .htaccess ignoré ?"
 
           # --- Intégrité du bundle applicatif ---
           #
@@ -205,7 +205,7 @@ jobs:
           #
           # C'est l'application qui est vérifiée, et pas la vitrine : c'est elle
           # qui manipule les données personnelles des locataires.
-          echo "— intégrité du bundle applicatif"
+          echo "- intégrité du bundle applicatif"
           BUNDLE=$(cd _site/app && ls assets/index-*.js | head -1)
           LOCALE=$(sha256sum "_site/app/$BUNDLE" | cut -d' ' -f1)
           DISTANTE=$(curl -sS --fail --max-time 30 "https://bailiz.fr/app/$BUNDLE" | sha256sum | cut -d' ' -f1)
@@ -214,7 +214,7 @@ jobs:
           else
             echo "::error::Le bundle servi ne correspond pas à celui qui vient d'être \
           construit. Attendu $LOCALE, obtenu $DISTANTE. Transfert incomplet, cache \
-          intermédiaire, ou fichier altéré — ne pas ignorer."
+          intermédiaire, ou fichier altéré - ne pas ignorer."
             exit 1
           fi
 

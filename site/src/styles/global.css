@@ -1,5 +1,5 @@
 /*
- * Feuille de style unique de la vitrine — pas de Tailwind ici.
+ * Feuille de style unique de la vitrine - pas de Tailwind ici.
  *
  * L'application a besoin de Tailwind : elle a des centaines de composants. La
  * vitrine a cinq pages, et son budget est de **zéro JavaScript** avec un LCP
@@ -36,19 +36,19 @@
  * site. Toute retouche là-bas se recopie ici.
  */
 :root {
-  /* Neutre tiède — « le papier ». */
+  /* Neutre tiède - « le papier ». */
   --c-50: #fafaf9;
   --c-100: #f5f4f2;
   --c-200: #e8e6e2;
   --c-300: #d5d2cc;
-  --c-400: #918c85; /* 3:1 sur blanc — bordures de composants (WCAG 1.4.11) */
-  --c-500: #78746d; /* 4,65:1 — plancher du texte discret */
+  --c-400: #918c85; /* 3:1 sur blanc - bordures de composants (WCAG 1.4.11) */
+  --c-500: #78746d; /* 4,65:1 - plancher du texte discret */
   --c-600: #5a5751;
   --c-700: #413f3a;
   --c-800: #2b2925;
   --c-900: #1a1815;
 
-  /* Marque — « l'encre ». */
+  /* Marque - « l'encre ». */
   --m-50: #f1f7f6;
   --m-100: #dfedeb;
   --m-200: #bfdbd7;
@@ -187,8 +187,8 @@ section {
 
 /*
  * Sous 640 px, les trois libellés de navigation se coupent chacun en deux
- * lignes et écrasent le logo. Plutôt qu'un menu déroulant — qui coûterait du
- * JavaScript sur une page qui n'en a aucun —, l'en-tête passe sur deux rangs :
+ * lignes et écrasent le logo. Plutôt qu'un menu déroulant - qui coûterait du
+ * JavaScript sur une page qui n'en a aucun -, l'en-tête passe sur deux rangs :
  * marque, puis navigation sur une ligne, libellés insécables.
  */
 @media (max-width: 640px) {
@@ -344,7 +344,7 @@ section {
  * Un tableau reste un tableau : il garde son `thead`, ses `th` de ligne et sa
  * légende, pour qu'un lecteur d'écran annonce chaque cellule avec ses deux
  * en-têtes. Le défilement horizontal est confié au conteneur, jamais au
- * document — la page ne défile pas latéralement.
+ * document - la page ne défile pas latéralement.
  */
 .tableau-comparatif {
   overflow-x: auto;

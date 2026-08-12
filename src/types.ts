@@ -1,4 +1,4 @@
-// Modèle de données Bailiz — identifiants: uuid v4 (string), dates: ISO 8601 (string).
+// Modèle de données Bailiz - identifiants: uuid v4 (string), dates: ISO 8601 (string).
 
 export interface Adresse {
   ligne1: string;
@@ -60,9 +60,9 @@ export interface Bien {
   identifiantFiscal?: string;
   typeHabitat?: 'collectif' | 'individuel';
   periodeConstruction?: PeriodeConstruction;
-  /** Classe du DPE — mention légale ; conditionne la décence (G interdit depuis 2025, F en 2028, E en 2034). */
+  /** Classe du DPE - mention légale ; conditionne la décence (G interdit depuis 2025, F en 2028, E en 2034). */
   classeDPE?: ClasseDPE;
-  /** Accès aux technologies de l'information (fibre, TV, internet) — rubrique II.E du bail type. */
+  /** Accès aux technologies de l'information (fibre, TV, internet) - rubrique II.E du bail type. */
   equipementsTIC?: string;
   /** Zone tendue : loyer soumis au décret annuel d'encadrement de l'évolution des loyers à la relocation. */
   zoneTendue?: boolean;
@@ -125,7 +125,7 @@ export interface ConditionsLocation {
   chargesDetail?: string;
   depotGarantie?: number;
   dateDisponibilite?: string;
-  /** Accès, interphone, étage, stationnement — imprimé sur la fiche de visite. */
+  /** Accès, interphone, étage, stationnement - imprimé sur la fiche de visite. */
   acces?: string;
   conditionsParticulieres?: string;
   /** Sections conditionnelles retenues à la dernière fiche de visite générée. */
@@ -183,7 +183,7 @@ export interface Bail {
   revisionIRL: { trimestreReference: string; valeurIndice: number; revisable: boolean };
   /**
    * Révisions annuelles du loyer effectivement demandées, dans l'ordre où elles
-   * ont été notifiées. Le loyer courant s'en déduit (`loyerCourant`) — `loyerHC`
+   * ont été notifiées. Le loyer courant s'en déduit (`loyerCourant`) - `loyerHC`
    * reste le loyer d'origine, celui du contrat imprimé et signé, pour que le
    * bail se régénère à l'identique. Absent = aucune révision notifiée.
    */
@@ -212,7 +212,7 @@ export interface Bail {
   clauses?: ClauseBail[];
   /** Colocation : assurance pour le compte des colocataires souscrite par le bailleur (récupérable par douzième). */
   assuranceColocataires?: { montantAnnuel: number };
-  /** Rubrique V du bail type — laisser vide pour « néant ». */
+  /** Rubrique V du bail type - laisser vide pour « néant ». */
   travaux?: {
     depuisDernierBail?: string; // V.A : amélioration / mise en conformité depuis le dernier bail (nature + montant)
     majorationBailleur?: string; // V.B : majoration de loyer suite à travaux du bailleur
@@ -242,7 +242,7 @@ export interface Bail {
 export interface RevisionLoyer {
   /** Date de la demande (génération du courrier). */
   date: string;
-  /** Date à laquelle le loyer révisé s'applique — jamais rétroactive. */
+  /** Date à laquelle le loyer révisé s'applique - jamais rétroactive. */
   dateApplication: string;
   /** Trimestre et indice de référence retenus comme base du calcul. */
   trimestreReference: string;
@@ -352,7 +352,7 @@ export interface EtatDesLieux {
    * Bail auquel l'état des lieux sera annexé. **Optionnel** : l'état des lieux
    * est un acte autonome, établi contradictoirement entre les parties (art. 3-2
    * de la loi n°89-462, décret n°2016-382). Le contrat peut avoir été rédigé
-   * ailleurs — ou être rattaché plus tard, une fois l'état des lieux signé.
+   * ailleurs - ou être rattaché plus tard, une fois l'état des lieux signé.
    */
   bailId?: string;
   /**
@@ -363,7 +363,7 @@ export interface EtatDesLieux {
   /**
    * Parties présentes au constat, **figées à la date de l'état des lieux**.
    * Lire les locataires du bail ferait apparaître dans un document déjà signé
-   * les colocataires ajoutés depuis — qui ne l'ont pas signé.
+   * les colocataires ajoutés depuis - qui ne l'ont pas signé.
    */
   locataireIds: string[];
   /**
@@ -379,11 +379,11 @@ export interface EtatDesLieux {
    */
   bailExterne?: { reference?: string; dateEffet?: string };
   /**
-   * EDL de **sortie** — provenance des états d'entrée servant de référence au
+   * EDL de **sortie** - provenance des états d'entrée servant de référence au
    * comparatif :
    * - `edl_app`    : `edlEntreeLieId` renseigné, états dupliqués depuis l'app ;
    * - `edl_papier` : entrée établie hors application, reportée à la main ;
-   * - `aucun`      : aucun état des lieux d'entrée n'a été établi — le document
+   * - `aucun`      : aucun état des lieux d'entrée n'a été établi - le document
    *                  constate l'état à la sortie, sans comparatif opposable.
    */
   origineEtatEntree?: 'edl_app' | 'edl_papier' | 'aucun';
@@ -573,7 +573,7 @@ export interface Parametres {
   id: 'singleton';
   bailleur: Bailleur;
   grilleVetuste: LigneVetuste[]; // pré-remplie, modifiable
-  /** Modèle de la fiche de visite — pré-rempli, modifiable (cf. `getParametres`). */
+  /** Modèle de la fiche de visite - pré-rempli, modifiable (cf. `getParametres`). */
   ficheVisite?: ModeleFicheVisite;
   /** Conditions générales d'occupation proposées à chaque nouveau bail. */
   clausesBail?: ClauseBail[];
@@ -604,7 +604,7 @@ export interface Parametres {
  * Saisie du formulaire de bail unifié : modèle **transitoire** (state React
  * uniquement, aucune table Dexie). Chaque partie (bien, locataire) peut être
  * **choisie parmi les entités enregistrées** (`bienId` / `id`) ou **saisie
- * inline**. Les champs métier sont optionnels — un champ vide devient une zone
+ * inline**. Les champs métier sont optionnels - un champ vide devient une zone
  * à compléter à la main dans le PDF. Rien n'est persisté tant que l'utilisateur
  * ne clique pas « Enregistrer dans l'app ».
  */

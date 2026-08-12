@@ -102,7 +102,7 @@ export function EdlSynthesePage() {
   const genererLettre = async () => {
     await genererEtArchiver({
       type: 'lettre_restitution',
-      titre: `Restitution du dépôt — ${bien.nom} — ${nomsPersonnes(locataires)}`,
+      titre: `Restitution du dépôt - ${bien.nom} - ${nomsPersonnes(locataires)}`,
       bienId: bien.id,
       bailId: bail?.id,
       edlId: edl.id,
@@ -134,7 +134,7 @@ export function EdlSynthesePage() {
       </button>
       <PageHeader
         titre="Synthèse comparative"
-        sousTitre={`${edl.reference} — comparaison poste par poste avec l'état des lieux d'entrée`}
+        sousTitre={`${edl.reference} - comparaison poste par poste avec l'état des lieux d'entrée`}
       />
 
       {/*
@@ -150,7 +150,7 @@ export function EdlSynthesePage() {
           </p>
           {/*
            * Saisissable ici, même après signature : le montant du dépôt ne fait
-           * pas partie du constat signé, seulement du décompte de restitution —
+           * pas partie du constat signé, seulement du décompte de restitution -
            * comme les coûts de remise en état ci-dessous. C'est le seul moment
            * où l'oubli se remarque, il doit être rattrapable sans détour.
            */}
@@ -220,7 +220,7 @@ export function EdlSynthesePage() {
               <Card key={element.id}>
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-semibold text-accent-900">
-                    {pieceNom} — {element.nom}
+                    {pieceNom} - {element.nom}
                   </h3>
                   <span className="text-sm text-accent-600">
                     {element.etatEntree && ETAT_LABELS[element.etatEntree]} →{' '}
@@ -300,7 +300,7 @@ export function EdlSynthesePage() {
               <p className="text-sm text-accent-600">Total des retenues estimées (après vétusté) :</p>
               <p className="text-2xl font-bold text-accent-900">{formatEuros(total)}</p>
               <p className="text-sm text-accent-600">
-                Dépôt de garantie : {formatEuros(depotGarantie)} — à restituer :{' '}
+                Dépôt de garantie : {formatEuros(depotGarantie)} - à restituer :{' '}
                 <span className="font-semibold">{formatEuros(Math.max(0, depotGarantie - total))}</span>
               </p>
             </div>

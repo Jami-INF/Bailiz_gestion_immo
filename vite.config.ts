@@ -35,7 +35,7 @@ export default defineConfig({
         // et donc précachée comme le reste par `globPatterns`.
       },
       manifest: {
-        name: 'Bailiz — Baux et états des lieux',
+        name: 'Bailiz - Baux et états des lieux',
         short_name: 'Bailiz',
         description:
           'Bail meublé et états des lieux avec photos, hors ligne et sans compte',
@@ -86,11 +86,11 @@ export default defineConfig({
         'src/**/index.ts',
         // Catalogues de contenu (clauses, mobilier, bibliothèque de pièces) :
         // des données, pas du comportement. Les couvrir gonflerait le taux sans
-        // rien prouver — elles sont exercées indirectement par les tests PDF.
+        // rien prouver - elles sont exercées indirectement par les tests PDF.
         'src/lib/defauts.ts',
       ],
       /*
-       * Seuils volontairement différenciés, et calés sur le niveau atteint —
+       * Seuils volontairement différenciés, et calés sur le niveau atteint -
        * un seuil qu'on n'atteint pas est un seuil qu'on finit par baisser.
        *
        * Le plancher global reste modeste : `features/` est fait de vues, dont

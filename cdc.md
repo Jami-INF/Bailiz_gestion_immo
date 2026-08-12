@@ -1,4 +1,4 @@
-# Cahier des charges — Outil de gestion locative LMNP (Baux & États des lieux)
+# Cahier des charges - Outil de gestion locative LMNP (Baux & États des lieux)
 
 > **Instruction pour Claude Code** : ce document est le cahier des charges complet d'une application web. Implémente-le intégralement en respectant l'architecture, le modèle de données et les lots de développement décrits ci-dessous. Travaille lot par lot, dans l'ordre. À la fin de chaque lot, vérifie les critères d'acceptation correspondants avant de passer au suivant.
 
@@ -37,28 +37,28 @@ Ces contraintes ne sont pas décoratives : elles conditionnent la structure des 
   - Description du logement : adresse, type (T1, T2…), surface habitable **loi Boutin**, nombre de pièces, étage, équipements privatifs et communs, annexes (cave, parking).
   - Date de prise d'effet et durée.
   - Loyer hors charges, modalités de paiement, date de paiement, modalités de révision (IRL : trimestre de référence + valeur de l'indice).
-  - Charges : forfait ou provisions avec régularisation annuelle (en meublé, le forfait est courant — proposer les deux).
+  - Charges : forfait ou provisions avec régularisation annuelle (en meublé, le forfait est courant - proposer les deux).
   - Montant du dépôt de garantie.
-  - Le cas échéant : zone d'encadrement des loyers (loyer de référence, loyer de référence majoré, complément de loyer) — champ conditionnel activable par bien.
+  - Le cas échéant : zone d'encadrement des loyers (loyer de référence, loyer de référence majoré, complément de loyer) - champ conditionnel activable par bien.
   - Honoraires (sans objet ici : location en direct, mais prévoir la mention « néant »).
   - Montant du dernier loyer acquitté par le précédent locataire (si parti depuis moins de 18 mois).
 - **Annexes obligatoires** à joindre au bail (l'app génère celles qu'elle peut et fournit une checklist pour les autres) :
-  - **Inventaire et état détaillé du mobilier** (obligatoire en meublé) — généré par l'app.
-  - **État des lieux d'entrée** — généré par l'app.
-  - **Notice d'information** (arrêté du 29 mai 2015 modifié) — l'app fournit un lien de téléchargement officiel et une case « jointe : oui/non » (ne pas reproduire le texte intégral, il évolue).
+  - **Inventaire et état détaillé du mobilier** (obligatoire en meublé) - généré par l'app.
+  - **État des lieux d'entrée** - généré par l'app.
+  - **Notice d'information** (arrêté du 29 mai 2015 modifié) - l'app fournit un lien de téléchargement officiel et une case « jointe : oui/non » (ne pas reproduire le texte intégral, il évolue).
   - **Dossier de diagnostic technique (DDT)** : DPE, ERP (état des risques et pollutions), CREP si bâti avant 1949, diagnostic électricité/gaz si installation > 15 ans, surface loi Boutin. Checklist avec dates de validité et alertes d'expiration.
   - Extraits du règlement de copropriété (parties communes, destination de l'immeuble, quote-parts).
-  - Grille de vétusté si utilisée (recommandé — l'app en intègre une, voir §5.4).
-- **Mobilier minimum obligatoire** (décret n°2015-981 du 31 juillet 2015) — l'app pré-remplit l'inventaire avec les 11 éléments obligatoires et vérifie leur présence : literie avec couette ou couverture ; dispositif d'occultation des fenêtres dans les chambres ; plaques de cuisson ; four ou micro-ondes ; réfrigérateur avec compartiment congélation (ou congélateur) ; vaisselle en nombre suffisant ; ustensiles de cuisine ; table et sièges ; étagères de rangement ; luminaires ; matériel d'entretien ménager adapté.
+  - Grille de vétusté si utilisée (recommandé - l'app en intègre une, voir §5.4).
+- **Mobilier minimum obligatoire** (décret n°2015-981 du 31 juillet 2015) - l'app pré-remplit l'inventaire avec les 11 éléments obligatoires et vérifie leur présence : literie avec couette ou couverture ; dispositif d'occultation des fenêtres dans les chambres ; plaques de cuisson ; four ou micro-ondes ; réfrigérateur avec compartiment congélation (ou congélateur) ; vaisselle en nombre suffisant ; ustensiles de cuisine ; table et sièges ; étagères de rangement ; luminaires ; matériel d'entretien ménager adapté.
 
 ### 2.2 État des lieux
 - Cadre : article 3-2 de la loi de 1989 et **décret n°2016-382 du 30 mars 2016** (forme et contenu).
 - Peut être établi **sur support papier ou électronique** et remis en main propre ou **par voie dématérialisée** à chaque partie au moment de sa signature. Le 100 % numérique est donc légal pour l'EDL.
 - Doit être **contradictoire** (les deux parties présentes) et contenir au minimum : type d'EDL (entrée/sortie), date, localisation du logement, identité des parties, relevés des compteurs individuels (eau, électricité, gaz), détail et destination des clés/badges, description précise pièce par pièce (revêtements sols/murs/plafonds, équipements, éléments) avec état, et signatures.
 - L'EDL de sortie peut comporter l'adresse du nouveau domicile du locataire et doit permettre la **comparaison poste par poste avec l'EDL d'entrée** (exigence centrale de l'app).
-- Le locataire peut demander une modification de l'EDL d'entrée dans les **10 jours** (et pendant le 1er mois de chauffe pour le chauffage) — prévoir un mécanisme d'avenant.
+- Le locataire peut demander une modification de l'EDL d'entrée dans les **10 jours** (et pendant le 1er mois de chauffe pour le chauffage) - prévoir un mécanisme d'avenant.
 
-### 2.3 Signatures — stratégie retenue (modèle hybride)
+### 2.3 Signatures - stratégie retenue (modèle hybride)
 La signature électronique est légale pour un bailleur particulier (Code civil art. 1366-1367, règlement eIDAS, loi ELAN). Mais une signature simplement **dessinée dans une app sans tiers de confiance est une signature « simple »** : valable, mais de faible valeur probante en cas de contestation. Décision produit :
 
 | Document | Mode de signature | Implémentation |
@@ -69,7 +69,7 @@ La signature électronique est légale pour un bailleur particulier (Code civil 
 
 **Renforts probatoires pour toute signature sur écran** (obligatoires) :
 - Horodatage précis (date/heure locale + ISO 8601) inséré sous chaque signature.
-- Mention tapée obligatoire avant signature : nom complet du signataire + case à cocher « Lu et approuvé — je reconnais avoir pris connaissance de l'intégralité du document ».
+- Mention tapée obligatoire avant signature : nom complet du signataire + case à cocher « Lu et approuvé - je reconnais avoir pris connaissance de l'intégralité du document ».
 - Calcul de l'**empreinte SHA-256** du PDF finalisé (via Web Crypto API), affichée sur la dernière page du PDF et dans l'app.
 - Écran final « Envoyer une copie » : bouton `mailto:` pré-rempli (le PDF étant local, l'app guide l'utilisateur pour joindre le fichier exporté) + rappel de conserver l'original.
 - Verrouillage du document après signature : un EDL signé devient **immuable** dans l'app (lecture seule ; toute correction passe par un avenant daté).
@@ -84,7 +84,7 @@ La signature électronique est légale pour un bailleur particulier (Code civil 
 - **React 18+** avec **Vite** (TypeScript obligatoire).
 - **Tailwind CSS** (v3+), aucune autre lib CSS.
 - **Aucun backend, aucune API serveur, aucun compte utilisateur.** Tout est local au navigateur.
-- **PWA installable** (manifest + service worker via `vite-plugin-pwa`) : fonctionnement 100 % hors-ligne après premier chargement — indispensable pour les EDL sur le terrain.
+- **PWA installable** (manifest + service worker via `vite-plugin-pwa`) : fonctionnement 100 % hors-ligne après premier chargement - indispensable pour les EDL sur le terrain.
 
 ### 3.2 Persistance des données
 - **IndexedDB via Dexie.js** (pas localStorage : les photos dépasseraient vite les quotas).
@@ -93,7 +93,7 @@ La signature électronique est légale pour un bailleur particulier (Code civil 
 - Demander la persistance du stockage au navigateur (`navigator.storage.persist()`).
 
 ### 3.3 Génération PDF (côté client)
-- Librairie : **`@react-pdf/renderer`** (rendu déclaratif, pagination propre) — alternative acceptée : `pdfmake`. Éviter jsPDF + html2canvas (rendu bitmap flou, pagination fragile).
+- Librairie : **`@react-pdf/renderer`** (rendu déclaratif, pagination propre) - alternative acceptée : `pdfmake`. Éviter jsPDF + html2canvas (rendu bitmap flou, pagination fragile).
 - Documents à générer : bail meublé complet, inventaire mobilier, EDL entrée, EDL sortie avec tableau comparatif, avenant, lettre de restitution du dépôt de garantie avec décompte.
 - Mise en page : en-tête avec référence du document (ex. `EDL-2026-0007`), pied de page avec pagination `x/y` + empreinte SHA-256 (sur version signée), photos intégrées en annexe du PDF (vignettes légendées : pièce, élément, date).
 
@@ -255,16 +255,16 @@ interface LigneVetuste { poste: string; dureeVieAnnees: number; franchiseAnnees:
 
 ## 5. Spécifications fonctionnelles par module
 
-### M1 — Gestion des biens
+### M1 - Gestion des biens
 - CRUD complet des biens avec formulaire multi-étapes (identité du bien → surfaces/équipements → diagnostics → structure des pièces).
 - **Éditeur de structure de pièces** (`piecesModele`) : ajout/suppression/réordonnancement de pièces ; chaque pièce reçoit des éléments par défaut selon son type (ex. « Cuisine » → sol, murs, plafond, plaques, four, réfrigérateur, évier, meubles…). Bibliothèque de modèles de pièces intégrée (séjour, chambre, cuisine, SDB, WC, entrée, cave, parking).
 - Tableau de bord des diagnostics avec badges de validité (vert/orange < 3 mois de l'expiration/rouge expiré). Durées par défaut : DPE 10 ans, électricité/gaz location 6 ans, ERP 6 mois, CREP illimité si négatif.
 
-### M2 — Gestion des locataires
+### M2 - Gestion des locataires
 - CRUD simple. Un locataire peut être lié à plusieurs baux dans le temps.
 - RGPD : page paramètres avec bouton « supprimer définitivement un locataire et ses données » (bloqué si un bail actif y est lié), et mention d'information sur la conservation locale des données.
 
-### M3 — Baux
+### M3 - Baux
 - **Assistant de création en étapes** : bien → locataire(s) → type de bail (avec explication des 3 types et de leurs contraintes) → conditions financières → clauses → annexes (checklist) → aperçu → génération PDF.
 - **Validations bloquantes** : dépôt de garantie ≤ 2 mois HC (0 si mobilité) ; durée cohérente avec le type ; si zone d'encadrement activée sur le bien : loyer HC ≤ loyer de référence majoré sauf complément de loyer justifié (alerte explicative).
 - Le PDF du bail suit la trame du bail type réglementaire (parties I à VIII : désignation des parties, objet du contrat, date/durée, conditions financières, travaux, garanties, clauses, annexes). Rédiger les clauses en s'appuyant sur le décret 2015-587 sans copier de contenus de sites commerciaux.
@@ -272,12 +272,12 @@ interface LigneVetuste { poste: string; dureeVieAnnees: number; franchiseAnnees:
 - Cycle de vie : brouillon → généré → signé (l'utilisateur confirme la signature papier/prestataire et peut saisir la date) → actif → terminé (déclenché par l'EDL de sortie signé).
 - Utilitaires : calcul de prorata de premier loyer ; calculateur de révision IRL (saisie manuelle du nouvel indice, l'app calcule le nouveau loyer et génère un courrier PDF de révision).
 
-### M4 — États des lieux (cœur de l'app, optimisé tablette)
+### M4 - États des lieux (cœur de l'app, optimisé tablette)
 **EDL d'entrée**
 - Créé depuis un bail ; les pièces sont pré-remplies depuis `piecesModele` du bien, puis modifiables.
 - **Mode terrain** : interface plein écran, une pièce à la fois, navigation par onglets/swipe ; pour chaque élément : sélecteur d'état en 5 gros boutons colorés (Neuf / Très bon / Bon / Usagé / Mauvais), champ commentaire, bouton photo (caméra du device via `<input capture>` ou `getUserMedia`), compteur de photos.
 - Écrans dédiés : relevés de compteurs (avec photo du compteur) ; remise des clés.
-- Barre de progression (éléments renseignés / total). Sauvegarde automatique en continu (chaque changement écrit en IndexedDB — aucune perte si l'appareil s'éteint).
+- Barre de progression (éléments renseignés / total). Sauvegarde automatique en continu (chaque changement écrit en IndexedDB - aucune perte si l'appareil s'éteint).
 
 **EDL de sortie**
 - Créé depuis le bail : **duplique automatiquement la structure et les états de l'EDL d'entrée** ; pour chaque élément, l'état d'entrée est affiché en référence et l'utilisateur saisit l'état de sortie.
@@ -290,12 +290,12 @@ interface LigneVetuste { poste: string; dureeVieAnnees: number; franchiseAnnees:
 - Après signature : écran « Transmettre une copie » (export du PDF + bouton mailto pré-rempli avec objet/texte réglementaire de remise dématérialisée).
 - Rappel automatique affiché : « Le locataire dispose de 10 jours pour demander un complément à l'EDL d'entrée » → bouton « créer un avenant » disponible pendant cette fenêtre (et au-delà, avec confirmation).
 
-### M5 — Documents et exports
+### M5 - Documents et exports
 - Bibliothèque de tous les PDF générés, filtrable par bien/bail/type, avec re-génération possible tant que non signé.
 - Numérotation automatique `TYPE-ANNEE-XXXX`.
 - Export sauvegarde ZIP / import (cf. §3.2).
 
-### M6 — Tableau de bord
+### M6 - Tableau de bord
 - Vue d'accueil : liste des biens avec statut (loué / vacant), bail en cours, alertes (diagnostic expirant, EDL d'entrée sans bail signé, dépôt de garantie à restituer sous X jours après un EDL de sortie, sauvegarde ancienne).
 - Échéancier simple : fins de bail à venir, dates anniversaires de révision IRL.
 
@@ -314,12 +314,12 @@ interface LigneVetuste { poste: string; dureeVieAnnees: number; franchiseAnnees:
 
 ## 7. Lots de développement (ordre imposé)
 
-1. **Lot 0 — Socle** : projet Vite+TS+Tailwind, PWA, routing, layout, design system minimal (Button, Input, Select, Modal, Toast, Badge, Stepper), Dexie + schéma complet, page Paramètres bailleur.
-2. **Lot 1 — Biens & Locataires** : CRUD, éditeur de structure de pièces, diagnostics.
-3. **Lot 2 — Baux** : assistant, validations, génération PDF bail + inventaire, cycle de vie, calculateurs (prorata, IRL).
-4. **Lot 3 — EDL entrée** : mode terrain, photos, compteurs, clés, autosauvegarde, signature + hash + verrouillage, PDF.
-5. **Lot 4 — EDL sortie** : duplication comparative, dégradations, vétusté, PDF comparatif, lettre de restitution.
-6. **Lot 5 — Finitions** : tableau de bord, alertes, export/import ZIP, avenants, tests, audit hors-ligne (couper le réseau et dérouler un EDL complet).
+1. **Lot 0 - Socle** : projet Vite+TS+Tailwind, PWA, routing, layout, design system minimal (Button, Input, Select, Modal, Toast, Badge, Stepper), Dexie + schéma complet, page Paramètres bailleur.
+2. **Lot 1 - Biens & Locataires** : CRUD, éditeur de structure de pièces, diagnostics.
+3. **Lot 2 - Baux** : assistant, validations, génération PDF bail + inventaire, cycle de vie, calculateurs (prorata, IRL).
+4. **Lot 3 - EDL entrée** : mode terrain, photos, compteurs, clés, autosauvegarde, signature + hash + verrouillage, PDF.
+5. **Lot 4 - EDL sortie** : duplication comparative, dégradations, vétusté, PDF comparatif, lettre de restitution.
+6. **Lot 5 - Finitions** : tableau de bord, alertes, export/import ZIP, avenants, tests, audit hors-ligne (couper le réseau et dérouler un EDL complet).
 
 ## 8. Critères d'acceptation globaux
 

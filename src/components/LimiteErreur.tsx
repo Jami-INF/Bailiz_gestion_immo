@@ -7,7 +7,7 @@ import { AlertTriangle } from 'lucide-react';
  * React démonte **tout l'arbre** dès qu'un composant lève, et l'application
  * devient alors une page blanche : plus de navigation, plus de moyen d'atteindre
  * la fiche fautive pour la corriger ou la supprimer. C'est arrivé pour un seul
- * bail dont un champ manquait — un défaut mineur transformé en blocage total.
+ * bail dont un champ manquait - un défaut mineur transformé en blocage total.
  *
  * Cette limite contient les dégâts à la zone de contenu : la navigation reste
  * là, et l'utilisateur peut aller ailleurs.
@@ -42,7 +42,7 @@ export class LimiteErreur extends Component<{ children: ReactNode }, Etat> {
             <AlertTriangle size={18} /> Cet écran n'a pas pu s'afficher
           </h1>
           <p className="mb-3 text-sm text-amber-800">
-            Vos données sont intactes — rien n'a été modifié. Le plus souvent, une fiche
+            Vos données sont intactes - rien n'a été modifié. Le plus souvent, une fiche
             incomplète empêche l'affichage de la liste qui la contient. Utilisez le menu pour
             aller ailleurs, ou réessayez.
           </p>

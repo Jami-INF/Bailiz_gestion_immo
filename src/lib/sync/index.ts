@@ -32,7 +32,7 @@ export const INTERVALLE_SYNC_MS = 5 * 60 * 1000;
  *
  * Il n'y a **plus qu'un seul mode** : brancher le Drive, c'est synchroniser.
  * L'interrupteur d'antan (`syncActive`) laissait coexister un mode « archive
- * complète » dont chaque couture avec le cycle a produit un défaut — date de
+ * complète » dont chaque couture avec le cycle a produit un défaut - date de
  * sauvegarde partagée, vocabulaires de résultat mélangés, garde-fou de
  * divergence sans objet. Pour ne pas synchroniser, on déconnecte le Drive.
  */
@@ -43,8 +43,8 @@ export async function syncActive(): Promise<boolean> {
 /**
  * Vide le journal quand le Drive n'est pas connecté. À appeler au démarrage.
  *
- * Les hooks l'alimentent quoi qu'il arrive — une suppression ne laisse aucune
- * trace récupérable après coup, on ne peut pas se permettre de la manquer —
+ * Les hooks l'alimentent quoi qu'il arrive - une suppression ne laisse aucune
+ * trace récupérable après coup, on ne peut pas se permettre de la manquer -
  * mais il n'a aucun objet sans Drive, et grossirait indéfiniment sur les
  * appareils qui n'en auront jamais.
  */
@@ -89,7 +89,7 @@ let etatCourant: EtatSync = { etat: 'ok' };
  * accumulées jusqu'à ce que l'utilisateur en prenne acte.
  *
  * Séparé de la santé du cycle, parce que ce n'est pas une panne : la
- * synchronisation fonctionne, elle a simplement tranché — et il faut le dire.
+ * synchronisation fonctionne, elle a simplement tranché - et il faut le dire.
  * Accumulé et non remplacé : le battement tourne en arrière-plan, et deux
  * cycles consécutifs ne doivent pas effacer l'avertissement du premier.
  */
@@ -147,12 +147,12 @@ export type ResultatSync = ResultatCycle | { etat: 'erreur' } | { etat: 'ignore'
  * Exécute un cycle complet si la synchronisation est active.
  *
  * Deux non-résultats, à ne surtout pas confondre :
- * - `ignore` — il n'y avait rien à tenter : Drive non connecté, ou un cycle
+ * - `ignore` - il n'y avait rien à tenter : Drive non connecté, ou un cycle
  *   déjà en cours. Sans conséquence, et **jamais** de quoi alerter : avec un
  *   battement toutes les cinq minutes, croiser un cycle en cours est banal, et
  *   le signaler comme une autorisation expirée enverrait l'utilisateur
  *   reconnecter un Drive qui fonctionne très bien.
- * - `indisponible` — le dépôt n'a pas pu être ouvert : hors-ligne, ou
+ * - `indisponible` - le dépôt n'a pas pu être ouvert : hors-ligne, ou
  *   autorisation Google à renouveler. Là, il y a quelque chose à faire.
  */
 export async function lancerCycle(
@@ -168,7 +168,7 @@ export async function lancerCycle(
   if (cycleEnCours) return { etat: 'ignore' };
   if (!(await syncActive())) {
     // Drive déconnecté : plus rien à signaler. Sans cette remise à zéro, un
-    // avertissement resterait affiché pour toujours après une déconnexion —
+    // avertissement resterait affiché pour toujours après une déconnexion -
     // plus aucun cycle n'atteindrait le code qui l'éteint.
     definirEtat({ etat: 'ok' });
     return { etat: 'ignore' };
@@ -177,7 +177,7 @@ export async function lancerCycle(
   /*
    * « En cours » ne recouvre jamais un avertissement déjà affiché. Le battement
    * repasse toutes les cinq minutes : sans cette réserve, le bandeau
-   * « Reconnecter » disparaîtrait puis reviendrait à chaque tour — y compris
+   * « Reconnecter » disparaîtrait puis reviendrait à chaque tour - y compris
    * sous le doigt de qui s'apprête à le toucher.
    */
   if (etatCourant.etat === 'ok') definirEtat({ etat: 'en_cours' });
@@ -192,7 +192,7 @@ export async function lancerCycle(
     if (!depot) {
       /*
        * Hors-ligne ou autorisation périmée : le dépôt ne fait pas la
-       * différence. Seul le second cas appelle un geste — inviter à
+       * différence. Seul le second cas appelle un geste - inviter à
        * « reconnecter Google » quelqu'un qui est simplement dans un ascenseur
        * serait un mensonge, et lui ferait chercher une panne inexistante.
        */
@@ -201,7 +201,7 @@ export async function lancerCycle(
     }
     const resultat = await synchroniser(depot, options);
     /*
-     * Le résultat doit remonter jusqu'à l'écran, y compris — surtout — quand le
+     * Le résultat doit remonter jusqu'à l'écran, y compris - surtout - quand le
      * cycle vient du battement, que personne ne regarde. Un garde-fou
      * déclenché arrête la synchronisation jusqu'à décision de l'utilisateur :
      * le taire reviendrait à laisser l'ordinateur imprimer d'anciennes données
@@ -241,7 +241,7 @@ export interface InstantaneDisponible {
 /**
  * Instantanés restaurables, du plus récent au plus ancien.
  *
- * `null` si le Drive est inaccessible — sans autorisation valide, ce n'est pas
+ * `null` si le Drive est inaccessible - sans autorisation valide, ce n'est pas
  * une erreur, seulement un report.
  */
 export async function instantanesDisponibles(): Promise<InstantaneDisponible[] | null> {
@@ -259,7 +259,7 @@ export async function instantanesDisponibles(): Promise<InstantaneDisponible[] |
  *
  * On ne restaure pas soi-même : `importerSauvegarde` sait déjà relire une
  * archive, et lui confier le travail évite d'avoir deux chemins de
- * restauration qui divergeraient — c'est précisément le genre de doublon dont
+ * restauration qui divergeraient - c'est précisément le genre de doublon dont
  * on vient de se débarrasser.
  */
 export async function telechargerInstantane(id: string): Promise<Blob | null> {

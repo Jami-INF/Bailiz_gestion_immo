@@ -88,7 +88,7 @@ export function TableauDeBordPage() {
     alertes.push({
       cle: 'quota',
       niveau: quota.pct >= 95 ? 'red' : 'orange',
-      texte: `Stockage du navigateur occupé à ${quota.pct} % (${formatOctets(quota.utilise)}) — exportez et faites de la place avant le prochain état des lieux`,
+      texte: `Stockage du navigateur occupé à ${quota.pct} % (${formatOctets(quota.utilise)}) - exportez et faites de la place avant le prochain état des lieux`,
       lien: '/parametres',
     });
   }
@@ -99,8 +99,8 @@ export function TableauDeBordPage() {
       cle: 'sauvegarde',
       niveau: 'orange',
       texte: parametres.derniereSauvegarde
-        ? `Dernière sauvegarde le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy')} — pensez à exporter vos données`
-        : 'Aucune sauvegarde effectuée — exportez vos données depuis les Paramètres',
+        ? `Dernière sauvegarde le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy')} - pensez à exporter vos données`
+        : 'Aucune sauvegarde effectuée - exportez vos données depuis les Paramètres',
       lien: '/parametres',
     });
   }
@@ -114,20 +114,20 @@ export function TableauDeBordPage() {
     /*
      * Un meublé d'un an ne « finit » pas : il se reconduit tacitement faute de
      * congé. Annoncer « fin de bail » laissait croire que le logement se
-     * libérait tout seul — et taisait la seule date qui engage vraiment, celle
+     * libérait tout seul - et taisait la seule date qui engage vraiment, celle
      * après laquelle il est trop tard pour donner congé.
      */
     echeances.push({
       date: fin,
       texte: terme.reconduction
         ? `Reconduction tacite ${bail.reference} (${bien?.nom ?? '?'})`
-        : `Fin de plein droit ${bail.reference} (${bien?.nom ?? '?'}) — non renouvelable`,
+        : `Fin de plein droit ${bail.reference} (${bien?.nom ?? '?'}) - non renouvelable`,
       lien: `/baux/${bail.id}`,
     });
     if (terme.limiteConge) {
       echeances.push({
         date: terme.limiteConge,
-        texte: `Dernier jour pour donner congé — ${bail.reference} (${bien?.nom ?? '?'})`,
+        texte: `Dernier jour pour donner congé - ${bail.reference} (${bien?.nom ?? '?'})`,
         lien: `/baux/${bail.id}`,
       });
     }
@@ -162,7 +162,7 @@ export function TableauDeBordPage() {
         /*
          * Premier écran de quelqu'un qui arrive de bailiz.fr, où on lui a promis
          * « choisissez un outil, remplissez, générez ». L'entrée se fait donc
-         * par le document et non par la fiche du logement — que le formulaire de
+         * par le document et non par la fiche du logement - que le formulaire de
          * bail sait de toute façon créer en cours de route.
          */
         <EmptyState

@@ -13,7 +13,7 @@ export interface ContexteBailMinimal {
  *
  * Fonction **pure**, partagée par deux chemins qui doivent produire le même
  * résultat : la migration Dexie v6 et la relecture d'une sauvegarde. L'import
- * d'archive écrit par `bulkPut`, qui ne déclenche aucun hook de migration —
+ * d'archive écrit par `bulkPut`, qui ne déclenche aucun hook de migration -
  * sans cette seconde application, une sauvegarde ancienne réintroduirait des
  * états des lieux sans logement.
  *
@@ -86,7 +86,7 @@ export interface ElementNonRenseigne {
  * Éléments dont l'état n'a pas encore été statué, dans l'ordre des pièces.
  *
  * Un élément marqué « manquant » compte comme renseigné : c'est une décision,
- * pas un oubli. Sert au récapitulatif cliquable avant signature — une barre de
+ * pas un oubli. Sert au récapitulatif cliquable avant signature - une barre de
  * progression dit qu'il reste du travail, elle ne dit pas *où*.
  */
 export function elementsNonRenseignes(pieces: PieceEDL[]): ElementNonRenseigne[] {

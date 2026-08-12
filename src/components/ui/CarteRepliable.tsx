@@ -5,8 +5,8 @@ import { Card } from './Layout';
 /**
  * Carte dépliable, pour les réglages longs.
  *
- * La page Paramètres mesurait 46 000 pixels — près de soixante écrans, 309
- * champs de saisie — dont 74 % pour deux cartes seulement. On ne lit pas une
+ * La page Paramètres mesurait 46 000 pixels - près de soixante écrans, 309
+ * champs de saisie - dont 74 % pour deux cartes seulement. On ne lit pas une
  * page pareille : on la subit.
  *
  * Deux partis pris :

@@ -13,7 +13,7 @@ import {
 /*
  * `border-accent-400` et non 300 : la limite d'un champ est un composant
  * d'interface, à 3:1 minimum (WCAG 1.4.11). Le libellé de remplacement passe en
- * `accent-500`, qui atteint AA — un texte d'aide illisible n'aide personne.
+ * `accent-500`, qui atteint AA - un texte d'aide illisible n'aide personne.
  * L'anneau de focus est doublé et prend la couleur de marque : sur un
  * formulaire de bail long, savoir où l'on est compte plus que la discrétion.
  */
@@ -37,7 +37,7 @@ const ChampContext = createContext<ContexteChamp | null>(null);
  *
  * Volontairement sans état ni compteur : toute tentative de n'attribuer
  * l'identifiant qu'au « premier » contrôle suppose de retenir qui l'a pris, et
- * `StrictMode` rejoue le rendu — l'identifiant était attribué au premier
+ * `StrictMode` rejoue le rendu - l'identifiant était attribué au premier
  * passage puis retiré au second, si bien que le libellé se retrouvait orphelin
  * en production alors que les tests passaient. La règle est donc :
  * **un `Field`, un contrôle.** Deux contrôles à étiqueter valent deux `Field`.
@@ -107,7 +107,7 @@ export function Field({
   /*
    * Le libellé n'était relié à aucun contrôle : un lecteur d'écran annonçait
    * « zone de saisie » sans dire laquelle, et toucher le libellé ne donnait pas
-   * le focus — pénible au doigt sur tablette, précisément la cible de l'app.
+   * le focus - pénible au doigt sur tablette, précisément la cible de l'app.
    * L'identifiant descend par contexte plutôt qu'en clonant les enfants, qui
    * peuvent être n'importe quoi (un `PhotoBien`, une grille de boutons…).
    */

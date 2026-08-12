@@ -121,14 +121,14 @@ export function BailPdf({
     .join(', ');
 
   return (
-    <Document title={`${bail.reference} — Bail meublé`} language="fr">
+    <Document title={`${bail.reference} - Bail meublé`} language="fr">
       {/* ------------------------- Page de garde ------------------------- */}
       <Page size="A4" style={s.page}>
         <EntetePdf reference={bail.reference} docTitre="Contrat de location meublée" />
         <View style={[s.titreBloc, { marginTop: photoDataUrl ? 12 : 40 }]}>
           <Text style={s.titre}>Contrat de location de logement meublé</Text>
           <Text style={s.sousTitre}>
-            Résidence principale — {TYPE_BAIL_LABELS[bail.typeBail]}. Soumis au titre Ier bis de la
+            Résidence principale - {TYPE_BAIL_LABELS[bail.typeBail]}. Soumis au titre Ier bis de la
             loi n°89-462 du 6 juillet 1989 et conforme au contrat type annexé au décret n°2015-587
             du 29 mai 2015 modifié.
           </Text>
@@ -142,9 +142,9 @@ export function BailPdf({
         ) : null}
 
         <View style={s.carte}>
-          <LigneGarde label="Bailleur" valeur={nomBailleur(b) || '—'} />
-          <LigneGarde label="Locataire(s)" valeur={nomsLocataires || '—'} />
-          <LigneGarde label="Logement" valeur={adresseComplete || '—'} />
+          <LigneGarde label="Bailleur" valeur={nomBailleur(b) || '-'} />
+          <LigneGarde label="Locataire(s)" valeur={nomsLocataires || '-'} />
+          <LigneGarde label="Logement" valeur={adresseComplete || '-'} />
           <LigneGarde
             label="Durée"
             valeur={`${bail.dureeMois} mois à compter du ${formatDateFr(bail.dateEffet)}`}
@@ -247,12 +247,12 @@ export function BailPdf({
                 l.garant!.type === 'visale' ? (
                   <Text style={s.tiersLigne} key={l.id}>
                     Garantie Visale (Action Logement) au bénéfice de {l.prenom} {l.nom}
-                    {l.garant!.numeroVisa ? ` — visa n°${l.garant!.numeroVisa}` : ''}.
+                    {l.garant!.numeroVisa ? ` - visa n°${l.garant!.numeroVisa}` : ''}.
                   </Text>
                 ) : (
                   <Text style={s.tiersLigne} key={l.id}>
                     {l.garant!.prenom} {l.garant!.nom}, demeurant{' '}
-                    <Rempl v={l.garant!.adresse} brouillon={brouillon} taille={55} /> — caution de{' '}
+                    <Rempl v={l.garant!.adresse} brouillon={brouillon} taille={55} /> - caution de{' '}
                     {l.prenom} {l.nom} (acte de cautionnement joint).
                   </Text>
                 ),
@@ -398,11 +398,11 @@ export function BailPdf({
           <Text style={s.p}>
             Le logement est en outre soumis au loyer de référence majoré fixé par arrêté
             préfectoral. Loyer de référence :{' '}
-            {bien.loyerReference != null ? formatEuros(bien.loyerReference) : '—'} ; loyer de
+            {bien.loyerReference != null ? formatEuros(bien.loyerReference) : '-'} ; loyer de
             référence majoré :{' '}
-            {bien.loyerReferenceMajore != null ? formatEuros(bien.loyerReferenceMajore) : '—'}.
+            {bien.loyerReferenceMajore != null ? formatEuros(bien.loyerReferenceMajore) : '-'}.
             {bail.complementLoyer
-              ? ` Complément de loyer : ${formatEuros(bail.complementLoyer.montant)} — caractéristiques le justifiant : ${bail.complementLoyer.justification}.`
+              ? ` Complément de loyer : ${formatEuros(bail.complementLoyer.montant)} - caractéristiques le justifiant : ${bail.complementLoyer.justification}.`
               : ' Aucun complément de loyer.'}
           </Text>
         )}
@@ -541,7 +541,7 @@ export function BailPdf({
           </Text>
           <Text style={s.p}>
             – en cas de <Text style={s.gras}>défaut d'assurance</Text> des risques locatifs par le
-            locataire (sauf assurance souscrite par le bailleur pour son compte) — le locataire
+            locataire (sauf assurance souscrite par le bailleur pour son compte) - le locataire
             justifie de cette assurance à la remise des clés puis chaque année à la demande du
             bailleur ;
           </Text>
@@ -591,7 +591,7 @@ export function BailPdf({
                   <View key={clause.id} wrap={false} style={{ marginBottom: 6 }}>
                     <Text style={s.p}>
                       <Text style={s.gras}>
-                        {`${num('clauses')}.${String.fromCharCode(65 + iFamille)}.${i + 1} — ${clause.titre}. `}
+                        {`${num('clauses')}.${String.fromCharCode(65 + iFamille)}.${i + 1} - ${clause.titre}. `}
                       </Text>
                       {clause.texte}
                     </Text>
@@ -629,7 +629,7 @@ export function BailPdf({
             <QrCode value={lienDossierTechnique} taille={92} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[s.gras, { marginBottom: 3 }]}>
-                Dossier de diagnostic technique — accès en ligne
+                Dossier de diagnostic technique - accès en ligne
               </Text>
               <Text style={s.petit}>
                 Scannez ce QR code pour consulter les diagnostics du logement (DPE, ERP,
@@ -658,7 +658,7 @@ export function BailPdf({
         <View wrap={false} style={{ marginTop: 18 }}>
           <Text style={s.h2}>Pièces à remettre par le locataire</Text>
           <Text style={s.petit}>
-            Aide-mémoire non contractuel — à cocher lors de la remise des clés pour vérifier que le
+            Aide-mémoire non contractuel - à cocher lors de la remise des clés pour vérifier que le
             dossier est complet.
           </Text>
           <View style={{ marginTop: 6 }}>

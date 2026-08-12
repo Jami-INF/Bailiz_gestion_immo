@@ -79,7 +79,7 @@ export function EdlSignaturePage() {
       await enregistrerDocument({
         reference: edl.reference,
         type: edl.type === 'entree' ? 'edl_entree' : 'edl_sortie',
-        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} — ${nomsPersonnes(locataires)}${suffixe}`,
+        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} - ${bien.nom} - ${nomsPersonnes(locataires)}${suffixe}`,
         blob,
         hash,
         signe: true,
@@ -98,7 +98,7 @@ export function EdlSignaturePage() {
         /*
          * Un EDL d'entrée signé, c'est la remise des clés : le logement est
          * loué. Le bail restait sinon « généré » jusqu'à ce que l'utilisateur
-         * pense à cliquer « Marquer le logement loué » — et le tableau de bord
+         * pense à cliquer « Marquer le logement loué » - et le tableau de bord
          * annonçait le logement vacant, sans fin de bail ni révision à venir.
          */
         await db.baux.put({ ...bail, statut: 'actif', updatedAt: nowISO() });
@@ -114,18 +114,18 @@ export function EdlSignaturePage() {
         else if (r === 'bloque')
           toast('warning', "Document signé. Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
         else if (r === 'permission_requise' || r === 'erreur')
-          toast('warning', 'Sauvegarde automatique impossible — pensez à exporter depuis les Paramètres.');
+          toast('warning', 'Sauvegarde automatique impossible - pensez à exporter depuis les Paramètres.');
       });
     } catch (e) {
       console.error(e);
-      toast('error', `Échec de la signature — ${decrireErreur(e)}`);
+      toast('error', `Échec de la signature - ${decrireErreur(e)}`);
     } finally {
       setEnCours(false);
     }
   };
 
   if (resultat) {
-    const sujet = encodeURIComponent(`${edl.reference} — État des lieux ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.adresse.ligne1}`);
+    const sujet = encodeURIComponent(`${edl.reference} - État des lieux ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} - ${bien.adresse.ligne1}`);
     const corps = encodeURIComponent(
       `Bonjour,\n\nConformément à l'article 3-2 de la loi du 6 juillet 1989, veuillez trouver ci-joint votre exemplaire de l'état des lieux ${
         edl.type === 'entree' ? "d'entrée" : 'de sortie'
@@ -164,7 +164,7 @@ export function EdlSignaturePage() {
                 telechargerDocument({
                   blob: resultat.blob,
                   reference: edl.reference,
-                  titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} — ${bien.nom} — ${nomsPersonnes(locataires)} (signé)`,
+                  titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} - ${bien.nom} - ${nomsPersonnes(locataires)} (signé)`,
                 })
               }
             >
@@ -210,7 +210,7 @@ export function EdlSignaturePage() {
           <ul className="mt-2 space-y-0.5 text-xs">
             {oublis.slice(0, 12).map((o) => (
               <li key={o.elementId}>
-                {o.pieceNom} — {o.elementNom}
+                {o.pieceNom} - {o.elementNom}
               </li>
             ))}
             {oublis.length > 12 && <li>… et {oublis.length - 12} autre(s).</li>}
@@ -257,7 +257,7 @@ function RecapEdl({ edl }: { edl: EtatDesLieux }) {
         <h3 className="font-semibold">Clés</h3>
         {edl.cles.map((c, i) => (
           <p key={i}>
-            {c.designation} × {c.nombre} {c.commentaire ? `— ${c.commentaire}` : ''}
+            {c.designation} × {c.nombre} {c.commentaire ? `- ${c.commentaire}` : ''}
           </p>
         ))}
       </div>
@@ -270,9 +270,9 @@ function RecapEdl({ edl }: { edl: EtatDesLieux }) {
               <p key={el.id}>
                 {el.nom} : {el.etat ? ETAT_LABELS[el.etat] : 'non renseigné'}
                 {edl.type === 'sortie' && el.etatEntree ? ` (entrée : ${ETAT_LABELS[el.etatEntree]})` : ''}
-                {el.degradation ? ' — DÉGRADATION' : ''}
-                {el.commentaire ? ` — ${el.commentaire}` : ''}
-                {el.photoIds.length > 0 ? ` — ${el.photoIds.length} photo(s)` : ''}
+                {el.degradation ? ' - DÉGRADATION' : ''}
+                {el.commentaire ? ` - ${el.commentaire}` : ''}
+                {el.photoIds.length > 0 ? ` - ${el.photoIds.length} photo(s)` : ''}
               </p>
             ))}
           </div>

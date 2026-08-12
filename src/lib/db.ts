@@ -54,14 +54,14 @@ export interface SyncEtat {
   /**
    * @deprecated Empreinte d'un seul bloc des réglages, remplacée par
    * `empreintes`. Encore lue une fois, à la migration, pour ne pas repartir
-   * sans référence — ce qui rejouerait une fusion déjà tranchée.
+   * sans référence - ce qui rejouerait une fusion déjà tranchée.
    */
   empreinte?: string;
   /**
    * Contenu exact de la dernière version synchronisée, **par section de
    * réglages**. Utilisé pour le seul singleton `parametres`, qui n'a pas de
    * date de modification : comparer à ces empreintes est le seul moyen de
-   * savoir qui, du local ou du distant, a réellement changé — et de ne le
+   * savoir qui, du local ou du distant, a réellement changé - et de ne le
    * décider que section par section.
    */
   empreintes?: Record<string, string>;
@@ -76,7 +76,7 @@ export interface SyncEtat {
  * formulaire est enregistré ou abandonné.
  */
 export interface BrouillonFormulaire {
-  /** `bien:nouveau`, `bien:<id>` — un seul brouillon par formulaire. */
+  /** `bien:nouveau`, `bien:<id>` - un seul brouillon par formulaire. */
   cle: string;
   donnees: unknown;
   /** Date de la dernière frappe, affichée à la reprise. */
@@ -147,8 +147,8 @@ class BailizDB extends Dexie {
      *
      * `*locataireIds` (multiEntry) n'est pas un confort : la suppression
      * définitive d'un locataire retrouvait ses états des lieux **par le bail**.
-     * Sans cet index, un EDL sans bail — qui porte son nom, sa signature
-     * manuscrite et son horodatage — échapperait entièrement au droit à
+     * Sans cet index, un EDL sans bail - qui porte son nom, sa signature
+     * manuscrite et son horodatage - échapperait entièrement au droit à
      * l'effacement.
      */
     this.version(6)
@@ -164,7 +164,7 @@ class BailizDB extends Dexie {
           .modify((edl: EtatDesLieux) => {
             // Un EDL dont le bail a disparu ressort sans `bienId` : il reste
             // lisible et rattachable, plutôt que de faire échouer la migration
-            // — donc l'ouverture de l'application — sur une base abîmée.
+            // - donc l'ouverture de l'application - sur une base abîmée.
             completerContexteEdl(edl, edl.bailId ? parId.get(edl.bailId) : undefined);
           });
       });
@@ -216,7 +216,7 @@ function normaliser(p: Parametres): Parametres {
  * Lecture **sans écriture** des paramètres : la seule forme utilisable dans un
  * `useLiveQuery`. Dexie exécute un `liveQuery` dans une transaction en lecture
  * seule ; y créer la ligne par défaut lève une `ReadOnlyError` et fait planter
- * la page — écran blanc pour qui ouvre l'application sur une base neuve.
+ * la page - écran blanc pour qui ouvre l'application sur une base neuve.
  */
 export async function lireParametres(): Promise<Parametres> {
   const existant = await db.parametres.get('singleton');

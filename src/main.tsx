@@ -10,7 +10,7 @@ import './index.css';
  * Mise à jour **proposée**, jamais imposée : `registerType: 'prompt'` côté Vite,
  * et ici on se contente de signaler la disponibilité à l'interface. Une prise de
  * contrôle automatique du service worker peut recharger la page pendant un état
- * des lieux saisi sur place — la saisie est certes sauvegardée en continu, mais
+ * des lieux saisi sur place - la saisie est certes sauvegardée en continu, mais
  * pas la confiance du locataire qui regarde l'écran.
  */
 const majSW = registerSW({

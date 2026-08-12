@@ -69,7 +69,7 @@ const pdf = (id: string, extra: Partial<{ bailId: string; edlId: string }>) => (
   id,
   reference: `DOC-${id}`,
   type: 'bail' as const,
-  titre: 'Bail meublé — Marie Dupont',
+  titre: 'Bail meublé - Marie Dupont',
   blob: new Blob(['x']),
   signe: false,
   createdAt: '',
@@ -203,7 +203,7 @@ describe('suppression RGPD d’un locataire', () => {
 describe('suppression d’un bail', () => {
   /*
    * Il n'existait aucun moyen d'effacer un bail : une fiche restée en base
-   * après un enregistrement interrompu — ou dont le bien avait disparu —
+   * après un enregistrement interrompu - ou dont le bien avait disparu -
    * devenait définitive, et sa page était blanche.
    */
   beforeEach(async () => {

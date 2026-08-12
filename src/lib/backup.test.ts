@@ -47,7 +47,7 @@ describe('export / import de sauvegarde', () => {
       id: 'photo-1',
       blob: new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'image/jpeg' }),
       dateCapture: '2026-01-02T10:00:00.000Z',
-      legende: 'Séjour — Sol',
+      legende: 'Séjour - Sol',
       edlId: 'edl-1',
     };
     await db.photos.add(photo);
@@ -67,7 +67,7 @@ describe('export / import de sauvegarde', () => {
     const bien = await db.biens.get('bien-1');
     expect(bien?.nom).toBe('T2 Chamalières');
     const photoRestauree = await db.photos.get('photo-1');
-    expect(photoRestauree?.legende).toBe('Séjour — Sol');
+    expect(photoRestauree?.legende).toBe('Séjour - Sol');
     const octets = new Uint8Array(await photoRestauree!.blob.arrayBuffer());
     expect(Array.from(octets)).toEqual([1, 2, 3, 4]);
   });
@@ -76,7 +76,7 @@ describe('export / import de sauvegarde', () => {
    * L'import écrit par `bulkPut`, qui ne déclenche aucun hook de migration
    * Dexie : une archive écrite avant que l'état des lieux ne porte son contexte
    * doit donc être complétée à la relecture, sinon elle réintroduit dans une
-   * base à jour des états des lieux sans logement — invisibles en liste et
+   * base à jour des états des lieux sans logement - invisibles en liste et
    * impossibles à imprimer.
    */
   it("complète le contexte des états des lieux d’une archive écrite avant la v6", async () => {

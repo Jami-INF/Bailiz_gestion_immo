@@ -73,7 +73,7 @@ function bienExemple(): Bien {
       charges: { mode: 'forfait', montant: 60 },
       depotGarantie: 1040,
       dateDisponibilite: '2026-09-01',
-      acces: 'Interphone, 2e étage — stationnement gratuit dans la rue',
+      acces: 'Interphone, 2e étage - stationnement gratuit dans la rue',
     },
     piecesModele: [],
     createdAt: nowISO(),
@@ -83,7 +83,7 @@ function bienExemple(): Bien {
 
 /**
  * Modèle de la fiche de visite : blocs imprimés, textes libres et liste des
- * pièces du dossier de candidature. Même ergonomie que la grille de vétusté —
+ * pièces du dossier de candidature. Même ergonomie que la grille de vétusté -
  * chaque modification est écrite directement en base (pas de bouton
  * « Enregistrer » séparé).
  */

@@ -3,7 +3,7 @@ import type { Bailleur, PersonneBailleur } from '@/types';
 /**
  * Désignation du bailleur au contrat.
  *
- * Trois qualités, trois rédactions — et ce n'est pas cosmétique : un logement
+ * Trois qualités, trois rédactions - et ce n'est pas cosmétique : un logement
  * détenu en indivision loué au nom d'un seul indivisaire expose le bail à la
  * contestation des autres, et une société désignée par le seul nom de son
  * gérant n'est pas partie au contrat. La partie I du bail type doit identifier
@@ -80,7 +80,7 @@ export function designationBailleur(b: Bailleur): string[] {
   const personnes = personnesBailleur(b);
   if (b.qualite === 'indivision') {
     return [
-      `${personnes.map(nomPersonne).filter(Boolean).join(', ')} — propriétaires indivis du logement, agissant conjointement${
+      `${personnes.map(nomPersonne).filter(Boolean).join(', ')} - propriétaires indivis du logement, agissant conjointement${
         b.siret ? `, SIRET : ${b.siret}` : ''
       }.`,
       'Chacun des indivisaires a la qualité de bailleur ; le congé, la révision du loyer et la restitution du dépôt de garantie relèvent de leur décision commune.',
@@ -88,7 +88,7 @@ export function designationBailleur(b: Bailleur): string[] {
   }
 
   return [
-    `${nomPersonne(personnes[0]) || 'Bailleur non renseigné'} — personne physique, loueur en meublé non professionnel (LMNP)${
+    `${nomPersonne(personnes[0]) || 'Bailleur non renseigné'} - personne physique, loueur en meublé non professionnel (LMNP)${
       b.siret ? `, SIRET : ${b.siret}` : ''
     }.`,
   ];

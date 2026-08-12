@@ -37,7 +37,7 @@ describe('vérification contre les documents archivés', () => {
       id: 'doc-1',
       reference: 'EDL-2026-0001',
       type: 'edl_entree',
-      titre: "EDL d'entrée — T2 Chamalières",
+      titre: "EDL d'entrée - T2 Chamalières",
       blob,
       hash: await sha256Hex(blob),
       signe: true,

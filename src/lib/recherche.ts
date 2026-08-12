@@ -1,7 +1,7 @@
 /**
  * Recherche dans les listes : insensible à la casse **et aux accents**, sur des
  * données saisies à la main. « chamalieres » doit trouver « Chamalières », et
- * « Zoe » trouver « Zoé » — sans quoi la recherche paraît cassée à chaque nom
+ * « Zoe » trouver « Zoé » - sans quoi la recherche paraît cassée à chaque nom
  * propre français.
  */
 export function normaliser(texte: string): string {

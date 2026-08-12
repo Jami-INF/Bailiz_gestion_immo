@@ -164,7 +164,7 @@ export function ParametresPage() {
           {quota?.critique && (
             <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               Le stockage de ce navigateur est occupé à {quota.pct} %. Au-delà, il peut refuser
-              d'enregistrer une photo ou un PDF — en plein état des lieux. Exportez une sauvegarde,
+              d'enregistrer une photo ou un PDF - en plein état des lieux. Exportez une sauvegarde,
               puis libérez de la place (états des lieux anciens, documents archivés).
             </p>
           )}

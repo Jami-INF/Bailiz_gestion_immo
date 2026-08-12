@@ -1,4 +1,4 @@
-# CDC — Comparaison photographique entrée / sortie (état des lieux)
+# CDC - Comparaison photographique entrée / sortie (état des lieux)
 
 > Complète `README.md` et `docs/DOCUMENTATION_TECHNIQUE.md`. Périmètre : le module EDL
 > uniquement. Aucun changement du bail ni du modèle de sauvegarde.
@@ -11,7 +11,7 @@ Aujourd'hui, l'état des lieux de sortie reprend **l'état d'entrée sous forme 
 1. **Sur le terrain**, impossible de comparer visuellement : on constate une rayure sans pouvoir
    vérifier si elle existait déjà. Le jugement se fait de mémoire.
 2. **Dans le document**, une dégradation n'est pas *prouvée* : le PDF de sortie ne contient que
-   les photos de sortie, en vrac. Sans le « avant », l'« après » ne démontre rien — or c'est
+   les photos de sortie, en vrac. Sans le « avant », l'« après » ne démontre rien - or c'est
    précisément ce qui fonde une retenue sur le dépôt de garantie en cas de litige.
 
 L'objectif est de rendre la comparaison **immédiate sur place** et **opposable dans le document**.
@@ -21,7 +21,7 @@ L'objectif est de rendre la comparaison **immédiate sur place** et **opposable 
 | Brique | État |
 |---|---|
 | `ElementEDL.photoIdsEntree` | ✅ Rempli par `construirePiecesSortie` : les photos d'entrée sont déjà référencées par l'EDL de sortie |
-| Photos en base | ✅ `db.photos` (Blob compressé 1600 px / JPEG 0,7), rattachées à l'EDL d'origine — non dupliquées |
+| Photos en base | ✅ `db.photos` (Blob compressé 1600 px / JPEG 0,7), rattachées à l'EDL d'origine - non dupliquées |
 | Synthèse comparative | ✅ `EdlSynthesePage` affiche déjà les vignettes entrée/sortie côte à côte, **pour les éléments dégradés** |
 | Annexe photo du PDF | ⚠️ Existe, mais liste **toutes les photos en vrac**, sans distinction entrée/sortie |
 | Chargement des photos du PDF | ❌ `chargerPhotosPourPdf` ignore `photoIdsEntree` : les photos d'entrée n'entrent jamais dans le PDF de sortie |
@@ -38,7 +38,7 @@ et le **rendu PDF**, pas sur la structure.
 
 ## 4. Spécifications
 
-### 4.1 Mode terrain — aperçu des photos d'entrée (EDL de sortie)
+### 4.1 Mode terrain - aperçu des photos d'entrée (EDL de sortie)
 
 - Pour chaque élément disposant de `photoIdsEntree`, afficher une **vignette de référence**
   (~44 px, cible tactile conforme) libellée **« Entrée »**, distincte visuellement des photos de
@@ -47,11 +47,11 @@ et le **rendu PDF**, pas sur la structure.
 - **Tap** → visionneuse plein écran : photo en grand, légende, date de prise de vue,
   **navigation entre les photos d'entrée** de cet élément, fermeture par bouton et par geste.
 - Dans la visionneuse, si l'élément a **déjà des photos de sortie**, permettre de **basculer
-  entrée ⇄ sortie** sur la même vue — c'est le geste qui rend la comparaison réellement utile.
+  entrée ⇄ sortie** sur la même vue - c'est le geste qui rend la comparaison réellement utile.
 - **EDL d'entrée** : rien ne change (aucune photo de référence à afficher).
 - **Lecture seule** (EDL signé) : la visionneuse reste accessible.
 
-### 4.2 PDF de sortie — preuve de la différence
+### 4.2 PDF de sortie - preuve de la différence
 
 - Nouvelle section, avant l'annexe photographique : **« Comparaison avant / après »**.
 - Un bloc par élément `degradation === true` **ou** `manquant === true`, contenant :
@@ -72,9 +72,9 @@ et le **rendu PDF**, pas sur la structure.
 ### 4.3 Chargement des photos
 
 - `chargerPhotosPourPdf` doit inclure les `photoIdsEntree` des éléments concernés, en conservant
-  l'information d'origine (entrée ou sortie) — aujourd'hui perdue.
+  l'information d'origine (entrée ou sortie) - aujourd'hui perdue.
 - Les photos d'entrée sont lues depuis `db.photos` via leur id : **aucune duplication** de Blob.
-- **Photo introuvable** (EDL d'entrée purgé, restauration partielle) : ne pas échouer — afficher
+- **Photo introuvable** (EDL d'entrée purgé, restauration partielle) : ne pas échouer - afficher
   « Photo non disponible » et poursuivre la génération.
 
 ## 5. Contraintes

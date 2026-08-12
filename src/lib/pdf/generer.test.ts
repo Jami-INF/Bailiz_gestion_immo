@@ -27,10 +27,10 @@ describe('nomFichierDocument', () => {
     expect(
       nomFichierDocument({
         reference: 'BAIL-2026-0001',
-        titre: 'Bail meublé — T2 Chamalières — Marie Dupont',
+        titre: 'Bail meublé - T2 Chamalières - Marie Dupont',
         createdAt: '2026-07-07T10:00:00.000Z',
       }),
-    ).toBe('BAIL-2026-0001 - Bail meublé — T2 Chamalières — Marie Dupont - 2026-07-07.pdf');
+    ).toBe('BAIL-2026-0001 - Bail meublé - T2 Chamalières - Marie Dupont - 2026-07-07.pdf');
   });
 
   it('nettoie les caractères interdits dans les noms de fichiers', () => {

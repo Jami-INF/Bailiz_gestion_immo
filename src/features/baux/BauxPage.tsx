@@ -46,7 +46,7 @@ export function BauxPage() {
   /*
    * Recherche et tri restent aussi défensifs que le rendu : une fiche abîmée
    * (référence, date ou statut manquant) doit sortir de la comparaison sans
-   * lever — sinon la liste entière redevient inaccessible.
+   * lever - sinon la liste entière redevient inaccessible.
    */
   const visibles = useMemo(() => {
     const nomBien = (id: string | undefined) => biens?.find((b) => b.id === id)?.nom ?? '';
@@ -143,8 +143,8 @@ export function BauxPage() {
           {visibles.map((bail) => {
             /*
              * Rendu **total** : aucune de ces valeurs n'est supposée présente.
-             * Une seule fiche abîmée — champ manquant, date illisible, statut
-             * inconnu — faisait lever une exception dans ce `map`, et React
+             * Une seule fiche abîmée - champ manquant, date illisible, statut
+             * inconnu - faisait lever une exception dans ce `map`, et React
              * démontait alors la page entière : écran blanc, plus aucun bail
              * accessible, donc impossible d'aller supprimer le coupable.
              */
@@ -166,15 +166,15 @@ export function BauxPage() {
                 <Card className="flex flex-wrap items-center justify-between gap-3 transition-shadow hover:shadow-md">
                   <div className="min-w-0">
                     <div className="break-words font-semibold text-accent-900">
-                      {bail.reference ?? 'Bail sans référence'} — {bien?.nom ?? 'Bien supprimé'}
+                      {bail.reference ?? 'Bail sans référence'} - {bien?.nom ?? 'Bien supprimé'}
                     </div>
                     <div className="break-words text-sm text-accent-600">
                       {noms || 'Locataires non renseignés'} ·{' '}
                       {TYPE_BAIL_LABELS[bail.typeBail] ?? 'Type non renseigné'}
                     </div>
                     <div className="text-xs text-accent-500">
-                      Effet : {effetLisible} · {bail.loyerHC ?? '—'} € HC +{' '}
-                      {bail.charges?.montant ?? '—'} € de charges
+                      Effet : {effetLisible} · {bail.loyerHC ?? '-'} € HC +{' '}
+                      {bail.charges?.montant ?? '-'} € de charges
                     </div>
                   </div>
                   <Badge tone={ui.tone}>{ui.label}</Badge>

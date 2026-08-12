@@ -45,7 +45,7 @@ export const SEUIL_QUOTA_CRITIQUE_PCT = 80;
  *
  * Les photos d'états des lieux pèsent lourd et s'accumulent sans qu'on les
  * voie : sans cette mesure, on découvre le quota le jour où une écriture
- * échoue — c'est-à-dire en plein état des lieux.
+ * échoue - c'est-à-dire en plein état des lieux.
  *
  * `undefined` si l'API n'est pas disponible (Safari ancien) ou si le
  * navigateur ne rend pas de chiffre exploitable : mieux vaut ne rien afficher

@@ -103,7 +103,7 @@ function BlocBailleur({
  * L'état des lieux est un acte autonome (art. 3-2 de la loi du 6 juillet 1989) :
  * rien n'impose que le contrat auquel il sera annexé ait été rédigé ici. Le
  * logement et les parties se saisissent donc dans ce formulaire, comme le
- * formulaire de bail sait déjà le faire — et deviennent de vraies fiches,
+ * formulaire de bail sait déjà le faire - et deviennent de vraies fiches,
  * réutilisables pour la sortie, la relocation, ou un bail rédigé plus tard.
  */
 export function EdlRapidePage() {
@@ -203,7 +203,7 @@ export function EdlRapidePage() {
       navigate(`/edl/${edl.id}`);
     } catch (e) {
       console.error(e);
-      toast('error', `Création impossible — ${decrireErreur(e)}`);
+      toast('error', `Création impossible - ${decrireErreur(e)}`);
       setEnCours(false);
     }
   };
@@ -225,7 +225,7 @@ export function EdlRapidePage() {
       {reprise && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
           <span>
-            <span className="font-medium">Saisie reprise</span> — du{' '}
+            <span className="font-medium">Saisie reprise</span> - du{' '}
             {format(new Date(reprise), "dd/MM/yyyy 'à' HH:mm")}.
           </span>
           <Button
@@ -283,10 +283,10 @@ export function EdlRapidePage() {
                   value={saisie.bienId ?? ''}
                   onChange={(e) => maj({ bienId: e.target.value || undefined, piecesChoisies: undefined })}
                 >
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {biens.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.nom} — {formatAdresse(b.adresse)}
+                      {b.nom} - {formatAdresse(b.adresse)}
                     </option>
                   ))}
                 </Select>
@@ -305,7 +305,7 @@ export function EdlRapidePage() {
           {trame.length > 0 && (
             <div>
               <p className="mb-2 text-sm text-accent-700">
-                Ce logement n'a pas encore de pièces. Voici une trame déduite de son type — ajustez-la,
+                Ce logement n'a pas encore de pièces. Voici une trame déduite de son type - ajustez-la,
                 elle sera enregistrée sur la fiche du logement et resservira ensuite.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -412,7 +412,7 @@ export function EdlRapidePage() {
         {sortie && (
           <Section
             titre="L'état des lieux d'entrée"
-            description="C'est la référence à laquelle la sortie se compare — et ce qui fonde une retenue sur le dépôt."
+            description="C'est la référence à laquelle la sortie se compare - et ce qui fonde une retenue sur le dépôt."
           >
             <div className="space-y-2">
               {[
@@ -469,10 +469,10 @@ export function EdlRapidePage() {
                   value={saisie.edlEntreeId ?? ''}
                   onChange={(e) => maj({ edlEntreeId: e.target.value || undefined })}
                 >
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {entreesDisponibles.map((e) => (
                     <option key={e.id} value={e.id}>
-                      {e.reference} — {format(new Date(e.date), 'dd/MM/yyyy')}
+                      {e.reference} - {format(new Date(e.date), 'dd/MM/yyyy')}
                       {e.statut === 'signe' ? ' (signé)' : ' (brouillon)'}
                     </option>
                   ))}

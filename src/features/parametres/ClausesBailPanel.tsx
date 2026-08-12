@@ -41,7 +41,7 @@ const LIBELLE_CONDITION: Record<string, string> = {
  * ne fait presque jamais.
  *
  * La coche est **hors** du bouton de dépliage : imbriquer un contrôle dans un
- * autre rendrait un simple cochage imprévisible — on ne saurait jamais si l'on
+ * autre rendrait un simple cochage imprévisible - on ne saurait jamais si l'on
  * vient aussi d'ouvrir la clause.
  */
 function LigneClause({

@@ -25,7 +25,7 @@ export const pdfStyles = StyleSheet.create({
     marginBottom: 18,
   },
   reference: { fontSize: 8, color: '#78746D', letterSpacing: 0.4, textTransform: 'uppercase' },
-  // Bloc de titre centré, souligné d'un filet — en tête du document.
+  // Bloc de titre centré, souligné d'un filet - en tête du document.
   titreBloc: {
     borderBottomWidth: 1.2,
     borderBottomColor: '#1A1815',
@@ -54,7 +54,7 @@ export const pdfStyles = StyleSheet.create({
   },
   h3: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#413F3A', marginTop: 9, marginBottom: 3 },
   p: { marginBottom: 5, textAlign: 'justify' },
-  // Bloc d'une partie (bailleur, locataire, garant) — aéré, présentation en liste.
+  // Bloc d'une partie (bailleur, locataire, garant) - aéré, présentation en liste.
   tiers: { marginBottom: 9 },
   tiersLigne: { marginBottom: 2, paddingLeft: 12, color: '#413F3A' },
   /** Ligne comportant des zones à compléter à la main : interligne élargi. */
@@ -101,14 +101,14 @@ export const pdfStyles = StyleSheet.create({
 });
 
 export function formatDateFr(iso: string | undefined, avecHeure = false): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return format(new Date(iso), avecHeure ? "d MMMM yyyy 'à' HH:mm:ss" : 'd MMMM yyyy', {
     locale: fr,
   });
 }
 
 /**
- * Dans un flux `<Text>`, rend une valeur ou — en mode brouillon (bail rapide) —
+ * Dans un flux `<Text>`, rend une valeur ou - en mode brouillon (bail rapide) -
  * une zone pointillée à compléter à la main. En mode normal (flux complet), une
  * valeur vide rend une chaîne vide : le comportement historique est préservé.
  */
@@ -208,7 +208,7 @@ export function PiedDePagePdf({ hash, paraphes }: { hash?: string; paraphes?: bo
         {hash ? `Empreinte SHA-256 : ${formatHash(hash)}` : 'Document généré par Bailiz'}
       </Text>
       {paraphes && (
-        <Text style={pdfStyles.petit}>Paraphes — bailleur : ......... locataire : .........</Text>
+        <Text style={pdfStyles.petit}>Paraphes - bailleur : ......... locataire : .........</Text>
       )}
       <Text
         style={pdfStyles.petit}
@@ -226,7 +226,7 @@ export function SignaturesPdf({ signatures, mention }: { signatures: SignatureBl
       <Text style={{ fontSize: 9, marginTop: 2 }}>{s.nomComplet}</Text>
       {s.luEtApprouve && (
         <Text style={pdfStyles.petit}>
-          « Lu et approuvé — je reconnais avoir pris connaissance de l'intégralité du document »
+          « Lu et approuvé - je reconnais avoir pris connaissance de l'intégralité du document »
         </Text>
       )}
       {s.imageDataUrl ? (
@@ -275,7 +275,7 @@ export function ZoneSignatureManuscrite({ locataires }: { locataires: string[] }
         </View>
         {locataires.map((nom, i) => (
           <View style={pdfStyles.blocSignature} key={i}>
-            <Text style={[pdfStyles.petit, pdfStyles.gras]}>Le locataire — {nom}</Text>
+            <Text style={[pdfStyles.petit, pdfStyles.gras]}>Le locataire - {nom}</Text>
             <View style={{ height: 72 }} />
             <Text style={pdfStyles.petit}>« Lu et approuvé »</Text>
           </View>
