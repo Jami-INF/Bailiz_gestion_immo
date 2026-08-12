@@ -21,6 +21,7 @@ import {
   exporterSauvegarde,
   importerSauvegarde,
   lireSauvegarde,
+  supprimerToutesLesDonnees,
   telechargerBlob,
 } from '@/lib/backup';
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
@@ -35,6 +36,7 @@ import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
 import {
   Button,
   CarteRepliable,
+  Field,
   Input,
   Modal,
   PageHeader,
@@ -54,6 +56,9 @@ export function ParametresPage() {
     data: Awaited<ReturnType<typeof lireSauvegarde>>['data'];
     conflits: number;
   } | null>(null);
+  const [suppressionOuverte, setSuppressionOuverte] = useState(false);
+  const [confirmationSuppression, setConfirmationSuppression] = useState('');
+  const [suppression, setSuppression] = useState(false);
 
   if (!parametres) return null;
 
@@ -106,6 +111,18 @@ export function ParametresPage() {
       'success',
       `Import terminé : ${resume.biens} biens, ${resume.baux} baux, ${resume.edls} EDL, ${resume.photos} photos, ${resume.documents} PDF restaurés.`,
     );
+  };
+
+  const supprimerTout = async () => {
+    setSuppression(true);
+    try {
+      await supprimerToutesLesDonnees();
+      setSuppressionOuverte(false);
+      setConfirmationSuppression('');
+      toast('success', 'Toutes les données ont été supprimées de cet appareil.');
+    } finally {
+      setSuppression(false);
+    }
   };
 
   return (
@@ -302,6 +319,14 @@ export function ParametresPage() {
             prescription) et de leur suppression. La suppression définitive d'un locataire
             s'effectue depuis la page Locataires (bloquée si un bail actif y est lié).
           </p>
+          <p className="mt-3 text-sm text-accent-600">
+            Pour tout effacer d'un coup (biens, locataires, baux, états des lieux, photos,
+            documents et paramètres), utilisez le bouton ci-dessous. Exportez d'abord une
+            sauvegarde si vous voulez pouvoir revenir en arrière : l'opération est irréversible.
+          </p>
+          <Button variant="danger" className="mt-3" onClick={() => setSuppressionOuverte(true)}>
+            <Trash2 size={16} /> Supprimer toutes mes données
+          </Button>
         </CarteRepliable>
 
         <CarteRepliable
@@ -351,6 +376,56 @@ export function ParametresPage() {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={suppressionOuverte}
+        onClose={() => {
+          setSuppressionOuverte(false);
+          setConfirmationSuppression('');
+        }}
+        title="Supprimer toutes les données"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSuppressionOuverte(false);
+                setConfirmationSuppression('');
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              disabled={confirmationSuppression !== 'SUPPRIMER' || suppression}
+              onClick={() => void supprimerTout()}
+            >
+              <Trash2 size={16} /> {suppression ? 'Suppression…' : 'Supprimer définitivement'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm text-accent-700">
+          <p>
+            Cette action efface <span className="font-medium">définitivement</span>, sur cet
+            appareil : tous les biens, locataires, baux, états des lieux, photos et PDF générés,
+            ainsi que vos paramètres (identité du bailleur, grille de vétusté, clauses, modèle de
+            fiche de visite).
+          </p>
+          <p className="rounded-lg bg-amber-50 p-3 text-amber-800">
+            Aucune donnée n'est conservée ailleurs : sans sauvegarde exportée au préalable, elle
+            est perdue sans recours.
+          </p>
+          <Field label={'Tapez "SUPPRIMER" pour confirmer'}>
+            <Input
+              value={confirmationSuppression}
+              onChange={(e) => setConfirmationSuppression(e.target.value)}
+              placeholder="SUPPRIMER"
+              autoComplete="off"
+            />
+          </Field>
+        </div>
       </Modal>
     </div>
   );

@@ -53,7 +53,11 @@ export function ApercuBailPanel({
           </Button>
         )}
         {apercu ? (
-          <iframe title="Aperçu du bail" src={apercu.url} className={`${cadre} border border-accent-200 bg-white`} />
+          <iframe
+            title="Aperçu du bail"
+            src={`${apercu.url}#navpanes=0`}
+            className={`${cadre} border border-accent-200 bg-white`}
+          />
         ) : (
           <div className={`${cadre} flex items-center justify-center border border-dashed border-accent-200 text-sm text-accent-400`}>
             L’aperçu s’affiche ici.

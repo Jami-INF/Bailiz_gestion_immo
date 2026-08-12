@@ -3,6 +3,7 @@ import { db, getParametres } from './db';
 import { nowISO } from './ids';
 import { bailleurRenseigne } from './bailleur';
 import { completerContexteEdl } from './etat';
+import { sansJournaliser } from './sync/journal';
 import type { EtatDesLieux, Photo } from '@/types';
 
 interface DonneesExport {
@@ -286,6 +287,55 @@ export async function importerSauvegarde(
     photos: photos.length,
     documents: documents.length,
   };
+}
+
+/**
+ * Efface toutes les données de l'appareil : biens, locataires, baux, EDL,
+ * photos, documents, paramètres (identité du bailleur, grille de vétusté,
+ * clauses, fiche de visite), configuration de sauvegarde automatique et état
+ * de synchronisation. Irréversible — à réserver à un bouton protégé par une
+ * confirmation explicite (cf. `ParametresPage`).
+ */
+export async function supprimerToutesLesDonnees(): Promise<void> {
+  // `sansJournaliser` : sans elle, les hooks de suivi (`journal.ts`) rejournalisent
+  // chaque ligne effacée des tables synchronisées comme une suppression à
+  // envoyer au Drive — le journal se retrouve non vide juste après l'avoir
+  // vidé, pour des enregistrements qui n'existent plus.
+  await sansJournaliser(() =>
+    db.transaction(
+      'rw',
+      [
+        db.biens,
+        db.locataires,
+        db.baux,
+        db.inventaires,
+        db.edls,
+        db.photos,
+        db.documents,
+        db.parametres,
+        db.sauvegardeAuto,
+        db.changements,
+        db.syncEtat,
+        db.brouillons,
+      ],
+      async () => {
+        await Promise.all([
+          db.biens.clear(),
+          db.locataires.clear(),
+          db.baux.clear(),
+          db.inventaires.clear(),
+          db.edls.clear(),
+          db.photos.clear(),
+          db.documents.clear(),
+          db.parametres.clear(),
+          db.sauvegardeAuto.clear(),
+          db.changements.clear(),
+          db.syncEtat.clear(),
+          db.brouillons.clear(),
+        ]);
+      },
+    ),
+  );
 }
 
 /** Vrai si la dernière sauvegarde date de plus de 30 jours (ou n'existe pas). */
