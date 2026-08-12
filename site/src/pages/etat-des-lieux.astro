@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const titre = "État des lieux d'entrée et de sortie sur tablette — gratuit, hors ligne";
+const titre = "État des lieux d'entrée et de sortie sur tablette, gratuit et hors ligne";
 const description =
   "Réalisez vos états des lieux pièce par pièce avec photos, signature sur écran et comparaison entrée/sortie. Fonctionne hors ligne, gratuit, sans compte.";
 
@@ -12,7 +12,7 @@ const FAQ = [
   },
   {
     q: 'Faut-il une connexion sur place ?',
-    r: "Non. Une fois la page chargée une première fois, Bailiz fonctionne entièrement hors ligne — cave, parking, immeuble mal couvert. C'est la raison d'être de l'application installable.",
+    r: "Non. Une fois la page chargée une première fois, Bailiz fonctionne entièrement hors ligne, que vous soyez en cave, au parking ou dans un immeuble mal couvert. C'est la raison d'être de l'application installable.",
   },
   {
     q: 'Faut-il faire un inventaire du mobilier séparé ?',
@@ -64,15 +64,15 @@ const schema = {
       <h2>Ce que contient le document</h2>
       <ul>
         <li>
-          la description pièce par pièce, à partir de la trame du logement — réutilisée d'un
-          état des lieux à l'autre, et enrichie par ce que vous ajoutez sur le terrain ;
+          la description pièce par pièce, à partir de la trame du logement, réutilisée d'un
+          état des lieux à l'autre, et enrichie par ce que vous ajoutez sur le terrain
         </li>
         <li>
           <strong>l'inventaire du mobilier</strong> : en meublé, l'état des lieux en tient lieu,
-          il n'y a pas de document séparé à produire ;
+          il n'y a pas de document séparé à produire
         </li>
-        <li>les relevés de compteurs et les clés remises ;</li>
-        <li>les photos, compressées à la capture et rattachées à la pièce concernée ;</li>
+        <li>les relevés de compteurs et les clés remises</li>
+        <li>les photos, compressées à la capture et rattachées à la pièce concernée</li>
         <li>
           les signatures des deux parties, horodatées, avec l'empreinte SHA-256 du document.
         </li>

@@ -3,14 +3,14 @@
  * Page de preuve, pas formalité (CDC §12). Elle reprend le contenu de
  * `src/features/legal/MentionsLegalesPage.tsx`, corrigé sur deux points :
  * l'hébergeur (OVH et non plus GitHub) et la mesure d'audience (journaux
- * serveur — la formule « aucune mesure d'audience » n'était plus exacte).
+ * serveur, la formule « aucune mesure d'audience » n'étant plus exacte).
  *
  * La version dans l'application reste, et pointera ici : une seule source de
  * vérité, celle qui est lisible sans entrer dans l'outil.
  */
 import Base from '../layouts/Base.astro';
 
-const titre = 'Confidentialité — vos données ne quittent pas votre appareil | Bailiz';
+const titre = 'Confidentialité : vos données ne quittent pas votre appareil | Bailiz';
 const description =
   "Bailiz ne collecte, ne transmet et ne stocke aucune donnée sur un serveur. Détail de ce qui est enregistré, où, et ce que vous contrôlez.";
 ---
@@ -28,14 +28,14 @@ const description =
 
       <h2>Ce que vous saisissez</h2>
       <p>
-        Toutes les données que vous entrez — logements, locataires, baux, états des lieux,
-        photos, PDF générés — sont enregistrées <strong>uniquement dans votre navigateur</strong>
+        Toutes les données que vous entrez (logements, locataires, baux, états des lieux,
+        photos, PDF générés) sont enregistrées <strong>uniquement dans votre navigateur</strong>
         (IndexedDB), sur votre appareil. Elles ne le quittent jamais, sauf action explicite de
         votre part :
       </p>
       <ul>
-        <li>export d'une archive ZIP que vous enregistrez où vous voulez ;</li>
-        <li>envoi d'un PDF par e-mail, depuis votre propre messagerie ;</li>
+        <li>export d'une archive ZIP que vous enregistrez où vous voulez</li>
+        <li>envoi d'un PDF par e-mail, depuis votre propre messagerie</li>
         <li>sauvegarde vers un dossier que vous désignez.</li>
       </ul>
       <p>
@@ -59,7 +59,7 @@ const description =
       <p>
         Bailiz n'utilise aucune mesure d'audience par script. La fréquentation du site est
         estimée à partir des <strong>journaux de connexion de l'hébergeur</strong>, conservés
-        pour une durée limitée — ce que fait tout serveur web pour fonctionner. Aucun
+        pour une durée limitée, comme le fait tout serveur web pour fonctionner. Aucun
         identifiant n'est déposé sur votre appareil, et l'application elle-même n'envoie rien.
       </p>
 
@@ -69,7 +69,7 @@ const description =
         <strong>votre propre</strong> Google Drive, via une autorisation limitée aux seuls
         fichiers créés par l'application. Google agit alors comme votre prestataire de stockage.
         Vous pouvez révoquer cet accès à tout moment, depuis le bouton « Déconnecter » ou depuis
-        votre compte Google (Sécurité → Applications tierces). Cette fonction est{' '}
+        votre compte Google, rubrique Sécurité puis Applications tierces. Cette fonction est{' '}
         <strong>désactivée par défaut</strong>.
       </p>
 
@@ -79,7 +79,7 @@ const description =
         le responsable de traitement. À ce titre : conservation limitée à la durée du bail et
         aux délais de prescription, et suppression quand elle n'est plus justifiée. Les
         personnes concernées exercent leurs droits directement auprès de vous, pas auprès de
-        Bailiz — qui n'a accès à rien.
+        Bailiz, qui n'a accès à rien.
       </p>
       <p>
         L'application prend cette responsabilité au sérieux : la suppression définitive d'un

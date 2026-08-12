@@ -1,8 +1,8 @@
 ---
 /*
- * Landing — CDC §5. L'ordre des blocs est l'argumentaire, il n'est pas
- * cosmétique : promesse → réassurance → outils → fonctionnement → données →
- * conformité → objections.
+ * Landing, CDC §5. L'ordre des blocs est l'argumentaire, il n'est pas
+ * cosmétique. Il va de la promesse à la réassurance, puis aux outils, au
+ * fonctionnement, aux données, à la conformité, et finit par les objections.
  *
  * Le bloc « preuve visuelle » (capture de l'app + aperçu du PDF) manque encore :
  * les captures n'existent pas. Mieux vaut une page sans image qu'une image
@@ -10,7 +10,7 @@
  */
 import Base from '../layouts/Base.astro';
 
-const titre = 'Bailiz — Bail meublé et état des lieux gratuits, sans compte';
+const titre = 'Bailiz : bail meublé et état des lieux gratuits, sans compte';
 const description =
   "Rédigez un bail meublé conforme et réalisez vos états des lieux avec photos. PDF prêt à imprimer, gratuit, sans inscription. Vos données restent sur votre appareil.";
 
@@ -28,7 +28,7 @@ const FAQ = [
     r: "Dans votre navigateur, sur votre appareil. Bailiz n'a pas de serveur de base de données : rien de ce que vous saisissez n'est envoyé ni stocké ailleurs.",
   },
   {
-    q: 'Que se passe-t-il si je change d’ordinateur ?',
+    q: "Que se passe-t-il si je change d'ordinateur ?",
     r: "Vos données ne suivent pas toutes seules, puisqu'elles sont sur votre appareil. Bailiz permet d'exporter une sauvegarde complète (archive ZIP) et de la réimporter sur un autre appareil. Une sauvegarde vers votre propre Google Drive est également disponible, si vous l'activez.",
   },
   {
@@ -37,7 +37,7 @@ const FAQ = [
   },
   {
     q: 'Peut-on signer en ligne ?',
-    r: "L'état des lieux se signe sur écran, sur place, avec horodatage — la signature électronique y est admise. Le bail, lui, s'imprime et se signe sur papier : c'est un choix assumé, qui vous laisse le modifier et le régénérer autant de fois que nécessaire.",
+    r: "L'état des lieux se signe sur écran, sur place, avec horodatage, car la signature électronique y est admise. Le bail, lui, s'imprime et se signe sur papier. C'est un choix assumé, qui vous laisse le modifier et le régénérer autant de fois que nécessaire.",
   },
   {
     q: 'Pourquoi ne pas simplement télécharger un modèle gratuit ?',
@@ -45,7 +45,7 @@ const FAQ = [
   },
   {
     q: 'Faut-il une connexion Internet ?',
-    r: "Seulement au premier chargement. Ensuite Bailiz fonctionne hors ligne, y compris installé sur tablette — utile pour un état des lieux en cave, au parking ou dans un immeuble mal couvert.",
+    r: "Seulement au premier chargement. Ensuite Bailiz fonctionne hors ligne, y compris installé sur tablette. Pratique pour un état des lieux en cave, au parking ou dans un immeuble mal couvert.",
   },
 ];
 
@@ -79,7 +79,7 @@ const schema = [
     <div class="enveloppe">
       <h1>Bail meublé et état des lieux, gratuits et sans compte</h1>
       <p class="accroche">
-        Remplissez, générez, imprimez. Un PDF conforme en quelques minutes — et vos données
+        Remplissez, générez, imprimez. Un PDF conforme en quelques minutes, et vos données
         restent sur votre appareil.
       </p>
       <div class="actions">
@@ -136,7 +136,7 @@ const schema = [
         <!--
           Schéma, et non capture d'écran : il montre l'enchaînement, ce qu'une
           capture d'un seul écran ne saurait faire. Inline et sans texte en
-          image — donc lisible par un moteur, net à toute résolution, et nul en
+          image, donc lisible par un moteur, net à toute résolution, et nul en
           poids. Les captures réelles restent à produire.
         -->
         <svg
@@ -302,8 +302,8 @@ const schema = [
     <div class="enveloppe prose">
       <h2>Où vont mes données ?</h2>
       <p>
-        Nulle part. Bailiz n'a pas de serveur de base de données : tout ce que vous saisissez —
-        logements, locataires, baux, états des lieux, photos, PDF — est{' '}
+        Nulle part. Bailiz n'a pas de serveur de base de données. Tout ce que vous saisissez
+        (logements, locataires, baux, états des lieux, photos, PDF) est{' '}
         <strong>enregistré dans votre navigateur</strong>, sur votre appareil.
       </p>
       <ul>

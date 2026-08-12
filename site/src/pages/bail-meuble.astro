@@ -1,6 +1,6 @@
 ---
 /*
- * Page outil — gabarit CDC §6. Elle doit se suffire à elle-même : un visiteur
+ * Page outil, gabarit CDC §6. Elle doit se suffire à elle-même : un visiteur
  * arrivé de Google ici doit produire son bail sans jamais passer par l'accueil.
  *
  * Le bloc « ce que Bailiz ne fait pas » n'est pas une précaution : c'est ce qui
@@ -8,7 +8,7 @@
  */
 import Base from '../layouts/Base.astro';
 
-const titre = 'Modèle de bail meublé à remplir et imprimer — gratuit, sans inscription';
+const titre = 'Modèle de bail meublé à remplir et imprimer, gratuit et sans inscription';
 const description =
   "Rédigez un bail meublé conforme au bail type (décret n°2015-587) et imprimez-le. Gratuit, sans compte, sans limite. Vos données restent sur votre appareil.";
 
@@ -31,7 +31,7 @@ const FAQ = [
   },
   {
     q: 'Et si je loue via une SCI ?',
-    r: "Le bailleur peut être une personne physique, une indivision (tous les coïndivisaires figurent au bail) ou une personne morale — SCI, SARL de famille : dénomination, forme, capital, RCS, siège et représentant légal signataire.",
+    r: "Le bailleur peut être une personne physique, une indivision (tous les coïndivisaires figurent au bail) ou une personne morale (SCI, SARL de famille) avec sa dénomination, sa forme, son capital, son RCS, son siège et son représentant légal signataire.",
   },
 ];
 
@@ -69,23 +69,23 @@ const schema = {
         XI) et intègre les mentions que la loi impose depuis :
       </p>
       <ul>
-        <li>désignation des parties : bailleur particulier, indivision ou personne morale ;</li>
+        <li>désignation des parties : bailleur particulier, indivision ou personne morale</li>
         <li>
           désignation du logement : type d'habitat, période de construction, surface habitable,
-          nombre de pièces, équipements, annexes, régime de copropriété ;
+          nombre de pièces, équipements, annexes, régime de copropriété
         </li>
-        <li>identifiant fiscal du logement (décret n°2023-796) ;</li>
+        <li>identifiant fiscal du logement (décret n°2023-796)</li>
         <li>
-          classe DPE, avec rappel des seuils de décence issus de la loi Climat et résilience ;
+          classe DPE, avec rappel des seuils de décence issus de la loi Climat et résilience
         </li>
-        <li>accès aux technologies de l'information, zone tendue ;</li>
+        <li>accès aux technologies de l'information, zone tendue</li>
         <li>
           loyer, modalités de révision et IRL, charges au forfait ou en provisions, dernier
-          loyer acquitté par l'ancien locataire ;
+          loyer acquitté par l'ancien locataire
         </li>
-        <li>dépôt de garantie, y compris en toutes lettres ;</li>
-        <li>durée, prise d'effet, clause résolutoire, rubrique travaux ;</li>
-        <li>honoraires « néant », SIRET du loueur en meublé le cas échéant ;</li>
+        <li>dépôt de garantie, y compris en toutes lettres</li>
+        <li>durée, prise d'effet, clause résolutoire, rubrique travaux</li>
+        <li>honoraires « néant », SIRET du loueur en meublé le cas échéant</li>
         <li>
           QR code vers le dossier technique en ligne, pour que le locataire consulte les
           diagnostics.
@@ -99,12 +99,12 @@ const schema = {
       <h2>Ce que l'outil fait pour vous</h2>
       <ul>
         <li>
-          <strong>Un seul écran</strong>, avec l'aperçu du PDF en direct : bailleur → logement →
-          locataire(s) → durée → loyer et charges → clauses et travaux.
+          <strong>Un seul écran</strong>, avec l'aperçu du PDF en direct. Vous remplissez le
+          bailleur, le logement, les locataires, la durée, le loyer et les clauses, dans cet ordre.
         </li>
         <li>
           <strong>Des avertissements, jamais des blocages</strong> : DPE en classe G, dépôt
-          supérieur à deux mois, durée atypique… les incohérences s'affichent, mais rien ne vous
+          supérieur à deux mois, durée atypique. Les incohérences s'affichent, mais rien ne vous
           empêche de produire le document.
         </li>
         <li>
@@ -113,7 +113,7 @@ const schema = {
         </li>
         <li>
           <strong>Modifiable à l'infini</strong> : rouvrir le bail le pré-remplit, et
-          l'enregistrement régénère le PDF sous la même référence — aucun doublon.
+          l'enregistrement régénère le PDF sous la même référence, sans créer de doublon.
         </li>
         <li>
           <strong>Garant</strong> : caution personne physique avec acte de cautionnement
@@ -134,7 +134,7 @@ const schema = {
         </li>
         <li>
           <strong>Pas de génération des diagnostics.</strong> DPE, ERP, gaz, électricité restent
-          à obtenir auprès d'un diagnostiqueur ; Bailiz les annexe et les référence.
+          à obtenir auprès d'un diagnostiqueur. Bailiz les annexe et les référence.
         </li>
         <li>
           <strong>Pas de conseil juridique.</strong> Le modèle est conforme, votre situation
