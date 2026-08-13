@@ -140,7 +140,7 @@ export function LocataireFormModal({
               control={control}
               name="dateNaissance"
               render={({ field }) => (
-                <DateInput value={field.value ?? ''} onChange={field.onChange} aria-label="Date de naissance" />
+                <DateInput value={field.value ?? ''} onChange={field.onChange} />
               )}
             />
           </Field>

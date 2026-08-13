@@ -25,29 +25,7 @@ import { Badge, Button, Checkbox, DateInput, Field, Input, Modal, Select, Textar
 import { PhotoCapture } from './PhotoCapture';
 import { SectionCles, SectionCompteurs } from './SectionsReleves';
 import { VignetteEntree, VisionneusePhotos, type GroupePhotos } from './VisionneusePhotos';
-
-/*
- * Barème d'état, sur le modèle de l'étiquette DPE : trois verts pour les états
- * satisfaisants, ambre pour l'usure, rouge pour le défaut. C'est une échelle que
- * le public français lit sans légende.
- *
- * Toutes les teintes viennent des familles mesurées de `tailwind.config.js`.
- * L'ancien barème employait `emerald` et `lime`, absents de la config, donc
- * jamais soumis à l'audit de contraste : « Bon » sur `lime-500` donnait 1,98:1
- * en texte blanc - illisible en plein jour sur une tablette, exactement la
- * situation d'usage. Les nuances 500 sont exclues d'office (`success-500` à
- * 4,29:1, `warning-500` à 3,42:1) : seules les 600 et au-delà passent AA.
- *
- * Le faible écart entre paliers voisins est sans conséquence : seul le bouton
- * sélectionné est coloré, et le libellé texte est toujours affiché.
- */
-const COULEURS_ETAT: Record<EtatNote, string> = {
-  neuf: 'bg-success-800 border-success-800', // 11,05:1 avec du blanc
-  tres_bon: 'bg-success-700 border-success-700', // 8,62:1
-  bon: 'bg-success-600 border-success-600', // 6,21:1
-  usage: 'bg-warning-600 border-warning-600', // 5,14:1
-  mauvais: 'bg-danger-600 border-danger-600', // 6,13:1
-};
+import { COULEURS_ETAT } from './couleursEtat';
 
 /** Mode terrain : plein écran, une pièce à la fois, gros boutons, autosauvegarde continue. */
 export function EdlTerrainPage() {
@@ -335,9 +313,12 @@ export function EdlTerrainPage() {
             <ArrowLeft size={18} /> Quitter
           </button>
           <div className="text-center">
-            <div className="text-sm font-bold text-accent-900">
+            {/* Seul titre de l'écran : l'écran principal de travail du produit
+                n'avait ni `h1` ni `h2`, donc aucune entrée dans la table des
+                titres d'un lecteur d'écran. Le style visuel est inchangé. */}
+            <h1 className="text-sm font-bold text-accent-900">
               {edl.reference} - {sortie ? 'Sortie' : 'Entrée'}
-            </div>
+            </h1>
             {oublis.length > 0 && !signe ? (
               <button
                 type="button"
@@ -368,8 +349,10 @@ export function EdlTerrainPage() {
             </Button>
           )}
         </div>
-        {/* Barre de progression */}
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-accent-100">
+        {/* Barre de progression. `aria-hidden` plutôt que `role="progressbar"` :
+            le décompte est déjà donné en toutes lettres juste au-dessus
+            (« N/M éléments »), la répéter n'ajoute qu'une annonce. */}
+        <div aria-hidden className="mt-2 h-2 overflow-hidden rounded-full bg-accent-100">
           <div className="h-full rounded-full bg-accent-700 transition-all" style={{ width: `${prog.pct}%` }} />
         </div>
         {/* Navigation par onglets */}
@@ -383,6 +366,13 @@ export function EdlTerrainPage() {
               <button
                 key={o.nom + i}
                 onClick={() => setOngletIdx(i)}
+                /*
+                 * L'onglet courant ne se distinguait que par sa couleur, et la
+                 * coche de complétion n'avait aucun équivalent textuel : les
+                 * deux informations sont reportées dans le nom accessible.
+                 */
+                aria-current={actif ? 'page' : undefined}
+                aria-label={complete ? `${o.nom} - complète` : o.nom}
                 className={`flex min-h-touch shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium ${
                   actif ? 'bg-accent-700 text-white' : 'bg-accent-100 text-accent-700'
                 }`}
@@ -481,7 +471,10 @@ export function EdlTerrainPage() {
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-3xl grow px-4 py-4">
+      {/* `div` et non `main` : `AppLayout` en pose déjà un autour de l'`Outlet`,
+          et deux régions « principal » imbriquées sont invalides autant
+          qu'illisibles - un lecteur d'écran en annonce deux. */}
+      <div className="mx-auto w-full max-w-3xl grow px-4 py-4">
         {onglet?.type === 'compteurs' && (
           <SectionCompteurs edl={edl} lectureSeule={signe} onMaj={majCompteurs} />
         )}
@@ -563,7 +556,11 @@ export function EdlTerrainPage() {
                       <span className="text-sm font-medium text-sky-900">
                         État à l'entrée - à recopier de l'état des lieux papier :
                       </span>
-                      <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                      <div
+                        role="group"
+                        aria-label={`État à l'entrée de ${el.nom}`}
+                        className="mt-1.5 grid grid-cols-5 gap-1.5"
+                      >
                         {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
                           const actif = el.etatEntree === etat;
                           return (
@@ -571,6 +568,7 @@ export function EdlTerrainPage() {
                               key={etat}
                               type="button"
                               disabled={signe}
+                              aria-pressed={actif}
                               onClick={() => choisirEtatEntree(onglet.pieceId!, el, etat)}
                               className={`min-h-touch rounded-lg border-2 px-1 py-1.5 text-xs font-semibold transition-all ${
                                 actif
@@ -600,8 +598,16 @@ export function EdlTerrainPage() {
                     </p>
                   ) : (
                   <>
-                  {/* Sélecteur d'état : 5 gros boutons colorés */}
-                  <div className="grid grid-cols-5 gap-1.5">
+                  {/*
+                   * Sélecteur d'état : 5 gros boutons colorés.
+                   *
+                   * `aria-pressed` est le geste central du produit : sans lui,
+                   * les cinq boutons étaient rigoureusement identiques pour un
+                   * lecteur d'écran quel que soit l'état saisi - impossible de
+                   * relire un constat. Le groupe est nommé par l'élément relevé,
+                   * sinon les dizaines de grilles d'une pièce sont indistinctes.
+                   */}
+                  <div role="group" aria-label={`État de ${el.nom}`} className="grid grid-cols-5 gap-1.5">
                     {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
                       const actif = el.etat === etat;
                       return (
@@ -609,6 +615,7 @@ export function EdlTerrainPage() {
                           key={etat}
                           type="button"
                           disabled={signe}
+                          aria-pressed={actif}
                           onClick={() => choisirEtat(onglet.pieceId!, el, etat)}
                           className={`min-h-touch rounded-lg border-2 px-1 py-2 text-xs font-semibold transition-all ${
                             actif
@@ -667,6 +674,10 @@ export function EdlTerrainPage() {
                       key={`${el.id}-comm`}
                       defaultValue={el.commentaire ?? ''}
                       placeholder="Commentaire (rayures, taches…)"
+                      // Le libellé de remplacement disparaît à la première
+                      // frappe, et il y a des dizaines de ces champs par état
+                      // des lieux : sans nom propre, ils sont interchangeables.
+                      aria-label={`Commentaire sur ${el.nom}`}
                       disabled={signe}
                       onBlur={(e) =>
                         majElement(onglet.pieceId!, el.id, { commentaire: e.target.value || undefined })
@@ -726,6 +737,7 @@ export function EdlTerrainPage() {
                     value={nouvelElement}
                     onChange={(e) => setNouvelElement(e.target.value)}
                     placeholder="Ex. Table basse, Radiateur, Rideaux…"
+                    aria-label="Nom du nouvel élément"
                     className="flex-1"
                   />
                   <Select
@@ -833,12 +845,17 @@ export function EdlTerrainPage() {
              * signé reste celui qui fait foi. Ne pas rattacher de bail est un
              * usage normal, d'où une proposition et non une alerte.
              */}
-            {!bail && (
-              <Field
-                label="Rattacher à un bail"
-                hint="Facultatif. Seuls les baux du même logement sont proposés."
-              >
-                {(bauxDuBien ?? []).length === 0 ? (
+            {/*
+             * Le cas « aucun bail » sort du `Field` : son contenu est une phrase
+             * et un lien, pas un contrôle. Laissé dedans, le `<label>` du champ
+             * pointait vers un identifiant que personne ne posait - le seul cas
+             * structurel du projet où la règle « un `Field`, un contrôle » était
+             * enfreinte.
+             */}
+            {!bail &&
+              ((bauxDuBien ?? []).length === 0 ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-accent-800">Rattacher à un bail</p>
                   <p className="text-sm text-accent-600">
                     Aucun bail enregistré pour ce logement.{' '}
                     <Link
@@ -849,7 +866,12 @@ export function EdlTerrainPage() {
                     </Link>
                     .
                   </p>
-                ) : (
+                </div>
+              ) : (
+                <Field
+                  label="Rattacher à un bail"
+                  hint="Facultatif. Seuls les baux du même logement sont proposés."
+                >
                   <Select
                     value=""
                     onChange={(e) => {
@@ -863,12 +885,13 @@ export function EdlTerrainPage() {
                       </option>
                     ))}
                   </Select>
-                )}
-              </Field>
-            )}
+                </Field>
+              ))}
             {edl.avenants.length > 0 && (
               <div>
-                <h3 className="mb-1 text-sm font-semibold text-accent-900">Avenants</h3>
+                {/* `h2` et non `h3` : le seul titre au-dessus est désormais le
+                    `h1` de la référence, sauter un niveau n'aurait aucun sens. */}
+                <h2 className="mb-1 text-sm font-semibold text-accent-900">Avenants</h2>
                 <ul className="space-y-1 text-sm text-accent-700">
                   {edl.avenants.map((a, i) => (
                     <li key={i}>
@@ -880,7 +903,7 @@ export function EdlTerrainPage() {
             )}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Navigation bas de page (swipe simplifié : précédent / suivant) */}
       <footer className="sticky bottom-0 border-t border-accent-200 bg-white px-4 py-3">

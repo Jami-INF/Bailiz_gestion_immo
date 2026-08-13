@@ -1,7 +1,5 @@
 import {
-  createContext,
   forwardRef,
-  useContext,
   useId,
   useMemo,
   type InputHTMLAttributes,
@@ -9,6 +7,7 @@ import {
   type SelectHTMLAttributes,
   type ReactNode,
 } from 'react';
+import { ChampContext, useLiaisonChamp, type ContexteChamp } from './champContexte';
 
 /*
  * `border-accent-400` et non 300 : la limite d'un champ est un composant
@@ -19,36 +18,6 @@ import {
  */
 const baseField =
   'w-full rounded-lg border border-accent-400 bg-white px-3 py-2 text-sm text-accent-900 placeholder:text-accent-500 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/25 disabled:border-accent-300 disabled:bg-accent-100 disabled:text-accent-500 min-h-touch';
-
-/**
- * Lien entre un `Field` et le contrôle qu'il étiquette. Hors d'un `Field`
- * (recherche, filtres…), le contexte est vide et rien ne change.
- */
-interface ContexteChamp {
-  id: string;
-  messageId?: string;
-}
-
-const ChampContext = createContext<ContexteChamp | null>(null);
-
-/**
- * Identifiant et description hérités du `Field` englobant, si le contrôle n'en
- * fixe pas lui-même.
- *
- * Volontairement sans état ni compteur : toute tentative de n'attribuer
- * l'identifiant qu'au « premier » contrôle suppose de retenir qui l'a pris, et
- * `StrictMode` rejoue le rendu - l'identifiant était attribué au premier
- * passage puis retiré au second, si bien que le libellé se retrouvait orphelin
- * en production alors que les tests passaient. La règle est donc :
- * **un `Field`, un contrôle.** Deux contrôles à étiqueter valent deux `Field`.
- */
-function useLiaisonChamp(idExplicite?: string, describedBy?: string) {
-  const contexte = useContext(ChampContext);
-  return {
-    id: idExplicite ?? contexte?.id,
-    'aria-describedby': describedBy ?? contexte?.messageId,
-  };
-}
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className = '', id, 'aria-describedby': decrit, ...props }, ref) {

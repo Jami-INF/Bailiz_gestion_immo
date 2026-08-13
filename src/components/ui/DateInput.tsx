@@ -1,12 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { masquerSaisieDate, parserDateFr, versDateFr } from '@/lib/dates';
+import { useLiaisonChamp } from './champContexte';
 
 /**
  * Champ de date saisissable au clavier (JJ/MM/AAAA, masque automatique)
  * doublé d'un sélecteur calendrier natif accessible via l'icône.
  *
  * `value` et `onChange` travaillent en ISO `yyyy-MM-dd` ('' si vide/invalide).
+ *
+ * Consomme `ChampContext` comme `Input`, `Select` et `Textarea` : sans cela le
+ * `<label>` du `Field` englobant pointait vers un identifiant inexistant, et six
+ * libellés de date sur sept - dont la date de prise d'effet du bail, qui fonde
+ * tous les calculs de terme - n'étaient annoncés que « zone de saisie ».
  */
 export function DateInput({
   value,
@@ -23,6 +29,14 @@ export function DateInput({
 }) {
   const [texte, setTexte] = useState(() => versDateFr(value));
   const [invalide, setInvalide] = useState(false);
+  const idErreur = useId();
+  const liaison = useLiaisonChamp();
+  /*
+   * Le message « Date invalide » s'ajoute à l'aide du `Field` au lieu de la
+   * remplacer : il naît d'une saisie fautive alors que l'aide, elle, reste vraie.
+   */
+  const decritPar =
+    [liaison['aria-describedby'], invalide ? idErreur : null].filter(Boolean).join(' ') || undefined;
 
   // Synchronise l'affichage quand la valeur change de l'extérieur
   // (chargement, sélection au calendrier), sans écraser une frappe en cours.
@@ -53,7 +67,9 @@ export function DateInput({
           placeholder="JJ/MM/AAAA"
           value={texte}
           disabled={disabled}
+          id={liaison.id}
           aria-label={ariaLabel}
+          aria-describedby={decritPar}
           aria-invalid={invalide}
           onChange={(e) => saisir(e.target.value)}
           onBlur={() => setInvalide(texte !== '' && parserDateFr(texte) === null)}
@@ -85,7 +101,7 @@ export function DateInput({
         />
       </div>
       {invalide && (
-        <p className="mt-1 text-xs font-medium text-red-600">
+        <p id={idErreur} className="mt-1 text-xs font-medium text-red-600">
           Date invalide - saisissez JJ/MM/AAAA (ex. 06/07/2026) ou utilisez le calendrier.
         </p>
       )}

@@ -325,6 +325,10 @@ function DisclaimerPremiereUtilisation() {
   return (
     <Modal
       open
+      // L'acceptation est la seule sortie : la modale n'affiche donc ni croix ni
+      // fermeture par Échap. Les deux étaient rendues mais sans effet, `onClose`
+      // ne faisant rien - une commande visible qui ne répond pas.
+      fermable={false}
       onClose={() => {}}
       title="Avertissement"
       footer={

@@ -844,6 +844,8 @@ paires **réellement employées** (y compris sur `accent-50`, le vrai fond) et a
 Une trentaine de lignes, et la charte devient exécutable au lieu d'être déclarative. Attraperait
 aussi toute future couleur hors palette.
 
+✅ **Livré**, cf. §13 bis pour la forme retenue et la vérification du garde-fou.
+
 ### L8.3 - Test de non-régression d'accessibilité
 
 Le projet a 460 tests et une culture de test réelle. Ajouter `axe-core` (ou `vitest-axe`) sur les
@@ -858,17 +860,17 @@ bruit sur les faux positifs. À introduire écran par écran, pas globalement.
 
 ## 13. Phasage proposé
 
-| Lot | Contenu | Coût | Effet |
-|---|---|---|---|
-| **L0** | `accent-500`, bandeaux, rampe EDL, `border-accent-400` | très faible | AA sur 116 usages, 5 états EDL, tous les bandeaux. Pire cas EDL : 1,98 → 5,14:1 |
-| **L1** | `DateInput`, `Modal`, `EdlTerrainPage` | moyen | 6 dates, 8 modales, l'écran terrain |
-| **L2** | Disclaimer (option b), barre latérale, exemple de bail | faible | Première impression, décision d'adoption |
-| **L3** | Paramètres : 3 sections, désamorçage, libellés grille | faible | Lève l'inquiétude, 48 champs nommés |
-| **L4** | Nav : libellés tablette, verbes, groupes, filtres Documents | faible/moyen | iPad, découvrabilité |
-| **L5** | `aria-required`, toasts, fieldset, skip link, titres, Entrée | moyen | Lecteurs d'écran, clavier |
-| **L6** | Taille `icon` sur `Button` + routage des commandes, alt | faible/moyen | Terrain, motricité. Résout aussi L6.6 |
-| **L7** | 13 coupes rédactionnelles + retrait des traces d'IA | très faible | Sobriété, positionnement |
-| **L8** | jsx-a11y, test de palette, axe | moyen | Empêche le retour des défauts |
+| Lot | Contenu | Coût | Effet | État |
+|---|---|---|---|---|
+| **L0** | `accent-500`, bandeaux, rampe EDL, `border-accent-400` | très faible | AA sur 116 usages, 5 états EDL, tous les bandeaux. Pire cas EDL : 1,98 → 5,14:1 | ✅ livré |
+| **L1** | `DateInput`, `Modal`, `EdlTerrainPage` | moyen | 6 dates, 8 modales, l'écran terrain | ✅ livré |
+| **L2** | Disclaimer (option b), barre latérale, exemple de bail | faible | Première impression, décision d'adoption | ⏳ L1.3 fait, reste le texte |
+| **L3** | Paramètres : 3 sections, désamorçage, libellés grille | faible | Lève l'inquiétude, 48 champs nommés | ⬜ |
+| **L4** | Nav : libellés tablette, verbes, groupes, filtres Documents | faible/moyen | iPad, découvrabilité | ⬜ |
+| **L5** | `aria-required`, toasts, fieldset, skip link, titres, Entrée | moyen | Lecteurs d'écran, clavier | ⬜ |
+| **L6** | Taille `icon` sur `Button` + routage des commandes, alt | faible/moyen | Terrain, motricité. Résout aussi L6.6 | ⬜ |
+| **L7** | 13 coupes rédactionnelles + retrait des traces d'IA | très faible | Sobriété, positionnement | ✅ livré |
+| **L8** | jsx-a11y, test de palette, axe | moyen | Empêche le retour des défauts | ⏳ L8.2 fait ; L8.1 **prochain** |
 
 **Ordre recommandé** : L0 → L1 → L8.1/L8.2 (avant d'écrire la suite, pour que les lots suivants
 soient contrôlés) → L2 → L3 → L4 → L5 → L6 → L7.
@@ -880,6 +882,68 @@ vérifiés). Ce sont trois lots livrables séparément, utiles pour amorcer sans
 **Dépendance à respecter** : L6.1 crée la taille `icon` de `Button`, dont L6.6 dépend. Et L1.2
 (focus de `Modal`) conditionne l'intérêt de L2.4-rejeté : c'est ce qui rend le détour par la modale
 locataire acceptable sans dupliquer le formulaire.
+
+---
+
+## 13 bis. Journal de livraison
+
+Ce que le dépôt contient déjà, et les écarts assumés par rapport au texte ci-dessus. À tenir à jour
+lot par lot : c'est ce qui permet de reprendre le chantier sans relire les 900 lignes.
+
+### L0 - livré (commit « UPD : UX accessibilité »)
+
+Les quatre points sans écart : `accent-500` → `#767268`, bandeaux en `warning-600` avec boutons
+`bg-white text-warning-900`, rampe DPE sur `COULEURS_ETAT`, `border-accent-400` dans `DateInput` et
+dans le variant `secondary` de `Button`. Les commentaires de `tailwind.config.js` citent désormais
+le fond réel et non le blanc.
+
+### L1 - livré
+
+| Réf | Fait | Écart |
+|---|---|---|
+| L1.1 | `DateInput` consomme `ChampContext`, pose `id` et `aria-describedby`, et rattache « Date invalide » | `ChampContext` et `useLiaisonChamp` sont sortis dans `champContexte.ts` : les exporter depuis `Input.tsx` ajoutait un avertissement `react-refresh/only-export-components`. `Field` reste dans `Input.tsx` |
+| L1.2 | Focus initial, confinement Tab/Shift+Tab, restauration à la fermeture, `overflow: hidden` sur le `body` | Aucun |
+| L1.3 | Prop `fermable` sur `Modal`, posé à `false` sur le disclaimer | Aucun |
+| L1.4 | `aria-pressed` sur les deux grilles d'état, groupes nommés par l'élément relevé | `role="group"` et non `role="radiogroup"` : ce dernier impose `role="radio"`, `aria-checked` et la navigation aux flèches, soit un composant à écrire, alors que `aria-pressed` est le motif déjà employé par `EdlRapidePage` |
+| L1.5 a | `<main>` imbriqué → `<div>` | `<header>` et `<footer>` **conservés** : étant à l'intérieur du `<main>` de `AppLayout`, ils ne produisent pas de région `banner`/`contentinfo` et ne créaient donc aucun doublon. Seul le `<main>` en créait un |
+| L1.5 b | `aria-current` sur l'onglet actif, complétion portée par l'`aria-label` | Aucun |
+| L1.5 c,d | `aria-label` sur les commentaires d'élément et sur le nom du nouvel élément | Aucun |
+| L1.5 e | `h1` sur la référence de l'EDL ; « Avenants » passe de `h3` à `h2` | Aucun |
+| L1.5 f | Le cas « aucun bail » sort du `Field` | Aucun |
+| L1.5 g | `aria-hidden` sur la barre de progression | Option retenue plutôt que `role="progressbar"` : le décompte est déjà en toutes lettres juste au-dessus, l'annoncer deux fois n'apporte rien |
+
+**Vérifié en direct** (navigateur, sur les écrans rendus) : `labelsOrphelins: []` et
+`champsSansNom: []` sur `EdlRapidePage`, sur la modale locataire et sur l'onglet Infos du mode
+terrain ; focus confiné après 16 tabulations réelles ; Échap ferme, rend le focus à la commande
+d'origine et restaure le défilement ; le disclaimer n'a plus de croix et ignore Échap ; un seul
+`<main>` ; « Bon » sélectionné mesuré à **6,21:1** sur l'élément rendu, contre 1,98:1 avant.
+
+**Reste ouvert dans le fichier terrain** : l'`<input type="file">` de `PhotoCapture` n'a toujours
+pas de nom accessible - c'est L6.2, pas L1.
+
+### L8.2 - livré
+
+`src/lib/palette.test.ts`, **29 assertions**. Il calcule les ratios des paires réellement employées
+et refuse toute teinte hors palette. Deux choses en ont conditionné la forme :
+
+- le barème d'état est sorti dans `src/features/edl/couleursEtat.ts`, pour que le test l'importe
+  sans monter `EdlTerrainPage` - c'est une donnée de charte, pas du code de page ;
+- `tailwind.config.d.ts` décrit la forme de la config, sinon l'import remonte en `any` implicite.
+
+**Le garde-fou a été éprouvé sur les deux défauts qu'il doit empêcher** : sur la palette d'avant,
+`accent-500` `#78746D` mesure **4,45:1** sur `accent-50` (le test exige 4,5), `lime-500` et
+`emerald-600` ne résolvent pas (`teinte()` rend `null`, l'assertion « est une teinte de la palette »
+échoue) et du blanc sur l'ancien `green-500` donne **4,29:1**. Un test qui ne peut pas échouer ne
+garde rien : celui-ci aurait arrêté L0.1 comme L0.3.
+
+### L7 - livré
+
+Les 13 coupes rédactionnelles et le retrait des traces d'IA (`MentionsLegalesPage`). `grep` sur
+`Claude | Anthropic | Spec Driven` ne remonte plus rien dans `src/`.
+
+**Question résiduelle tranchée à la livraison** : le paragraphe « Le besoin de départ… » a été
+**conservé sous le titre neutre « Pourquoi cet outil »**, la seconde option du §14. Il décrivait le
+besoin produit et non la méthode ; seul son titre le rattachait à l'IA.
 
 ---
 
@@ -898,9 +962,9 @@ c'est ce qui explique plusieurs choix du document, et ce qu'il faudra relire si 
 | 6 | Signature par un tiers ? | **Non.** Le signataire aura toujours souris ou écran tactile. On se limite à nommer la zone | Décision 6, L5.5 |
 | 7 | Locataire inline ? | **Non.** Zéro duplication de code et de champs, principe directeur | Décision 5, L2.4 rejeté |
 
-**Question résiduelle**, sans incidence sur le phasage : le paragraphe « Le besoin de départ… »
-(`MentionsLegalesPage.tsx:134-141`) décrit le besoin produit et non la méthode. Le supprimer avec le
-reste du bloc, ou le conserver sous un titre neutre ? Choix éditorial (cf. L7.n).
+**Question résiduelle - tranchée à la livraison de L7** : le paragraphe « Le besoin de départ… »
+(`MentionsLegalesPage.tsx:134-141`) décrivait le besoin produit et non la méthode. **Conservé**,
+sous le titre neutre « Pourquoi cet outil ».
 
 **À relire si le contexte change** : une monétisation ou un statut de service ferait entrer
 l'application dans le champ de la directive 2019/882, et ce CDC passerait d'amélioration à
