@@ -152,7 +152,7 @@ export function ParametresPage() {
               ? format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')
               : 'jamais'}{' '}
             · Stockage persistant :{' '}
-            {persiste === undefined ? '…' : persiste ? 'accordé par le navigateur' : 'non garanti (pensez à exporter !)'}
+            {persiste === undefined ? '…' : persiste ? 'accordé par le navigateur' : 'non garanti - exportez régulièrement'}
             {quota && (
               <>
                 {' '}

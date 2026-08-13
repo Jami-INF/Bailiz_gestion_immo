@@ -56,9 +56,8 @@ export function ClausesSelecteur({
   return (
     <div className="space-y-3">
       <p className="text-sm text-accent-600">
-        Ces clauses forment la partie « Conditions générales d'occupation » du bail. Toutes sont
-        licites et rédigées en faveur du bailleur dans les limites de la loi. Le texte se modifie
-        dans les Paramètres ; ici, vous choisissez ce qui figure dans <em>ce</em> bail.
+        Toutes sont licites et rédigées en faveur du bailleur dans les limites de la loi. Le texte
+        se modifie dans les Paramètres ; ici, vous choisissez ce qui figure dans <em>ce</em> bail.
       </p>
 
       {FAMILLES.map((famille) => {

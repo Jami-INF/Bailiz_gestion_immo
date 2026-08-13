@@ -255,8 +255,8 @@ export function BienFormPage() {
                 onChange={(photoId) => maj({ photoId })}
               />
               <p className="text-xs text-accent-500">
-                Une photo d'illustration : elle s'affiche sur la fiche du bien et en tête de la
-                fiche de visite. Compressée automatiquement.
+                S'affiche sur la fiche du bien et en tête de la fiche de visite. Compressée
+                automatiquement.
               </p>
             </div>
             <Field label="Adresse" required error={erreurs.ligne1}>

@@ -89,7 +89,7 @@ export function ApercuBailPanel({
         </div>
         <p className="text-xs text-accent-500">
           {edition
-            ? 'Vous pouvez modifier et régénérer ce bail autant de fois que nécessaire. Le PDF peut aussi être partagé, téléchargé ou imprimé.'
+            ? 'Le PDF peut être partagé, téléchargé ou imprimé.'
             : "« Enregistrer » crée le bail dans l'app avec son inventaire et sa grille de vétusté. Sinon, rien n'est stocké : le PDF part par partage, téléchargement ou impression."}
         </p>
       </Card>

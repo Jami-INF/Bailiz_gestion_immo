@@ -216,7 +216,7 @@ export function TableauDeBordPage() {
               <AlertTriangle size={18} /> Alertes
             </h2>
             {alertes.length === 0 ? (
-              <p className="text-sm text-accent-500">Aucune alerte. Tout est en ordre.</p>
+              <p className="text-sm text-accent-500">Aucune alerte.</p>
             ) : (
               <ul className="space-y-2">
                 {alertes.map((a) => (

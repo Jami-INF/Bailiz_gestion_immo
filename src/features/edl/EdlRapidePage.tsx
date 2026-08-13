@@ -507,7 +507,7 @@ export function EdlRapidePage() {
         <Card className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-accent-600">
             {pret
-              ? 'Tout est prêt. Le reste se remplit sur place, pièce par pièce.'
+              ? 'Le reste se remplit sur place, pièce par pièce.'
               : 'Choisissez un logement et au moins un locataire pour commencer.'}
           </p>
           <Button onClick={() => void commencer()} disabled={!pret || enCours}>

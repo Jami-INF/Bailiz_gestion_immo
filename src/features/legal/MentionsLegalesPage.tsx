@@ -128,9 +128,7 @@ export function MentionsLegalesPage() {
             installable fonctionnant entièrement hors-ligne - pensée pour réaliser des états
             des lieux sur le terrain (cave, parking, immeuble mal couvert) sans connexion.
           </p>
-          <h3 className="mb-1 mt-4 font-semibold text-accent-900">
-            Créée avec l'assistance de Claude (Anthropic)
-          </h3>
+          <h3 className="mb-1 mt-4 font-semibold text-accent-900">Pourquoi cet outil</h3>
           <p>
             Le besoin de départ : un bailleur particulier en LMNP gérant lui-même quelques
             appartements meublés, sans agence, qui doit produire des documents conformes aux
@@ -138,21 +136,6 @@ export function MentionsLegalesPage() {
             du mobilier, état des lieux) et sa sortie (état des lieux comparatif, décompte du
             dépôt de garantie avec vétusté) - le tout sur tablette, parfois hors-ligne, et sans
             payer d'abonnement ni d'infrastructure.
-          </p>
-          <h3 className="mb-1 mt-4 font-semibold text-accent-900">Spec Driven Development</h3>
-          <p>
-            Le site a été développé avec{' '}
-            <LienExterne href="https://claude.com/claude-code">Claude Code</LienExterne> selon
-            une approche « spécification d'abord » : un cahier des charges complet a été rédigé
-            en amont (contexte juridique - loi du 6 juillet 1989, décrets 2015-587, 2015-981,
-            2016-382 -, modèle de données, architecture imposée, lots de développement
-            ordonnés et critères d'acceptation mesurables), puis confié à l'IA qui l'a
-            implémenté lot par lot, chaque lot étant vérifié contre ses critères (tests
-            unitaires des règles de calcul légales, déroulé complet des parcours dans le
-            navigateur) avant de passer au suivant. Le cahier des charges fait partie du dépôt
-            (<span className="font-mono text-xs">cdc.md</span>) et reste la référence des
-            évolutions -{' '}
-            <LienExterne href={LIEN_REPO}>voir le dépôt GitHub</LienExterne>.
           </p>
         </Card>
       </div>

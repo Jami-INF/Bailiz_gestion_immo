@@ -135,7 +135,7 @@ export function BauxPage() {
             <EmptyState
               icon={SearchX}
               titre="Aucun bail ne correspond"
-              message="Vérifiez l'orthographe, ou effacez la recherche pour retrouver toute la liste."
+              message="Aucun résultat pour cette recherche."
               action={<Button variant="secondary" onClick={() => setRecherche('')}>Afficher toute la liste</Button>}
             />
           ) : (

@@ -68,9 +68,13 @@ export default {
           // 3,05:1 sur blanc : c'est la teinte des bordures de champs, et ce
           // seuil est celui qu'exige WCAG 1.4.11. Ne pas l'éclaircir.
           400: '#918C85',
-          // 4,65:1 : le texte discret et les libellés de remplacement passent
-          // AA. Ne pas l'éclaircir non plus.
-          500: '#78746D',
+          // 4,59:1 **sur `accent-50`**, et non sur blanc : c'est le fond réel de
+          // l'application (`index.css`, `body`). L'ancienne valeur #78746D
+          // mesurait 4,65:1 sur blanc - conforme - mais 4,45:1 sur ce fond,
+          // c'est-à-dire sous AA partout où elle sert vraiment (les `hint` de
+          // champ, le pied de page, les résumés de cartes). Mesurer contre le
+          // fond employé, pas contre le blanc théorique. Ne pas l'éclaircir.
+          500: '#767268',
           600: '#5A5751',
           700: '#413F3A',
           800: '#2B2925',

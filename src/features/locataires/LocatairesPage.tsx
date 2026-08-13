@@ -163,7 +163,7 @@ export function LocatairesPage() {
             <EmptyState
               icon={SearchX}
               titre="Aucun locataire ne correspond"
-              message="Vérifiez l'orthographe, ou effacez la recherche pour retrouver toute la liste."
+              message="Aucun résultat pour cette recherche."
               action={<Button variant="secondary" onClick={() => setRecherche('')}>Afficher toute la liste</Button>}
             />
           ) : (

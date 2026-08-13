@@ -140,9 +140,7 @@ export function FicheVisitePanel() {
       resume={`${modele.sections.length} rubrique(s) de dossier`}
     >
       <p className="mb-4 text-sm text-accent-600">
-        Document remis au candidat à la fin d'une visite (généré depuis la fiche d'un bien) :
-        récapitulatif du logement et de ses conditions, informations pratiques, puis liste des
-        pièces du dossier en cases à cocher. Tout ce qui suit est modifiable.
+        Document remis au candidat à la fin d'une visite, généré depuis la fiche d'un bien.
       </p>
 
       <h3 className="mb-2 text-sm font-semibold text-accent-800">Blocs imprimés</h3>

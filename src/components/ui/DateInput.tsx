@@ -57,10 +57,10 @@ export function DateInput({
           aria-invalid={invalide}
           onChange={(e) => saisir(e.target.value)}
           onBlur={() => setInvalide(texte !== '' && parserDateFr(texte) === null)}
-          className={`min-h-touch w-full rounded-lg border bg-white py-2 pl-3 pr-11 text-sm text-accent-900 placeholder:text-accent-400 focus:outline-none focus:ring-1 disabled:bg-accent-100 disabled:text-accent-500 ${
+          className={`min-h-touch w-full rounded-lg border bg-white py-2 pl-3 pr-11 text-sm text-accent-900 placeholder:text-accent-500 focus:outline-none focus:ring-1 disabled:bg-accent-100 disabled:text-accent-500 ${
             invalide
               ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-              : 'border-accent-300 focus:border-accent-700 focus:ring-accent-700'
+              : 'border-accent-400 focus:border-accent-700 focus:ring-accent-700'
           }`}
         />
         {/* Sélecteur natif invisible superposé à l'icône : un clic ouvre le calendrier. */}

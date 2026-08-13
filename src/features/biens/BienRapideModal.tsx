@@ -142,9 +142,8 @@ export function BienRapideModal({
           </Field>
         </div>
         <p className="text-xs text-accent-500">
-          Le logement est enregistré et réutilisable pour vos prochains baux. Complétez sa fiche
-          (pièces, mobilier, diagnostics) depuis <Link to="/biens" className="underline">Biens</Link>{' '}
-          avant de réaliser l'état des lieux.
+          Complétez sa fiche (pièces, mobilier, diagnostics) depuis{' '}
+          <Link to="/biens" className="underline">Biens</Link> avant de réaliser l'état des lieux.
         </p>
       </div>
     </Modal>

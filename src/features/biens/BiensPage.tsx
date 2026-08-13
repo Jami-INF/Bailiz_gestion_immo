@@ -88,8 +88,8 @@ export function BiensPage() {
       {biens.length === 0 ? (
         <EmptyState
           icon={Building2}
-          titre="Créez votre premier bien pour commencer"
-          message="Enregistrez un appartement meublé : adresse, surface loi Boutin, équipements, diagnostics et structure des pièces."
+          titre="Aucun bien enregistré"
+          message="Adresse, surface loi Boutin, équipements, diagnostics et structure des pièces."
           action={
             <Link to="/biens/nouveau">
               <Button>
@@ -118,7 +118,7 @@ export function BiensPage() {
             <EmptyState
               icon={SearchX}
               titre="Aucun bien ne correspond"
-              message="Vérifiez l'orthographe, ou effacez la recherche pour retrouver toute la liste."
+              message="Aucun résultat pour cette recherche."
               action={<Button variant="secondary" onClick={() => setRecherche('')}>Afficher toute la liste</Button>}
             />
           ) : (

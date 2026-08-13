@@ -11,8 +11,11 @@ type Size = 'sm' | 'md' | 'lg';
  */
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-accent-300',
+  // `accent-400` et non 300 : la limite d'un bouton est un composant
+  // d'interface, à 3:1 minimum (WCAG 1.4.11), au même titre que la bordure d'un
+  // champ. En 300 (1,51:1) le contour de « Annuler » n'était pas perceptible.
   secondary:
-    'bg-white text-accent-800 border border-accent-300 hover:border-accent-400 hover:bg-accent-50 disabled:text-accent-400 disabled:hover:border-accent-300',
+    'bg-white text-accent-800 border border-accent-400 hover:border-accent-500 hover:bg-accent-50 disabled:text-accent-400 disabled:hover:border-accent-400',
   danger: 'bg-danger-600 text-white hover:bg-danger-700 disabled:bg-accent-300',
   ghost: 'text-accent-700 hover:bg-accent-100 disabled:text-accent-400',
 };

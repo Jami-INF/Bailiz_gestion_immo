@@ -237,7 +237,7 @@ function BandeauSync() {
     if (perdues.length > 0) {
       const nommer = (s: (typeof perdues)[number]) => s.reference ?? `${s.table} ${s.cle.slice(0, 8)}`;
       return (
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white">
           <span className="flex items-center gap-2">
             <AlertTriangle size={14} />
             {perdues.length === 1
@@ -247,7 +247,7 @@ function BandeauSync() {
           <button
             type="button"
             onClick={oublierSaisiesRemplacees}
-            className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30"
+            className="min-h-touch rounded-md bg-white px-3 py-1 font-semibold text-warning-900 hover:bg-warning-50"
           >
             J&apos;ai compris
           </button>
@@ -278,7 +278,7 @@ function BandeauSync() {
         : 'Synchronisation en échec - vos données restent enregistrées sur cet appareil';
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
+    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white">
       <span className="flex items-center gap-2">
         <AlertTriangle size={14} /> {message}
         {etat.etat === 'bloque' && etat.details ? ` (${etat.details})` : ''}
@@ -288,7 +288,7 @@ function BandeauSync() {
           type="button"
           onClick={() => void reconnecter()}
           disabled={enCours}
-          className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30 disabled:opacity-60"
+          className="min-h-touch rounded-md bg-white px-3 py-1 font-semibold text-warning-900 hover:bg-warning-50 disabled:opacity-60"
         >
           {enCours ? 'Reconnexion…' : 'Reconnecter'}
         </button>
@@ -298,7 +298,7 @@ function BandeauSync() {
            bandeau. */
         <Link
           to="/parametres"
-          className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30"
+          className="min-h-touch rounded-md bg-white px-3 py-1 font-semibold text-warning-900 hover:bg-warning-50"
         >
           Voir le détail
         </Link>
@@ -307,7 +307,7 @@ function BandeauSync() {
           type="button"
           onClick={() => void reessayer()}
           disabled={enCours}
-          className="min-h-touch rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30 disabled:opacity-60"
+          className="min-h-touch rounded-md bg-white px-3 py-1 font-semibold text-warning-900 hover:bg-warning-50 disabled:opacity-60"
         >
           {enCours ? 'Nouvel essai…' : 'Réessayer'}
         </button>
@@ -572,7 +572,7 @@ export function AppLayout() {
       <main className={`min-w-0 flex-1 ${pleinEcran ? '' : 'pb-24 sm:pb-0'}`}>
         <BandeauMiseAJour masque={pleinEcran} />
         {!enLigne && (
-          <div className="flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-xs font-medium text-white">
+          <div className="flex items-center justify-center gap-2 bg-amber-600 px-4 py-1.5 text-xs font-medium text-white">
             <WifiOff size={14} /> Hors-ligne - vos données restent enregistrées sur cet appareil
           </div>
         )}

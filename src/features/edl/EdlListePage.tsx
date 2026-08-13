@@ -31,7 +31,6 @@ export function EdlListePage() {
        */}
       <PageHeader
         titre="États des lieux"
-        sousTitre="Constatez l'état d'un logement à l'entrée ou à la sortie, avec ou sans bail."
         actions={nouveau}
       />
       {edls.length === 0 ? (

@@ -388,7 +388,7 @@ export function BailRapidePage() {
         sousTitre={
           edition
             ? 'Le bail reste modifiable et régénérable à volonté - c’est le document imprimé qui fait foi. « Enregistrer les modifications » met à jour le bail et régénère son PDF.'
-            : 'Un seul écran, avec aperçu du document. Choisissez un bien et des locataires enregistrés, ou saisissez-les ici. Générez un PDF prêt à imprimer, ou enregistrez le bail complet (inventaire + grille de vétusté).'
+            : 'Le bien et les locataires peuvent être saisis ici sans être enregistrés.'
         }
       />
 
