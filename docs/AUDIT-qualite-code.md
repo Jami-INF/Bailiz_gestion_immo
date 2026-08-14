@@ -462,6 +462,30 @@ Vérifié ensuite en direct : rendu identique au pixel près, écriture d'un ét
 « Ajouter une pièce » avec son champ nommé et son bouton désarmé tant que le nom est vide, Échap
 qui referme, et la modale des oublis qui bascule sur la pièce concernée puis se ferme.
 
+### Hors lot - téléchargement d'un document archivé
+
+Signalé à l'usage : télécharger un PDF depuis la page Documents rapportait une archive au lieu du
+document.
+
+**Cause** : `ouvrirBlob` et `telechargerBlob` (`backup.ts`) créaient l'ancre de téléchargement sans
+jamais l'insérer dans le document. Chrome accepte une ancre détachée, **Safari l'ignore** - et
+Safari, c'est l'iPad, la cible principale du produit. `download` sans effet, le navigateur se
+rabat sur une navigation vers l'URL `blob:`, qui n'a ni nom ni extension : le fichier arrive sous un
+identifiant opaque auquel l'appareil invente un type.
+
+**Aggravant, mesuré dans un vrai navigateur** : `window.open` est refusé **y compris sur un clic
+utilisateur authentique**. Le repli n'était donc pas un cas de bord, c'était le chemin normal - et
+c'était celui qui était cassé.
+
+**Correctif** : une fonction unique `enregistrerSousLeNom`, qui attache l'ancre au `body`, clique,
+puis la retire. Les deux points d'entrée y passent. Quatre tests
+(`backup.telechargement.test.tsx`) vérifient ce que jsdom ne regarde pas seul : **où se trouve
+l'ancre à l'instant du clic**. Éprouvés par mutation - le retour à l'ancre détachée fait tomber
+deux d'entre eux.
+
+Vérifié en direct sur la page Documents : ancre attachée au `body`, nom `.pdf` complet, aucune ancre
+laissée derrière.
+
 ### Vérification
 
 **512 tests verts** (489 + 17 de parcours + 6 de caractérisation), `tsc` propre, **0 erreur

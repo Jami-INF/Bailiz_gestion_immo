@@ -361,29 +361,50 @@ export function sauvegardeAncienne(derniereSauvegarde?: string): boolean {
 }
 
 /**
+ * Enregistre `url` sous `nomFichier`, par une ancre de téléchargement.
+ *
+ * **L'ancre est insérée dans le document avant le clic**, et c'est tout l'objet
+ * de cette fonction. Safari - donc l'iPad, la cible principale du produit -
+ * ignore `download` sur un élément détaché : le clic ne déclenche alors aucun
+ * téléchargement nommé, le navigateur se rabat sur une simple navigation vers
+ * l'URL `blob:`, laquelle n'a **ni nom ni extension**. Le PDF arrive dans les
+ * téléchargements sous un identifiant opaque auquel l'appareil invente un type,
+ * souvent une archive : l'utilisateur reçoit un « .zip » à la place de son bail.
+ *
+ * Le retrait immédiat après le clic est sans risque : le navigateur a déjà pris
+ * l'ordre de téléchargement, il ne relit pas l'élément ensuite.
+ */
+function enregistrerSousLeNom(url: string, nomFichier: string): void {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomFichier;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.append(a);
+  a.click();
+  a.remove();
+}
+
+/**
  * Ouvre un document dans un nouvel onglet (lecture et impression immédiates,
  * sans passer par le dossier de téléchargements - bien plus pratique sur
  * tablette). Si le navigateur bloque la fenêtre, on retombe sur un
  * téléchargement classique plutôt que de ne rien faire.
+ *
+ * Ce repli n'a rien d'exceptionnel : les navigateurs bloquent volontiers
+ * `window.open`, y compris sur un vrai geste utilisateur. C'est le chemin
+ * emprunté la plupart du temps, et il doit donc être aussi soigné que l'autre.
  */
 export function ouvrirBlob(blob: Blob, nomFichier: string): void {
   const url = URL.createObjectURL(blob);
   const onglet = window.open(url, '_blank');
-  if (!onglet) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nomFichier;
-    a.click();
-  }
+  if (!onglet) enregistrerSousLeNom(url, nomFichier);
   // Révocation tardive : l'onglet doit avoir le temps de charger le document.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export function telechargerBlob(blob: Blob, nomFichier: string): void {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nomFichier;
-  a.click();
+  enregistrerSousLeNom(url, nomFichier);
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
