@@ -21,7 +21,7 @@ import {
 import { useEnLigne, useModeAutonome, usePersistanceStockage } from '@/hooks/useStatuts';
 import { appliquerMiseAJour, miseAJourDisponible, sAbonnerMiseAJour } from '@/lib/majApp';
 import { format, isToday } from 'date-fns';
-import { db, getParametres } from '@/lib/db';
+import { db, getParametres, lireParametres } from '@/lib/db';
 import {
   destinationConfiguree,
   getConfigAutosave,
@@ -70,7 +70,7 @@ const nav = [
  */
 function SauvegardeStatut() {
   const toast = useToast();
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const parametres = useLiveQuery(() => lireParametres());
   const configDossier = useLiveQuery(() => getConfigAutosave());
   const [enCours, setEnCours] = useState(false);
   const config = parametres?.sauvegardeGDrive;
@@ -163,7 +163,7 @@ function SauvegardeStatut() {
  */
 function BandeauSync() {
   const toast = useToast();
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const parametres = useLiveQuery(() => lireParametres());
   const [enCours, setEnCours] = useState(false);
   const etat = useSyncExternalStore(abonnerEtatSync, etatSync);
   const perdues = useSyncExternalStore(abonnerEtatSync, saisiesRemplacees);
@@ -320,6 +320,13 @@ export const DISCLAIMER_JURIDIQUE =
   "Cet outil est une aide à la rédaction. Il ne constitue pas un conseil juridique. Vérifiez les évolutions légales sur service-public.fr. Pour la signature du bail, un prestataire de signature électronique qualifié eIDAS est recommandé.";
 
 function DisclaimerPremiereUtilisation() {
+  /*
+   * Lecture **brute** volontaire, seule du projet : c'est l'absence de la ligne
+   * qui porte l'information. `lireParametres()` rendrait les valeurs par défaut,
+   * donc un objet défini avec `disclaimerAccepte` faux, et la modale
+   * s'afficherait avant même que la ligne n'existe - c'est-à-dire par-dessus le
+   * premier rendu, pendant que `getParametres()` la crée encore.
+   */
   const params = useLiveQuery(() => db.parametres.get('singleton'));
   if (params === undefined || params?.disclaimerAccepte) return null;
   return (

@@ -18,12 +18,14 @@ import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import type { LigneVetuste } from '@/types';
 import {
   detecterConflits,
+  ErreurSauvegarde,
   exporterSauvegarde,
   importerSauvegarde,
   lireSauvegarde,
   supprimerToutesLesDonnees,
   telechargerBlob,
 } from '@/lib/backup';
+import { decrireErreur } from '@/lib/erreurs';
 import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { formatOctets } from '@/lib/calculs';
 import { usePersistanceStockage, useQuotaStockage } from '@/hooks/useStatuts';
@@ -77,7 +79,16 @@ export function ParametresPage() {
       const conflits = await detecterConflits(data);
       setImportEnAttente({ zip, data, conflits });
     } catch (e) {
-      toast('error', e instanceof Error ? e.message : "Fichier de sauvegarde illisible.");
+      /*
+       * Deux natures d'échec, deux messages. Le refus d'archive est déjà rédigé
+       * pour l'utilisateur et dit quoi faire ; une panne technique (quota
+       * saturé, base fermée) doit passer par `decrireErreur`, seul endroit où
+       * ces noms de fautes navigateur sont traduits en clair.
+       */
+      toast(
+        'error',
+        e instanceof ErreurSauvegarde ? e.message : `Import impossible - ${decrireErreur(e)}`,
+      );
     } finally {
       if (fichierRef.current) fichierRef.current.value = '';
     }

@@ -20,7 +20,7 @@ import type { DepotDistant, FichierDistant } from './depot';
  * signé ne se ressaisit pas. C'est le moment de figer une copie - mais pas dix
  * fois dans la même journée de saisie, d'où ce plancher.
  */
-export const INTERVALLE_SIGNATURE_MS = 24 * 3600 * 1000;
+const INTERVALLE_SIGNATURE_MS = 24 * 3600 * 1000;
 
 /**
  * Filet de repli pour un appareil qui ne signe rien pendant longtemps :

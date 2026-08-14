@@ -7,7 +7,7 @@ import { Button, Checkbox } from '@/components/ui';
 const FAMILLES: FamilleClause[] = ['occupation', 'entretien', 'assurance', 'immeuble'];
 
 /** Une clause conditionnelle ne se propose que si le logement s'y prête. */
-export function clausePertinente(clause: ClauseBail, bien?: Bien): boolean {
+function clausePertinente(clause: ClauseBail, bien?: Bien): boolean {
   if (clause.condition === 'copropriete') return bien?.regimeJuridique === 'copropriete';
   if (clause.condition === 'servitude_residence_principale')
     return Boolean(bien?.servitudeResidencePrincipale);

@@ -128,6 +128,21 @@ const COLLECTIONS = [
 ] as const;
 
 /**
+ * Refus motivé d'une archive : le fichier a été lu, il n'est pas exploitable, et
+ * le message dit à l'utilisateur quoi faire.
+ *
+ * Distinguée des pannes techniques (quota saturé, base fermée) pour que
+ * l'interface sache laquelle des deux afficher telle quelle : ces messages-ci
+ * sont rédigés pour être lus, ceux-là doivent passer par `decrireErreur`.
+ */
+export class ErreurSauvegarde extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ErreurSauvegarde';
+  }
+}
+
+/**
  * Contrôle du contenu de `data.json` **avant** toute écriture en base.
  *
  * L'import écrase ou fusionne des données irremplaçables : il ne doit jamais
@@ -140,29 +155,29 @@ const COLLECTIONS = [
  */
 export function validerSauvegarde(brut: unknown): DonneesExport {
   if (typeof brut !== 'object' || brut === null) {
-    throw new Error("Archive invalide : data.json ne contient pas de sauvegarde Bailiz.");
+    throw new ErreurSauvegarde("Archive invalide : data.json ne contient pas de sauvegarde Bailiz.");
   }
   const data = brut as Partial<DonneesExport>;
 
   if (typeof data.version !== 'number') {
-    throw new Error(
+    throw new ErreurSauvegarde(
       "Archive invalide : aucun numéro de version dans data.json. Ce fichier n'a probablement pas été produit par Bailiz.",
     );
   }
   if (data.version > VERSION_SAUVEGARDE) {
-    throw new Error(
+    throw new ErreurSauvegarde(
       `Cette sauvegarde a été créée par une version plus récente de Bailiz (format ${data.version}, cette application lit le format ${VERSION_SAUVEGARDE}). Mettez l'application à jour avant de l'importer - l'importer telle quelle perdrait des informations.`,
     );
   }
   if (data.version < VERSION_SAUVEGARDE) {
-    throw new Error(
+    throw new ErreurSauvegarde(
       `Format de sauvegarde ${data.version} non pris en charge (cette application lit le format ${VERSION_SAUVEGARDE}).`,
     );
   }
 
   const manquantes = COLLECTIONS.filter((c) => !Array.isArray(data[c]));
   if (manquantes.length > 0) {
-    throw new Error(
+    throw new ErreurSauvegarde(
       `Archive incomplète ou corrompue : ${manquantes.join(', ')} manquant(s) dans data.json. Rien n'a été modifié ; réessayez avec une autre sauvegarde.`,
     );
   }
@@ -173,12 +188,12 @@ export function validerSauvegarde(brut: unknown): DonneesExport {
 export async function lireSauvegarde(fichier: Blob): Promise<{ zip: JSZip; data: DonneesExport }> {
   const zip = await JSZip.loadAsync(await fichier.arrayBuffer());
   const dataFile = zip.file('data.json');
-  if (!dataFile) throw new Error('Archive invalide : data.json introuvable.');
+  if (!dataFile) throw new ErreurSauvegarde('Archive invalide : data.json introuvable.');
   let brut: unknown;
   try {
     brut = JSON.parse(await dataFile.async('string'));
   } catch {
-    throw new Error("Archive illisible : data.json n'est pas un fichier JSON valide.");
+    throw new ErreurSauvegarde("Archive illisible : data.json n'est pas un fichier JSON valide.");
   }
   return { zip, data: validerSauvegarde(brut) };
 }

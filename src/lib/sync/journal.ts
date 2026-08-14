@@ -34,10 +34,6 @@ export type TableSynchronisee = (typeof TABLES_SYNCHRONISEES)[number];
  */
 let applicationDistante = false;
 
-export function estApplicationDistante(): boolean {
-  return applicationDistante;
-}
-
 /** Exécute `action` sans que ses écritures alimentent le journal. */
 export async function sansJournaliser<T>(action: () => Promise<T>): Promise<T> {
   const precedent = applicationDistante;
@@ -49,6 +45,16 @@ export async function sansJournaliser<T>(action: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Écriture directe dans le journal, **attendue** par l'appelant.
+ *
+ * C'est la couture de test du module : la production ne l'emploie pas, elle
+ * passe par `noterChangement` (branché sur les hooks Dexie dans `autosave.ts`),
+ * dont l'écriture est différée. Les tests de synchronisation ont besoin d'une
+ * forme qu'on peut `await` pour poser un état de départ déterministe ; le
+ * chemin réel, lui, est couvert par `journal.test.ts`, bloc « journalisation
+ * depuis un hook Dexie ».
+ */
 export async function journaliser(
   table: string,
   cle: string,
@@ -65,13 +71,13 @@ export async function journaliser(
  * accumule donc en mémoire, et on écrit juste après.
  */
 let enAttenteDeJournalisation: Changement[] = [];
-let videngeProgrammee = false;
+let vidangeProgrammee = false;
 
 export function noterChangement(table: string, cle: string, type: Changement['type']): void {
   if (applicationDistante) return;
   enAttenteDeJournalisation.push({ table, cle, type, horodatage: nowISO() });
-  if (videngeProgrammee) return;
-  videngeProgrammee = true;
+  if (vidangeProgrammee) return;
+  vidangeProgrammee = true;
   /*
    * `setTimeout` et non `queueMicrotask` : Dexie propage la transaction en
    * cours aux microtâches. Écrire dans `changements` depuis un microtask lancé
@@ -92,7 +98,7 @@ export function noterChangement(table: string, cle: string, type: Changement['ty
  * (`rattraperChangements`) retrouve toute création ou modification oubliée.
  */
 export async function viderFileJournalisation(): Promise<void> {
-  videngeProgrammee = false;
+  vidangeProgrammee = false;
   const aEcrire = enAttenteDeJournalisation;
   enAttenteDeJournalisation = [];
   if (aEcrire.length === 0) return;

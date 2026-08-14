@@ -102,12 +102,31 @@ export default defineConfig({
        *
        * `branches` est le chiffre le plus parlant ici : il mesure les cas
        * traités, pas les lignes traversées.
+       *
+       * ## Pourquoi `functions` est plus bas que `lines`
+       *
+       * Le fournisseur n'instrumente que les modules **réellement chargés** par
+       * la suite. Ajouter un test d'écran fait donc entrer d'un coup tout ce que
+       * cet écran importe : `ParametresPage` amène ses six panneaux, chacun avec
+       * ses gestionnaires d'événements. Les lignes de ces modules sont largement
+       * traversées au montage, mais leurs fonctions - un gestionnaire par bouton
+       * - ne sont appelées que si le test clique dessus.
+       *
+       * Mesuré en couvrant les parcours bail, signature et restauration :
+       * lignes **50,9 → 65,8 %**, mais fonctions **52,2 → 44,6 %**, pour
+       * 207 fonctions entrées au dénominateur et 51 seulement appelées. Le taux
+       * de fonctions **baisse quand on ajoute des tests** - c'est une propriété
+       * de la mesure, pas une régression. Le verrouiller haut reviendrait à
+       * décourager exactement le travail qui protège le produit.
+       *
+       * D'où le calage : `lines`/`statements` montent nettement pour retenir le
+       * gain réel, `functions` suit le niveau atteint.
        */
       thresholds: {
-        lines: 45,
-        functions: 50,
+        lines: 62,
+        functions: 42,
         branches: 78,
-        statements: 45,
+        statements: 62,
         // Cœur métier : quasi-exhaustif, et il doit le rester.
         'src/lib/{bail,calculs,etat,recherche,rgpd,lettres,adresse,liens,erreurs,crypto,rotation,dates}.ts':
           {

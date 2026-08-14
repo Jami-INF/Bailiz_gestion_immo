@@ -38,7 +38,7 @@ export interface QuotaStockage {
 }
 
 /** Au-dessus de ce taux d'occupation, on alerte. */
-export const SEUIL_QUOTA_CRITIQUE_PCT = 80;
+const SEUIL_QUOTA_CRITIQUE_PCT = 80;
 
 /**
  * Occupation du stockage navigateur.

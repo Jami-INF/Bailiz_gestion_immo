@@ -136,7 +136,7 @@ export const GRILLE_VETUSTE_DEFAUT: LigneVetuste[] = [
 export const LIEN_NOTICE_INFORMATION =
   'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000030649868';
 
-export const LIEN_DOSSIER_FACILE = 'https://www.dossierfacile.logement.gouv.fr';
+const LIEN_DOSSIER_FACILE = 'https://www.dossierfacile.logement.gouv.fr';
 
 /** Portail officiel des risques : sert à établir l'ERP et à vérifier s'il est dû. */
 export const LIEN_GEORISQUES = 'https://www.georisques.gouv.fr';

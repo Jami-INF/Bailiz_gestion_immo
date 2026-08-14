@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { db } from '@/lib/db';
+import { db, lireParametres } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
 import type { ElementEDL, EtatDesLieux } from '@/types';
 import { ETAT_LABELS } from '@/types';
@@ -47,7 +47,7 @@ export function EdlSynthesePage() {
   const toast = useToast();
   const edl = useLiveQuery(() => (id ? db.edls.get(id) : undefined), [id]);
   const contexte = useLiveQuery(async () => (edl ? chargerContexteEdl(edl) : undefined), [edl?.id]);
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const parametres = useLiveQuery(() => lireParametres());
 
   if (!edl || !contexte || !parametres) return null;
   if (edl.type !== 'sortie') {

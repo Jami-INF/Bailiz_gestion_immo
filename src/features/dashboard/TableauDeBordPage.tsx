@@ -11,7 +11,7 @@ import {
   HardDriveDownload,
   Plus,
 } from 'lucide-react';
-import { db } from '@/lib/db';
+import { db, lireParametres } from '@/lib/db';
 import { depotGarantieEdl } from '@/lib/edl';
 import { estBailEnCours, termeDuBail } from '@/lib/bail';
 import { dateLimiteRestitution, formatOctets } from '@/lib/calculs';
@@ -30,7 +30,7 @@ export function TableauDeBordPage() {
   const biens = useLiveQuery(() => db.biens.orderBy('nom').toArray());
   const baux = useLiveQuery(() => db.baux.toArray());
   const edls = useLiveQuery(() => db.edls.toArray());
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const parametres = useLiveQuery(() => lireParametres());
   const quota = useQuotaStockage();
 
   if (!biens || !baux || !edls) return null;

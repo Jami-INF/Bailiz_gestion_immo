@@ -187,3 +187,108 @@ describe('verrouillage après signature', () => {
     expect(await elementsDeLaBase()).toEqual(avant);
   });
 });
+
+/*
+ * Caractérisation de la carte d'un élément et de la barre d'onglets, écrite
+ * **avant** le découpage du fichier en composants : ces cas décrivent le
+ * comportement existant, et c'est à eux de dire si l'extraction l'a changé.
+ */
+describe('carte d’un élément', () => {
+  it('expose l’état relevé et n’en retient qu’un seul', async () => {
+    const u = utilisateur();
+    await semer({ edl: {} });
+    rendreTerrain();
+    await ouvrirPiece('Séjour');
+
+    const groupe = await screen.findByRole('group', { name: 'État de Sol' });
+    await u.click(within(groupe).getByRole('button', { name: 'Usagé' }));
+    await vi.waitFor(() =>
+      expect(within(groupe).getByRole('button', { name: 'Usagé' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+    expect((await elementsDeLaBase())[0].etat).toBe('usage');
+
+    // Un second choix remplace le premier : l'état est exclusif.
+    await u.click(within(groupe).getByRole('button', { name: 'Neuf' }));
+    await vi.waitFor(async () => expect((await elementsDeLaBase())[0].etat).toBe('neuf'));
+    expect(within(groupe).getByRole('button', { name: 'Usagé' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('enregistre le commentaire d’un élément à la sortie du champ', async () => {
+    const u = utilisateur();
+    await semer({ edl: {} });
+    rendreTerrain();
+    await ouvrirPiece('Séjour');
+
+    await u.type(await screen.findByLabelText('Commentaire sur Sol'), 'Rayures près de la porte');
+    await u.tab();
+
+    await vi.waitFor(async () =>
+      expect((await elementsDeLaBase())[0].commentaire).toBe('Rayures près de la porte'),
+    );
+  });
+
+  it('retire un élément ajouté librement', async () => {
+    await semer({ edl: {} });
+    rendreTerrain();
+    await ouvrirPiece('Séjour');
+
+    await utilisateur().click(await screen.findByRole('button', { name: 'Retirer Murs' }));
+
+    await vi.waitFor(async () => {
+      const sejour = (await db.edls.get('edl-1'))!.pieces[0];
+      expect(sejour.elements.map((e) => e.nom)).toEqual(['Sol']);
+    });
+  });
+});
+
+describe('ajout de pièce et d’élément', () => {
+  it('ajoute un élément à la pièce et le mémorise sur le logement', async () => {
+    const u = utilisateur();
+    await semer({ edl: {}, bien: { piecesModele: [{ id: 'pm-1', nom: 'Séjour', ordre: 0, elements: [] }] } });
+    rendreTerrain();
+    await ouvrirPiece('Séjour');
+
+    await u.type(await screen.findByLabelText('Nom du nouvel élément'), 'Rideaux');
+    await u.click(screen.getByRole('button', { name: /^Ajouter$/ }));
+
+    await vi.waitFor(async () => {
+      const sejour = (await db.edls.get('edl-1'))!.pieces[0];
+      expect(sejour.elements.map((e) => e.nom)).toContain('Rideaux');
+    });
+    // La fiche du logement retient l'ajout pour les états des lieux suivants.
+    const bien = await db.biens.get('bien-1');
+    expect(bien?.piecesModele[0].elements.map((e) => e.nom)).toContain('Rideaux');
+  });
+
+  it('ajoute une pièce et bascule dessus', async () => {
+    const u = utilisateur();
+    await semer({ edl: {} });
+    rendreTerrain();
+
+    await u.click(await screen.findByRole('button', { name: /Pièce/ }));
+    const modale = await screen.findByRole('dialog');
+    await u.type(within(modale).getByLabelText(/Nom de la pièce/), 'Buanderie');
+    await u.click(within(modale).getByRole('button', { name: /Ajouter la pièce/ }));
+
+    await vi.waitFor(async () => {
+      const pieces = (await db.edls.get('edl-1'))!.pieces;
+      expect(pieces.map((p) => p.nom)).toContain('Buanderie');
+    });
+  });
+
+  it('signale la pièce complète dans le nom de son onglet', async () => {
+    const edl = unEdl();
+    edl.pieces[0].elements = edl.pieces[0].elements.map((e) => ({ ...e, etat: 'bon' as const }));
+    await semer({ edl });
+    rendreTerrain();
+
+    expect(await screen.findByRole('button', { name: 'Séjour - complète' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cuisine' })).toBeInTheDocument();
+  });
+});

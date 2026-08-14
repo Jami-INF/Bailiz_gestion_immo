@@ -2,30 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { differenceInDays, format } from 'date-fns';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Gauge,
-  Info,
-  KeyRound,
-  Lock,
-  Pencil,
-  PenLine,
-  Plus,
-  Scale,
-  Trash2,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Lock, Pencil, Plus, Scale } from 'lucide-react';
 import { db } from '@/lib/db';
 import { nowISO, uid } from '@/lib/ids';
 import type { CategorieElement, Compteur, ElementEDL, EtatDesLieux, EtatNote, PieceEDL } from '@/types';
 import { CATEGORIE_LABELS, ETAT_LABELS } from '@/types';
 import { elementsNonRenseignes, estDegradation, progressionEDL } from '@/lib/etat';
-import { Badge, Button, Checkbox, DateInput, Field, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
+import { Button, DateInput, Field, Input, Select, Textarea, useToast } from '@/components/ui';
 import { PhotoCapture } from './PhotoCapture';
 import { SectionCles, SectionCompteurs } from './SectionsReleves';
-import { VignetteEntree, VisionneusePhotos, type GroupePhotos } from './VisionneusePhotos';
-import { COULEURS_ETAT } from './couleursEtat';
+import { VisionneusePhotos } from './VisionneusePhotos';
+import { CarteElement, type DemandeVisionneuse } from './CarteElement';
+import { ModaleAvenant, ModaleOublis, ModalePiece, ModaleRectifier } from './ModalesTerrain';
+import { EnteteTerrain } from './EnteteTerrain';
 
 /** Mode terrain : plein écran, une pièce à la fois, gros boutons, autosauvegarde continue. */
 export function EdlTerrainPage() {
@@ -52,7 +41,7 @@ export function EdlTerrainPage() {
   const [modaleRectifier, setModaleRectifier] = useState(false);
   const [modaleOublis, setModaleOublis] = useState(false);
   /** Photos ouvertes en plein écran (comparaison entrée/sortie). */
-  const [visionneuse, setVisionneuse] = useState<{ titre: string; groupes: GroupePhotos[]; initial: number } | null>(
+  const [visionneuse, setVisionneuse] = useState<DemandeVisionneuse | null>(
     null,
   );
 
@@ -93,11 +82,33 @@ export function EdlTerrainPage() {
     .flatMap((p) => p.elements)
     .filter((e) => e.obligatoireDecret && (e.quantite ?? 1) === 0);
 
-  /** Autosauvegarde : chaque changement écrit immédiatement en IndexedDB. */
-  const maj = (m: Partial<EtatDesLieux>) => {
-    if (signe) return;
-    void db.edls.put({ ...edl, ...m, updatedAt: nowISO() });
+  /**
+   * **Point d'écriture unique de l'état des lieux.**
+   *
+   * « Signé = figé » est la garantie sur laquelle repose toute la valeur
+   * juridique du document. Elle est donc posée ici, au contact de la base, et
+   * non dans les conditions de rendu qui décident d'afficher ou non un bouton :
+   * une garde qui vit dans le JSX est une garde confiée à celui qui écrira la
+   * prochaine commande.
+   *
+   * Les trois seules opérations légitimes sur un EDL signé passent `memeSigne`,
+   * et chacune dit pourquoi à son point d'appel.
+   */
+  const ecrireEdl = (m: Partial<EtatDesLieux>, options?: { memeSigne: true }) => {
+    if (signe && !options?.memeSigne) return Promise.resolve();
+    return db.edls.put({ ...edl, ...m, updatedAt: nowISO() });
   };
+
+  /** Autosauvegarde : chaque changement écrit immédiatement en IndexedDB. */
+  const maj = (m: Partial<EtatDesLieux>) => void ecrireEdl(m);
+
+  /** Remplace une seule pièce, les autres inchangées. */
+  const pieceModifiee = (pieceId: string, transformer: (p: PieceEDL) => PieceEDL) =>
+    edl.pieces.map((p) => (p.id === pieceId ? transformer(p) : p));
+
+  /** Applique `transformer` à tous les éléments d'une pièce. */
+  const elementsModifies = (pieceId: string, transformer: (el: ElementEDL) => ElementEDL) =>
+    pieceModifiee(pieceId, (p) => ({ ...p, elements: p.elements.map(transformer) }));
 
   /**
    * Met à jour les compteurs de l'EDL et mémorise leurs numéros sur le logement :
@@ -105,6 +116,10 @@ export function EdlTerrainPage() {
    * qu'une fois et pré-remplira les états des lieux suivants.
    */
   const majCompteurs = (compteurs: Compteur[]) => {
+    // La garde vaut aussi pour l'écriture sur le logement, qui ne passe pas par
+    // `ecrireEdl` : sans elle, un EDL signé ne bougeait pas mais la fiche du
+    // bien, si.
+    if (signe) return;
     maj({ compteurs });
     if (!bien) return;
     const reference = compteurs.map((c) => ({ type: c.type, numero: c.numero }));
@@ -117,14 +132,7 @@ export function EdlTerrainPage() {
 
   const majElement = (pieceId: string, elementId: string, m: Partial<ElementEDL>) => {
     maj({
-      pieces: edl.pieces.map((p) =>
-        p.id !== pieceId
-          ? p
-          : {
-              ...p,
-              elements: p.elements.map((el) => (el.id !== elementId ? el : { ...el, ...m })),
-            },
-      ),
+      pieces: elementsModifies(pieceId, (el) => (el.id !== elementId ? el : { ...el, ...m })),
     });
   };
 
@@ -145,7 +153,7 @@ export function EdlTerrainPage() {
    */
   const rattacherBail = async (bailId: string) => {
     if (!edl) return;
-    await db.edls.put({ ...edl, bailId, updatedAt: nowISO() });
+    await ecrireEdl({ bailId }, { memeSigne: true });
     toast('success', 'État des lieux rattaché au bail. Le document signé reste inchangé.');
   };
 
@@ -171,21 +179,10 @@ export function EdlTerrainPage() {
     const restants = piece.elements.filter((el) => el.etat === undefined && !el.manquant);
     if (restants.length === 0) return;
     maj({
-      pieces: edl.pieces.map((p) =>
-        p.id !== piece.id
-          ? p
-          : {
-              ...p,
-              elements: p.elements.map((el) =>
-                el.etat !== undefined || el.manquant
-                  ? el
-                  : {
-                      ...el,
-                      etat,
-                      ...(sortie ? { degradation: estDegradation(el.etatEntree, etat) } : {}),
-                    },
-              ),
-            },
+      pieces: elementsModifies(piece.id, (el) =>
+        el.etat !== undefined || el.manquant
+          ? el
+          : { ...el, etat, ...(sortie ? { degradation: estDegradation(el.etatEntree, etat) } : {}) },
       ),
     });
     toast(
@@ -200,14 +197,12 @@ export function EdlTerrainPage() {
    */
   const ajouterElement = async (piece: PieceEDL) => {
     const nom = nouvelElement.trim();
-    if (!nom) return;
+    if (!nom || signe) return;
     const categorie = nouvelleCategorie;
     const quantite = categorie === 'mobilier' ? 1 : undefined;
     const nouvel: ElementEDL = { id: uid(), nom, categorie, quantite, photoIds: [] };
-    await db.edls.put({
-      ...edl,
-      pieces: edl.pieces.map((p) => (p.id === piece.id ? { ...p, elements: [...p.elements, nouvel] } : p)),
-      updatedAt: nowISO(),
+    await ecrireEdl({
+      pieces: pieceModifiee(piece.id, (p) => ({ ...p, elements: [...p.elements, nouvel] })),
     });
     if (bien) {
       await db.biens.put({
@@ -224,9 +219,10 @@ export function EdlTerrainPage() {
 
   const supprimerElement = (pieceId: string, elementId: string) => {
     maj({
-      pieces: edl.pieces.map((p) =>
-        p.id !== pieceId ? p : { ...p, elements: p.elements.filter((el) => el.id !== elementId) },
-      ),
+      pieces: pieceModifiee(pieceId, (p) => ({
+        ...p,
+        elements: p.elements.filter((el) => el.id !== elementId),
+      })),
     });
   };
 
@@ -242,13 +238,9 @@ export function EdlTerrainPage() {
   /** Ajoute une pièce à l'EDL et à la fiche du bien. */
   const ajouterPiece = async () => {
     const nom = nomNouvellePiece.trim();
-    if (!nom) return;
+    if (!nom || signe) return;
     const ordre = edl.pieces.length ? Math.max(...edl.pieces.map((p) => p.ordre)) + 1 : 0;
-    await db.edls.put({
-      ...edl,
-      pieces: [...edl.pieces, { id: uid(), nom, ordre, elements: [] }],
-      updatedAt: nowISO(),
-    });
+    await ecrireEdl({ pieces: [...edl.pieces, { id: uid(), nom, ordre, elements: [] }] });
     if (bien && !bien.piecesModele.some((pm) => pm.nom === nom)) {
       await db.biens.put({
         ...bien,
@@ -270,28 +262,32 @@ export function EdlTerrainPage() {
    */
   const rectifier = async () => {
     if (!edl.signatures) return;
-    await db.edls.put({
-      ...edl,
-      statut: 'brouillon',
-      signatures: undefined,
-      pdfHash: undefined,
-      rectifications: [
-        ...(edl.rectifications ?? []),
-        { dateSignature: edl.signatures.dateSignature, pdfHash: edl.pdfHash },
-      ],
-      updatedAt: nowISO(),
-    });
+    // `memeSigne` : c'est l'opération qui *lève* le figeage, elle ne peut pas
+    // s'y soumettre.
+    await ecrireEdl(
+      {
+        statut: 'brouillon',
+        signatures: undefined,
+        pdfHash: undefined,
+        rectifications: [
+          ...(edl.rectifications ?? []),
+          { dateSignature: edl.signatures.dateSignature, pdfHash: edl.pdfHash },
+        ],
+      },
+      { memeSigne: true },
+    );
     setModaleRectifier(false);
     toast('warning', 'État des lieux rouvert pour rectification - à re-signer par les deux parties.');
   };
 
   const ajouterAvenant = async () => {
     if (!texteAvenant.trim()) return;
-    await db.edls.put({
-      ...edl,
-      avenants: [...edl.avenants, { date: nowISO(), texte: texteAvenant.trim() }],
-      updatedAt: nowISO(),
-    });
+    // `memeSigne` : un avenant se pose précisément *après* signature - il ajoute
+    // au constat sans le réécrire.
+    await ecrireEdl(
+      { avenants: [...edl.avenants, { date: nowISO(), texte: texteAvenant.trim() }] },
+      { memeSigne: true },
+    );
     setTexteAvenant('');
     setModaleAvenant(false);
     toast('success', "Avenant ajouté. Il figurera sur le PDF de l'état des lieux.");
@@ -303,98 +299,23 @@ export function EdlTerrainPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-accent-50">
-      {/* Barre supérieure */}
-      <header className="sticky top-0 z-30 border-b border-accent-200 bg-white px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={() => navigate(bail ? `/baux/${bail.id}` : '/edl')}
-            className="flex min-h-touch items-center gap-1 text-sm font-medium text-accent-700"
-          >
-            <ArrowLeft size={18} /> Quitter
-          </button>
-          <div className="text-center">
-            {/* Seul titre de l'écran : l'écran principal de travail du produit
-                n'avait ni `h1` ni `h2`, donc aucune entrée dans la table des
-                titres d'un lecteur d'écran. Le style visuel est inchangé. */}
-            <h1 className="text-sm font-bold text-accent-900">
-              {edl.reference} - {sortie ? 'Sortie' : 'Entrée'}
-            </h1>
-            {oublis.length > 0 && !signe ? (
-              <button
-                type="button"
-                onClick={() => setModaleOublis(true)}
-                className="text-xs font-medium text-amber-700 underline underline-offset-2"
-              >
-                {oublis.length} élément(s) non renseigné(s) - voir la liste
-              </button>
-            ) : (
-              <div className="text-xs text-accent-500">
-                {prog.renseignes}/{prog.total} éléments · sauvegarde automatique
-              </div>
-            )}
-          </div>
-          {signe ? (
-            <Badge tone="green">
-              <Lock size={12} /> Signé
-            </Badge>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() =>
-                // Ne jamais bloquer : on montre ce qui manque, l'utilisateur tranche.
-                oublis.length > 0 ? setModaleOublis(true) : navigate(`/edl/${edl.id}/signature`)
-              }
-            >
-              <PenLine size={14} /> Signer
-            </Button>
-          )}
-        </div>
-        {/* Barre de progression. `aria-hidden` plutôt que `role="progressbar"` :
-            le décompte est déjà donné en toutes lettres juste au-dessus
-            (« N/M éléments »), la répéter n'ajoute qu'une annonce. */}
-        <div aria-hidden className="mt-2 h-2 overflow-hidden rounded-full bg-accent-100">
-          <div className="h-full rounded-full bg-accent-700 transition-all" style={{ width: `${prog.pct}%` }} />
-        </div>
-        {/* Navigation par onglets */}
-        <nav className="mt-2 flex gap-1 overflow-x-auto pb-1">
-          {onglets.map((o, i) => {
-            const actif = i === ongletIdx;
-            const complete =
-              o.type === 'piece' &&
-              edl.pieces.find((p) => p.id === o.pieceId)?.elements.every((e) => e.etat !== undefined);
-            return (
-              <button
-                key={o.nom + i}
-                onClick={() => setOngletIdx(i)}
-                /*
-                 * L'onglet courant ne se distinguait que par sa couleur, et la
-                 * coche de complétion n'avait aucun équivalent textuel : les
-                 * deux informations sont reportées dans le nom accessible.
-                 */
-                aria-current={actif ? 'page' : undefined}
-                aria-label={complete ? `${o.nom} - complète` : o.nom}
-                className={`flex min-h-touch shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium ${
-                  actif ? 'bg-accent-700 text-white' : 'bg-accent-100 text-accent-700'
-                }`}
-              >
-                {o.type === 'compteurs' && <Gauge size={14} />}
-                {o.type === 'cles' && <KeyRound size={14} />}
-                {o.type === 'infos' && <Info size={14} />}
-                {o.nom}
-                {complete && <Check size={14} className={actif ? 'text-green-300' : 'text-green-600'} />}
-              </button>
-            );
-          })}
-          {!signe && !sortie && (
-            <button
-              onClick={() => setModalePiece(true)}
-              className="flex min-h-touch shrink-0 items-center gap-1 rounded-lg border border-dashed border-accent-300 px-3 py-1.5 text-sm font-medium text-accent-600"
-            >
-              <Plus size={14} /> Pièce
-            </button>
-          )}
-        </nav>
-      </header>
+      <EnteteTerrain
+        edl={edl}
+        onglets={onglets}
+        ongletIdx={ongletIdx}
+        progression={prog}
+        nbOublis={oublis.length}
+        signe={signe}
+        sortie={sortie}
+        onOngletChange={setOngletIdx}
+        onQuitter={() => navigate(bail ? `/baux/${bail.id}` : '/edl')}
+        onVoirOublis={() => setModaleOublis(true)}
+        // Ne jamais bloquer : on montre ce qui manque, l'utilisateur tranche.
+        onSigner={() =>
+          oublis.length > 0 ? setModaleOublis(true) : navigate(`/edl/${edl.id}/signature`)
+        }
+        onAjouterPiece={() => setModalePiece(true)}
+      />
 
       {/*
        * Sortie établie sans état des lieux d'entrée : le rappeler en permanence,
@@ -513,219 +434,21 @@ export function EdlTerrainPage() {
             {edl.pieces
               .find((p) => p.id === onglet.pieceId)!
               .elements.map((el) => (
-                <div key={el.id} className="rounded-xl border border-accent-200 bg-white p-4">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2 font-medium text-accent-900">
-                      {el.nom}
-                      {el.manquant && <Badge tone="red">Manquant</Badge>}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {!signe && sortie && (
-                        <button
-                          type="button"
-                          onClick={() => marquerManquant(onglet.pieceId!, el)}
-                          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium ${
-                            el.manquant
-                              ? 'border-accent-300 text-accent-600 hover:bg-accent-50'
-                              : 'border-red-200 text-red-600 hover:bg-red-50'
-                          }`}
-                        >
-                          <Trash2 size={13} /> {el.manquant ? 'Rétablir' : 'Manquant'}
-                        </button>
-                      )}
-                      {!signe && !sortie && !el.obligatoireDecret && (
-                        <button
-                          type="button"
-                          aria-label={`Retirer ${el.nom}`}
-                          onClick={() => supprimerElement(onglet.pieceId!, el.id)}
-                          className="text-accent-400 hover:text-red-600"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {/*
-                    * État à l'entrée. Repris de l'EDL d'entrée quand il a été
-                    * fait ici, **saisissable** quand il est à recopier d'un
-                    * exemplaire papier : sans référence d'entrée, une sortie ne
-                    * fonde aucune retenue.
-                    */}
-                  {sortie && entreeAReporter && (
-                    <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
-                      <span className="text-sm font-medium text-sky-900">
-                        État à l'entrée - à recopier de l'état des lieux papier :
-                      </span>
-                      <div
-                        role="group"
-                        aria-label={`État à l'entrée de ${el.nom}`}
-                        className="mt-1.5 grid grid-cols-5 gap-1.5"
-                      >
-                        {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
-                          const actif = el.etatEntree === etat;
-                          return (
-                            <button
-                              key={etat}
-                              type="button"
-                              disabled={signe}
-                              aria-pressed={actif}
-                              onClick={() => choisirEtatEntree(onglet.pieceId!, el, etat)}
-                              className={`min-h-touch rounded-lg border-2 px-1 py-1.5 text-xs font-semibold transition-all ${
-                                actif
-                                  ? `${COULEURS_ETAT[etat]} text-white shadow`
-                                  : 'border-sky-200 bg-white text-accent-600 hover:border-sky-400'
-                              } disabled:opacity-60`}
-                            >
-                              {ETAT_LABELS[etat]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {sortie && !entreeAReporter && el.etatEntree && (
-                    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-accent-50 px-3 py-2">
-                      <span className="text-sm font-medium text-accent-600">État à l'entrée :</span>
-                      <span className={`rounded px-2.5 py-1 text-sm font-bold uppercase tracking-wide text-white ${COULEURS_ETAT[el.etatEntree]}`}>
-                        {ETAT_LABELS[el.etatEntree]}
-                      </span>
-                      {el.commentaireEntree && <span className="text-sm text-accent-500">- {el.commentaireEntree}</span>}
-                    </div>
-                  )}
-                  {el.manquant ? (
-                    <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                      Élément présent à l'entrée et manquant/retiré à la sortie - noté comme dégradation.
-                    </p>
-                  ) : (
-                  <>
-                  {/*
-                   * Sélecteur d'état : 5 gros boutons colorés.
-                   *
-                   * `aria-pressed` est le geste central du produit : sans lui,
-                   * les cinq boutons étaient rigoureusement identiques pour un
-                   * lecteur d'écran quel que soit l'état saisi - impossible de
-                   * relire un constat. Le groupe est nommé par l'élément relevé,
-                   * sinon les dizaines de grilles d'une pièce sont indistinctes.
-                   */}
-                  <div role="group" aria-label={`État de ${el.nom}`} className="grid grid-cols-5 gap-1.5">
-                    {(Object.keys(ETAT_LABELS) as EtatNote[]).map((etat) => {
-                      const actif = el.etat === etat;
-                      return (
-                        <button
-                          key={etat}
-                          type="button"
-                          disabled={signe}
-                          aria-pressed={actif}
-                          onClick={() => choisirEtat(onglet.pieceId!, el, etat)}
-                          className={`min-h-touch rounded-lg border-2 px-1 py-2 text-xs font-semibold transition-all ${
-                            actif
-                              ? `${COULEURS_ETAT[etat]} text-white shadow`
-                              : 'border-accent-200 bg-white text-accent-600 hover:border-accent-400'
-                          } disabled:opacity-60`}
-                        >
-                          {ETAT_LABELS[etat]}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {(el.categorie === 'mobilier' || el.obligatoireDecret) && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="text-sm text-accent-600">Quantité :</span>
-                      <button
-                        type="button"
-                        disabled={signe}
-                        aria-label="Diminuer la quantité"
-                        onClick={() => majElement(onglet.pieceId!, el.id, { quantite: Math.max(0, (el.quantite ?? 1) - 1) })}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent-300 text-lg font-semibold text-accent-700 disabled:opacity-50"
-                      >
-                        −
-                      </button>
-                      <span className="w-8 text-center font-semibold text-accent-900">{el.quantite ?? 1}</span>
-                      <button
-                        type="button"
-                        disabled={signe}
-                        aria-label="Augmenter la quantité"
-                        onClick={() => majElement(onglet.pieceId!, el.id, { quantite: (el.quantite ?? 1) + 1 })}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent-300 text-lg font-semibold text-accent-700 disabled:opacity-50"
-                      >
-                        +
-                      </button>
-                      {(el.quantite ?? 1) === 0 && <Badge tone="red">Absent</Badge>}
-                    </div>
-                  )}
-                  {sortie && el.etat && (
-                    <div className="mt-2">
-                      <Checkbox
-                        label={
-                          el.degradation
-                            ? 'Dégradation imputable au locataire (décocher si usure normale)'
-                            : 'Dégradation imputable au locataire'
-                        }
-                        checked={el.degradation ?? false}
-                        disabled={signe}
-                        onChange={(e) => majElement(onglet.pieceId!, el.id, { degradation: e.target.checked })}
-                      />
-                    </div>
-                  )}
-                  </>
-                  )}
-                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-                    <Input
-                      key={`${el.id}-comm`}
-                      defaultValue={el.commentaire ?? ''}
-                      placeholder="Commentaire (rayures, taches…)"
-                      // Le libellé de remplacement disparaît à la première
-                      // frappe, et il y a des dizaines de ces champs par état
-                      // des lieux : sans nom propre, ils sont interchangeables.
-                      aria-label={`Commentaire sur ${el.nom}`}
-                      disabled={signe}
-                      onBlur={(e) =>
-                        majElement(onglet.pieceId!, el.id, { commentaire: e.target.value || undefined })
-                      }
-                      className="flex-1"
-                    />
-                    {sortie && (
-                      <VignetteEntree
-                        photoIds={el.photoIdsEntree ?? []}
-                        onOuvrir={() =>
-                          setVisionneuse({
-                            titre: `${onglet.nom} - ${el.nom}`,
-                            groupes: [
-                              { libelle: 'Entrée', photoIds: el.photoIdsEntree ?? [] },
-                              { libelle: 'Sortie', photoIds: el.photoIds },
-                            ],
-                            initial: 0,
-                          })
-                        }
-                      />
-                    )}
-                    <div>
-                      <span className="mb-1 block text-xs font-medium text-accent-600">Photos</span>
-                      <PhotoCapture
-                        edlId={edl.id}
-                        legende={`${onglet.nom} - ${el.nom}`}
-                        photoIds={el.photoIds}
-                        lectureSeule={signe}
-                        onChange={(photoIds) => majElement(onglet.pieceId!, el.id, { photoIds })}
-                        onAgrandir={
-                          el.photoIds.length
-                            ? () =>
-                                setVisionneuse({
-                                  titre: `${onglet.nom} - ${el.nom}`,
-                                  groupes: sortie
-                                    ? [
-                                        { libelle: 'Entrée', photoIds: el.photoIdsEntree ?? [] },
-                                        { libelle: 'Sortie', photoIds: el.photoIds },
-                                      ]
-                                    : [{ libelle: 'Photos', photoIds: el.photoIds }],
-                                  initial: sortie ? 1 : 0,
-                                })
-                            : undefined
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
+                <CarteElement
+                  key={el.id}
+                  element={el}
+                  nomPiece={onglet.nom}
+                  edlId={edl.id}
+                  signe={signe}
+                  sortie={sortie}
+                  entreeAReporter={entreeAReporter}
+                  onMaj={(m) => majElement(onglet.pieceId!, el.id, m)}
+                  onEtat={(etat) => choisirEtat(onglet.pieceId!, el, etat)}
+                  onEtatEntree={(etat) => choisirEtatEntree(onglet.pieceId!, el, etat)}
+                  onManquant={() => marquerManquant(onglet.pieceId!, el)}
+                  onSupprimer={() => supprimerElement(onglet.pieceId!, el.id)}
+                  onVisionner={setVisionneuse}
+                />
               ))}
             {!signe && !sortie && (
               <div className="rounded-xl border-2 border-dashed border-accent-300 bg-white p-4">
@@ -933,147 +656,38 @@ export function EdlTerrainPage() {
         />
       )}
 
-      <Modal
+      <ModaleOublis
         open={modaleOublis}
-        onClose={() => setModaleOublis(false)}
-        title={`${oublis.length} élément(s) sans état renseigné`}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModaleOublis(false)}>
-              Continuer la saisie
-            </Button>
-            <Button onClick={() => navigate(`/edl/${edl.id}/signature`)}>
-              Signer quand même
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <p className="text-sm text-accent-700">
-            Un élément sans état ne prouve rien à la sortie : il ne pourra pas servir de point de
-            comparaison. Touchez une ligne pour aller directement à sa pièce.
-          </p>
-          <ul className="max-h-72 space-y-1 overflow-y-auto">
-            {oublis.map((o) => (
-              <li key={o.elementId}>
-                <button
-                  type="button"
-                  onClick={() => allerALaPiece(o.pieceId)}
-                  className="flex min-h-touch w-full items-center justify-between gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left text-sm hover:bg-accent-50"
-                >
-                  <span className="min-w-0">
-                    <span className="block font-medium text-accent-900">{o.elementNom}</span>
-                    <span className="block text-xs text-accent-500">{o.pieceNom}</span>
-                  </span>
-                  <ArrowRight size={16} className="shrink-0 text-accent-400" />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-accent-500">
-            Dans chaque pièce, « Renseigner d'un coup les éléments restants » pose l'état commun,
-            puis vous corrigez les exceptions.
-          </p>
-        </div>
-      </Modal>
+        oublis={oublis}
+        onFermer={() => setModaleOublis(false)}
+        onAllerALaPiece={allerALaPiece}
+        onSignerQuandMeme={() => navigate(`/edl/${edl.id}/signature`)}
+      />
 
-      <Modal
+      <ModaleRectifier
         open={modaleRectifier}
-        onClose={() => setModaleRectifier(false)}
-        title="Rectifier l'état des lieux"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModaleRectifier(false)}>
-              Annuler
-            </Button>
-            <Button onClick={() => void rectifier()}>Rouvrir pour rectification</Button>
-          </>
-        }
-      >
-        <div className="space-y-3 text-sm text-accent-700">
-          <p>
-            La rectification d'un état des lieux signé n'est possible qu'avec{' '}
-            <strong>l'accord et la re-signature des deux parties</strong> (document contradictoire).
-          </p>
-          {edl.signatures && (
-            <div className="rounded-lg bg-accent-50 p-3">
-              <p className="font-medium text-accent-800">Version signée actuelle (conservée) :</p>
-              <p className="text-xs">
-                Signée le {format(new Date(edl.signatures.dateSignature), "dd/MM/yyyy 'à' HH:mm:ss")}
-                {edl.pdfHash ? ` - empreinte ${edl.pdfHash.slice(0, 16)}…` : ''}.
-              </p>
-            </div>
-          )}
-          <p>
-            Le document va redevenir <strong>modifiable</strong>. Une fois re-signée, la nouvelle
-            version <strong>annulera et remplacera</strong> la précédente ; l'original signé reste
-            conservé dans les Documents.
-          </p>
-        </div>
-      </Modal>
+        edl={edl}
+        onFermer={() => setModaleRectifier(false)}
+        onRectifier={() => void rectifier()}
+      />
 
-      <Modal
+      <ModalePiece
         open={modalePiece}
-        onClose={() => setModalePiece(false)}
-        title="Ajouter une pièce"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModalePiece(false)}>
-              Annuler
-            </Button>
-            <Button onClick={() => void ajouterPiece()} disabled={!nomNouvellePiece.trim()}>
-              Ajouter la pièce
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <Field label="Nom de la pièce" required>
-            <Input
-              value={nomNouvellePiece}
-              onChange={(e) => setNomNouvellePiece(e.target.value)}
-              placeholder="Ex. Chambre 2, Buanderie, Balcon…"
-            />
-          </Field>
-          <p className="text-xs text-accent-500">
-            La pièce est aussi ajoutée à la fiche du logement. Vous pourrez y ajouter ses éléments juste après.
-          </p>
-        </div>
-      </Modal>
+        nom={nomNouvellePiece}
+        onNomChange={setNomNouvellePiece}
+        onFermer={() => setModalePiece(false)}
+        onAjouter={() => void ajouterPiece()}
+      />
 
-      <Modal
+      <ModaleAvenant
         open={modaleAvenant}
-        onClose={() => setModaleAvenant(false)}
-        title="Avenant à l'état des lieux"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModaleAvenant(false)}>
-              Annuler
-            </Button>
-            <Button onClick={ajouterAvenant} disabled={!texteAvenant.trim()}>
-              Ajouter l'avenant
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          {edl.type === 'entree' && joursDepuisSignature !== null && joursDepuisSignature > 10 && (
-            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-              Le délai légal de 10 jours est dépassé : l'avenant nécessite l'accord des deux
-              parties (hors chauffage pendant le premier mois de chauffe).
-            </p>
-          )}
-          <Field label="Texte de l'avenant" required>
-            <Textarea
-              rows={5}
-              value={texteAvenant}
-              onChange={(e) => setTexteAvenant(e.target.value)}
-              placeholder="Ex. : Complément demandé par le locataire - rayure constatée sur le parquet du séjour…"
-            />
-          </Field>
-          <p className="text-xs text-accent-500">L'avenant est daté automatiquement et apparaîtra sur le PDF.</p>
-        </div>
-      </Modal>
+        texte={texteAvenant}
+        onTexteChange={setTexteAvenant}
+        typeEdl={edl.type}
+        joursDepuisSignature={joursDepuisSignature}
+        onFermer={() => setModaleAvenant(false)}
+        onAjouter={ajouterAvenant}
+      />
     </div>
   );
 }

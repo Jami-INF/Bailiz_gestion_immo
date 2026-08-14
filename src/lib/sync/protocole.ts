@@ -277,7 +277,7 @@ export const ECART_HORLOGE_MAX_MS = 2 * 60 * 1000;
  * qu'un serait vu comme une suppression massive : le garde-fou bloquerait
  * l'usage normal au lieu de protéger d'un accident.
  */
-export const SUPPRESSIONS_TOLEREES = 5;
+const SUPPRESSIONS_TOLEREES = 5;
 
 /**
  * Vrai si le cycle s'apprête à supprimer une part anormale de la base : un

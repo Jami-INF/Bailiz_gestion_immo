@@ -29,7 +29,7 @@ export function compteursInitiaux(bien: Bien, edlEntree?: EtatDesLieux): EtatDes
  * Trame neuve : les pièces du logement, suivies de l'inventaire du mobilier
  * obligatoire du meublé (décret n°2015-981), qui forme sa propre rubrique.
  */
-export function construirePiecesNeuves(piecesModele: PieceModele[]): PieceEDL[] {
+function construirePiecesNeuves(piecesModele: PieceModele[]): PieceEDL[] {
   return [
     ...piecesModele.map((p, i) => ({
       id: uid(),
@@ -65,7 +65,7 @@ export function construirePiecesNeuves(piecesModele: PieceModele[]): PieceEDL[] 
 }
 
 /** Convertit un modèle de la bibliothèque en pièce du logement. */
-export function pieceDepuisModele(nomModele: string, ordre: number, suffixe?: number): PieceModele {
+function pieceDepuisModele(nomModele: string, ordre: number, suffixe?: number): PieceModele {
   const modele = BIBLIOTHEQUE_PIECES.find((m) => m.nom === nomModele);
   return {
     id: uid(),

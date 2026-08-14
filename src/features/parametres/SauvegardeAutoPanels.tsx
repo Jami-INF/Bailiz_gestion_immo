@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { AlertTriangle, Download, FolderSync, HardDriveUpload, RefreshCw } from 'lucide-react';
-import { db } from '@/lib/db';
+import { lireParametres } from '@/lib/db';
 import {
   autosaveSupportee,
   choisirDossierAutosave,
@@ -144,7 +144,7 @@ export function SauvegardeAutoPanel() {
  */
 export function SauvegardeGDrivePanel() {
   const toast = useToast();
-  const parametres = useLiveQuery(() => db.parametres.get('singleton'));
+  const parametres = useLiveQuery(() => lireParametres());
   const enAttente = useLiveQuery(() => compterEnAttente());
   const [clientId, setClientId] = useState('');
   const [enCours, setEnCours] = useState(false);

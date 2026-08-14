@@ -10,6 +10,7 @@ import { Button, Card, Checkbox } from '@/components/ui';
 export function ApercuBailPanel({
   apercu,
   generation,
+  echec,
   autoApercu,
   onAutoApercuChange,
   onRegenerer,
@@ -22,6 +23,13 @@ export function ApercuBailPanel({
 }: {
   apercu: { url: string; blob: Blob } | null;
   generation: boolean;
+  /**
+   * Cause du dernier échec de génération, ou `null`. L'aperçu ne lève pas de
+   * notification - il se régénère à chaque frappe, et alerter à chaque fois
+   * serait intenable - mais une panne durable ne doit pas se lire comme un
+   * cadre vide : l'utilisateur chercherait une erreur de saisie inexistante.
+   */
+  echec: string | null;
   autoApercu: boolean;
   onAutoApercuChange: (actif: boolean) => void;
   onRegenerer: () => void;
@@ -58,6 +66,17 @@ export function ApercuBailPanel({
             src={`${apercu.url}#navpanes=0`}
             className={`${cadre} border border-accent-200 bg-white`}
           />
+        ) : echec ? (
+          <div
+            role="status"
+            className={`${cadre} flex flex-col items-center justify-center gap-2 border border-dashed border-warning-600 px-4 text-center text-sm text-warning-900`}
+          >
+            <span className="font-medium">Aperçu indisponible</span>
+            <span className="text-xs text-accent-700">{echec}</span>
+            <span className="text-xs text-accent-700">
+              Votre saisie est conservée : vous pouvez enregistrer le bail malgré tout.
+            </span>
+          </div>
         ) : (
           <div className={`${cadre} flex items-center justify-center border border-dashed border-accent-200 text-sm text-accent-400`}>
             L’aperçu s’affiche ici.

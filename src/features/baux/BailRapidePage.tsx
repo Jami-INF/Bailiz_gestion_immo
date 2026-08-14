@@ -60,6 +60,7 @@ export function BailRapidePage() {
 
   const [saisie, setSaisie] = useState<SaisieBail | null>(null);
   const [apercu, setApercu] = useState<{ url: string; blob: Blob } | null>(null);
+  const [echecApercu, setEchecApercu] = useState<string | null>(null);
   const [autoApercu, setAutoApercu] = useState(true);
   const [generation, setGeneration] = useState(false);
   const [enregistrement, setEnregistrement] = useState(false);
@@ -116,8 +117,17 @@ export function BailRapidePage() {
         if (prev) URL.revokeObjectURL(prev.url);
         return { url, blob };
       });
+      setEchecApercu(null);
     } catch (e) {
+      /*
+       * Pas de notification : l'aperçu se régénère à chaque frappe, et alerter à
+       * chaque échec serait intenable. Mais l'échec est retenu et affiché dans
+       * le cadre - une panne durable de génération (la CSP bloquant le PDF, par
+       * exemple) se lisait jusqu'ici comme un aperçu vide, et envoyait chercher
+       * une erreur de saisie qui n'existait pas.
+       */
       console.error(e);
+      setEchecApercu(decrireErreur(e));
     } finally {
       enCoursRef.current = false;
       setGeneration(false);
@@ -133,10 +143,24 @@ export function BailRapidePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cle, autoApercu, pret]);
 
-  // Libère l'URL au démontage.
-  useEffect(() => () => {
-    if (apercu) URL.revokeObjectURL(apercu.url);
+  /*
+   * Libère l'URL au démontage, et **seulement** au démontage.
+   *
+   * L'URL courante passe par une référence : en dépendance de l'effet, le
+   * nettoyage se rejouait à chaque aperçu - en double avec la révocation de
+   * `setApercu` ci-dessus, et surtout fatal sous `React.StrictMode`, qui joue
+   * montage → nettoyage → montage et révoquait donc l'URL encore affichée.
+   */
+  const apercuRef = useRef<{ url: string } | null>(null);
+  useEffect(() => {
+    apercuRef.current = apercu;
   }, [apercu]);
+  useEffect(
+    () => () => {
+      if (apercuRef.current) URL.revokeObjectURL(apercuRef.current.url);
+    },
+    [],
+  );
 
   if (!saisie || !biens || !locatairesEnr) return null;
 
@@ -735,6 +759,7 @@ export function BailRapidePage() {
         <ApercuBailPanel
           apercu={apercu}
           generation={generation}
+          echec={echecApercu}
           autoApercu={autoApercu}
           onAutoApercuChange={setAutoApercu}
           onRegenerer={() => void genererApercu()}

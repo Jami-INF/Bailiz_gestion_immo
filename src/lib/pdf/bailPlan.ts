@@ -1,7 +1,7 @@
 import type { Bail, Bien, ClauseBail, FamilleClause, Locataire } from '@/types';
 
 /** Ordre d'impression des familles de conditions générales. */
-export const FAMILLES_CLAUSE: FamilleClause[] = [
+const FAMILLES_CLAUSE: FamilleClause[] = [
   'occupation',
   'entretien',
   'assurance',
