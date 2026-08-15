@@ -358,16 +358,25 @@ async function assurerDossier(token: string, dossierIdConnu?: string): Promise<s
 /**
  * Corps `multipart/related` d'un upload Drive (métadonnées JSON + contenu).
  * Fonction pure, testée.
+ *
+ * Le type du contenu est **celui du blob**, et surtout pas une constante. Cette
+ * fonction n'a d'abord servi qu'à pousser l'archive de sauvegarde, d'où un
+ * `application/zip` écrit en dur ; la synchronisation l'a ensuite reprise pour
+ * **tous** les fichiers. Chaque PDF et chaque photo partaient donc sur le Drive
+ * déclarés comme des archives, et revenaient tels quels sur l'autre appareil :
+ * un bail qui se télécharge en `.zip` (le contenu, lui, restait un PDF valide),
+ * et des photos que le moteur PDF refusait d'intégrer faute de type d'image.
  */
 export function construireCorpsMultipart(
   metadata: object,
   contenu: Blob,
   frontiere = `bailiz-${uid()}`,
 ): { corps: Blob; contentType: string } {
+  const typeContenu = contenu.type || 'application/octet-stream';
   const corps = new Blob([
     `--${frontiere}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,
     JSON.stringify(metadata),
-    `\r\n--${frontiere}\r\nContent-Type: application/zip\r\n\r\n`,
+    `\r\n--${frontiere}\r\nContent-Type: ${typeContenu}\r\n\r\n`,
     contenu,
     `\r\n--${frontiere}--`,
   ]);

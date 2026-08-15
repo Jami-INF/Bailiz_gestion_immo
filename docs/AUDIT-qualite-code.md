@@ -462,29 +462,44 @@ Vérifié ensuite en direct : rendu identique au pixel près, écriture d'un ét
 « Ajouter une pièce » avec son champ nommé et son bouton désarmé tant que le nom est vide, Échap
 qui referme, et la modale des oublis qui bascule sur la pièce concernée puis se ferme.
 
-### Hors lot - téléchargement d'un document archivé
+### Hors lot - un bail téléchargé en `.zip`
 
-Signalé à l'usage : télécharger un PDF depuis la page Documents rapportait une archive au lieu du
-document.
+Signalé à l'usage : télécharger un PDF depuis la page Documents rapportait une archive. **Renommer
+le fichier en `.pdf` l'ouvrait normalement** - c'est ce détail qui a donné la cause. Le contenu
+n'avait jamais été altéré ; seul son **type MIME** mentait.
 
-**Cause** : `ouvrirBlob` et `telechargerBlob` (`backup.ts`) créaient l'ancre de téléchargement sans
-jamais l'insérer dans le document. Chrome accepte une ancre détachée, **Safari l'ignore** - et
-Safari, c'est l'iPad, la cible principale du produit. `download` sans effet, le navigateur se
-rabat sur une navigation vers l'URL `blob:`, qui n'a ni nom ni extension : le fichier arrive sous un
-identifiant opaque auquel l'appareil invente un type.
+**Cause racine** : `construireCorpsMultipart` (`gdrive.ts`) écrivait `Content-Type: application/zip`
+**en dur** dans le corps envoyé au Drive. La fonction n'avait d'abord servi qu'à pousser l'archive
+de sauvegarde ; la synchronisation l'a ensuite reprise pour **tous** les fichiers. Chaque PDF et
+chaque photo partaient donc déclarés comme des archives, et revenaient tels quels sur l'autre
+appareil - `lireBlob` prend le type de la réponse HTTP. Chrome nomme un téléchargement d'après le
+type MIME et non d'après le nom demandé : d'où le `.zip`, malgré un `nomFichierDocument` correct.
 
-**Aggravant, mesuré dans un vrai navigateur** : `window.open` est refusé **y compris sur un clic
-utilisateur authentique**. Le repli n'était donc pas un cas de bord, c'était le chemin normal - et
-c'était celui qui était cassé.
+**Second effet, plus grave et jamais signalé** : une photo revenue du Drive portait le même type.
+`blobVersDataUrl` produisait alors `data:application/zip;base64,…`, que `@react-pdf/renderer`
+refuse - **les photos disparaissaient des documents produits sur le second appareil**, sans erreur
+ni trace.
 
-**Correctif** : une fonction unique `enregistrerSousLeNom`, qui attache l'ancre au `body`, clique,
-puis la retire. Les deux points d'entrée y passent. Quatre tests
-(`backup.telechargement.test.tsx`) vérifient ce que jsdom ne regarde pas seul : **où se trouve
-l'ancre à l'instant du clic**. Éprouvés par mutation - le retour à l'ancre détachée fait tomber
-deux d'entre eux.
+**Correctif en trois points**, parce qu'un seul n'aurait pas suffi :
 
-Vérifié en direct sur la page Documents : ancre attachée au `body`, nom `.pdf` complet, aucune ancre
-laissée derrière.
+1. **À la source** - le corps multipart déclare le type réel du blob (`application/octet-stream` à
+   défaut) ;
+2. **À la réception** - `cycle.ts` retype selon la table (`documents` → PDF, `photos` → JPEG) : le
+   type distant est déclaratif, et un appareil resté sur l'ancienne version continue d'envoyer faux ;
+3. **Pour les bases déjà abîmées** - `retyper` (`src/lib/blobs.ts`) remet le bon type au moment de
+   s'en servir, au téléchargement et à la conversion en data-URL. `slice` rend une vue et non une
+   copie : retyper un PDF de plusieurs mégaoctets ne coûte rien. **Aucune migration Dexie** : les
+   données existantes sont réparées à l'usage, sans réécrire la base.
+
+Corrigé au passage, sur le même chemin : `ouvrirBlob` et `telechargerBlob` créaient l'ancre de
+téléchargement sans jamais l'insérer dans le document. Chrome l'accepte détachée, **Safari non** -
+donc l'iPad. Une fonction unique `enregistrerSousLeNom` l'attache, clique, puis la retire. Mesuré en
+passant : `window.open` est refusé **y compris sur un clic utilisateur authentique**, le repli
+n'était donc pas un cas de bord mais le chemin normal.
+
+**12 tests** (`blobs.test.ts`, `gdrive.test.ts`, `backup.telechargement.test.tsx`), éprouvés par
+mutation : remettre `application/zip` en dur fait tomber deux tests, remettre l'ancre détachée deux
+autres.
 
 ### Vérification
 

@@ -8,6 +8,7 @@ import { uid, nowISO } from '@/lib/ids';
 import type { DocumentGenere, TypeDocument } from '@/types';
 import { ouvrirBlob } from '@/lib/backup';
 import { blobVersDataUrl } from '@/lib/images';
+import { retyper, TYPE_PDF } from '@/lib/blobs';
 
 type DocElement = ReactElement<DocumentProps>;
 
@@ -112,7 +113,15 @@ export function telechargerDocument(doc: {
   titre?: string;
   createdAt?: string;
 }): void {
-  ouvrirBlob(doc.blob, nomFichierDocument(doc));
+  /*
+   * Type remis d'office : un document revenu du Drive porte celui déclaré à
+   * l'envoi, longtemps `application/zip` pour tous les fichiers. Chrome nomme
+   * l'enregistrement d'après le type et non d'après le nom demandé - le bail
+   * arrivait en `.zip`, PDF valide à l'intérieur, et il fallait le renommer à la
+   * main pour l'ouvrir. Corrigé à la source, mais les bases déjà synchronisées
+   * gardent leurs blobs mal typés : on les rattrape ici.
+   */
+  ouvrirBlob(retyper(doc.blob, TYPE_PDF), nomFichierDocument(doc));
 }
 
 /**

@@ -1,4 +1,5 @@
 import { db, getParametres, parametresDefaut, type SyncEtat } from '@/lib/db';
+import { retyper, TYPE_PAR_TABLE } from '@/lib/blobs';
 import type { Parametres } from '@/types';
 import { identifiantAppareil } from '@/lib/appareil';
 import { nowISO } from '@/lib/ids';
@@ -397,7 +398,16 @@ export async function synchroniser(
         modifieLe: enveloppe.modifieLe,
       });
     }
-    await ecrireEnregistrement(table, { ...(enveloppe.donnees as object), [champBlob]: blob });
+    /*
+     * Type remis selon la table : celui du dépôt distant est déclaratif, et il a
+     * longtemps valu `application/zip` pour tous les fichiers envoyés. Un PDF
+     * mal typé se télécharge sous une mauvaise extension, une photo mal typée
+     * n'est plus reconnue comme image par le moteur PDF. On ne fait pas
+     * confiance au type reçu.
+     */
+    const typeAttendu = TYPE_PAR_TABLE[table];
+    const contenu = typeAttendu ? retyper(blob, typeAttendu) : blob;
+    await ecrireEnregistrement(table, { ...(enveloppe.donnees as object), [champBlob]: contenu });
     recus++;
   }
 

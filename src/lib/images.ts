@@ -1,3 +1,5 @@
+import { retyper, TYPE_PHOTO } from './blobs';
+
 const LARGEUR_MAX = 1600;
 const QUALITE_JPEG = 0.7;
 
@@ -29,11 +31,22 @@ export async function compresserImage(fichier: Blob): Promise<Blob> {
   });
 }
 
+/**
+ * Data-URL d'une image, pour l'intégrer à un PDF - `@react-pdf/renderer` ne sait
+ * pas rendre un `Blob`.
+ *
+ * Le type est forcé à `image/jpeg` quand le blob n'annonce pas une image : une
+ * photo revenue du Drive porte le type déclaré à l'envoi, longtemps
+ * `application/zip` pour tous les fichiers. La data-URL produite s'ouvrait alors
+ * sur `data:application/zip;base64,…`, que le moteur PDF refuse - les photos
+ * disparaissaient des documents produits sur le second appareil, sans erreur.
+ */
 export function blobVersDataUrl(blob: Blob): Promise<string> {
+  const image = blob.type.startsWith('image/') ? blob : retyper(blob, TYPE_PHOTO);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
+    reader.readAsDataURL(image);
   });
 }
