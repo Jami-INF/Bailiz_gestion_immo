@@ -29,6 +29,15 @@ beforeEach(async () => {
   localStorage.clear();
 });
 
+/*
+ * Lire une vraie archive ZIP - décompression, blobs, validation - prend
+ * largement plus que le délai par défaut de `findBy*` (1 s) dès que la machine
+ * est chargée, ce qui est le cas quand la suite complète tourne. Le délai est
+ * donc relevé partout où l'on attend le résultat d'un import : ce n'est pas de
+ * la lenteur suspecte, c'est le travail réel de la fonction testée.
+ */
+const ATTENTE_ARCHIVE = { timeout: 15_000 };
+
 /** Exporte l'état courant de la base sous forme de fichier téléversable. */
 async function archiveDeLaBase(nom = 'bailiz-sauvegarde.zip'): Promise<File> {
   const blob = await exporterSauvegarde();
@@ -63,11 +72,11 @@ describe('restauration d’une sauvegarde', () => {
     await viderBase();
 
     const u = await televerser(archive);
-    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ });
+    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ }, ATTENTE_ARCHIVE);
     expect(within(modale).getByText(/Aucun conflit détecté/)).toBeInTheDocument();
     await u.click(within(modale).getByRole('button', { name: /Tout remplacer/ }));
 
-    await waitFor(async () => expect(await db.biens.count()).toBe(1));
+    await waitFor(async () => expect(await db.biens.count()).toBe(1), ATTENTE_ARCHIVE);
     expect(await db.baux.count()).toBe(1);
     expect(await db.locataires.count()).toBe(1);
     const edl = await db.edls.get('edl-1');
@@ -83,11 +92,11 @@ describe('restauration d’une sauvegarde', () => {
     await db.biens.add(unBien({ id: 'bien-2', nom: 'Studio Jaude' }));
 
     const u = await televerser(archive);
-    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ });
+    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ }, ATTENTE_ARCHIVE);
     expect(within(modale).getByText(/existent déjà sur/)).toBeInTheDocument();
     await u.click(within(modale).getByRole('button', { name: /Fusionner par identifiant/ }));
 
-    await waitFor(async () => expect(await db.biens.count()).toBe(2));
+    await waitFor(async () => expect(await db.biens.count()).toBe(2), ATTENTE_ARCHIVE);
     expect((await db.biens.get('bien-2'))?.nom).toBe('Studio Jaude');
   });
 
@@ -102,10 +111,10 @@ describe('restauration d’une sauvegarde', () => {
     await db.biens.add(unBien({ id: 'bien-2', nom: 'Studio Jaude' }));
 
     const u = await televerser(archive);
-    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ });
+    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ }, ATTENTE_ARCHIVE);
     await u.click(within(modale).getByRole('button', { name: /Tout remplacer/ }));
 
-    await waitFor(async () => expect(await db.biens.count()).toBe(1));
+    await waitFor(async () => expect(await db.biens.count()).toBe(1), ATTENTE_ARCHIVE);
     expect(await db.biens.get('bien-2')).toBeUndefined();
   });
 });
@@ -128,7 +137,7 @@ describe('refus d’une archive inexploitable', () => {
 
     await televerser(futur);
 
-    expect(await screen.findByText(/version plus récente de Bailiz/)).toBeInTheDocument();
+    expect(await screen.findByText(/version plus récente de Bailiz/, undefined, ATTENTE_ARCHIVE)).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: /Restaurer la sauvegarde/ })).not.toBeInTheDocument();
     // Rien n'a été touché : le refus intervient avant toute écriture.
     expect(await db.biens.count()).toBe(1);
@@ -143,7 +152,7 @@ describe('refus d’une archive inexploitable', () => {
 
     await televerser(fichier);
 
-    expect(await screen.findByText(/data\.json introuvable/)).toBeInTheDocument();
+    expect(await screen.findByText(/data\.json introuvable/, undefined, ATTENTE_ARCHIVE)).toBeInTheDocument();
   });
 
   it('présente autrement une panne technique qu’un refus de validation', async () => {
@@ -160,7 +169,7 @@ describe('refus d’une archive inexploitable', () => {
 
     await televerser(fichier);
 
-    expect(await screen.findByText(/Import impossible - /)).toBeInTheDocument();
+    expect(await screen.findByText(/Import impossible - /, undefined, ATTENTE_ARCHIVE)).toBeInTheDocument();
     expect(await db.biens.count()).toBe(1);
   });
 });

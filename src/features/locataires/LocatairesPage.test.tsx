@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { db } from '@/lib/db';
 import { LocatairesPage } from './LocatairesPage';
 import { rendre, semer, unBail, unEdl, unLocataire, utilisateur, viderBase } from '@/test/utils';
@@ -96,8 +96,18 @@ describe('suppression RGPD', () => {
     rendre(<LocatairesPage />);
 
     await utilisateur().click(await screen.findByRole('button', { name: /Supprimer \(RGPD\)/ }));
-    // Le périmètre exact est annoncé avant confirmation.
-    expect(await screen.findByText(/1 bail/)).toBeInTheDocument();
+    /*
+     * Le périmètre exact est annoncé avant confirmation.
+     *
+     * Recherché **dans la modale** et sur le libellé complet : « 1 bail » tout
+     * court désigne aussi le badge de la fiche du locataire, en arrière-plan. La
+     * recherche globale ne passait que tant qu'elle devançait le calcul du
+     * périmètre, qui est asynchrone - sur une machine plus lente, les deux
+     * nœuds étaient là et l'assertion tombait sur « Found multiple elements ».
+     * Viser la référence du bail lève l'ambiguïté et vérifie davantage.
+     */
+    const modale = await screen.findByRole('dialog');
+    expect(await within(modale).findByText(/1 bail\(s\) : BAIL-2026-0001/)).toBeInTheDocument();
     await utilisateur().click(screen.getByRole('button', { name: /^Supprimer définitivement/ }));
 
     await vi.waitFor(async () => expect(await db.locataires.count()).toBe(0));
