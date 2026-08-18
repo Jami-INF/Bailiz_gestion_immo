@@ -66,6 +66,13 @@ export function BailRapidePage() {
   const [enregistrement, setEnregistrement] = useState(false);
   const [modaleBien, setModaleBien] = useState(false);
   /**
+   * Saisie libre du logement : formulaire complet affiché à la demande, pour un
+   * bien utilisé sur ce seul bail sans être enregistré. Masqué par défaut - il
+   * reprend les champs de la modale « Créer un logement ». `null` = pas encore
+   * de choix, on retombe alors sur le défaut calculé plus bas.
+   */
+  const [saisieLibreChoisie, setSaisieLibre] = useState<boolean | null>(null);
+  /**
    * Modale locataire : `index` = emplacement du bail concerné, `locataire` =
    * fiche à modifier (absent = création). `null` = modale fermée.
    */
@@ -180,6 +187,9 @@ export function BailRapidePage() {
     setSaisie((s) => ({ ...s!, locataires: s!.locataires.map((l, idx) => (idx === i ? { ...l, ...m } : l)) }));
 
   const bienChoisi = saisie.bienId ? biens.find((b) => b.id === saisie.bienId) : undefined;
+  // Par défaut, seule l'édition d'un bail écrit sur un logement jamais enregistré
+  // ouvre la saisie libre : ses données doivent rester visibles et modifiables.
+  const saisieLibre = saisieLibreChoisie ?? (edition && !saisie.bienId);
   const mobilite = saisie.typeBail === 'mobilite';
   const coloc = saisie.locataires.length > 1;
 
@@ -478,120 +488,144 @@ export function BailRapidePage() {
 
           <Section titre="Logement">
             {/*
-              Aucun bien enregistré : le sélecteur n'aurait que « Saisir un
-              logement ici » comme option, déjà sélectionnée par défaut - ce qui
-              affichait le formulaire de saisie libre juste sous le bouton
-              « Créer un logement », donnant l'impression de deux formulaires
-              d'ajout pour la même chose. Un seul point d'entrée tant qu'aucun
-              bien n'existe : la popup.
+              Un seul formulaire de logement visible à la fois : le bouton
+              « Créer un logement » ouvre une modale aux champs identiques à la
+              saisie libre, les afficher ensemble donnait l'impression de deux
+              formulaires d'ajout pour la même chose. La saisie libre - un bien
+              utilisé pour ce bail sans être enregistré - reste accessible, mais
+              à la demande.
             */}
-            {biens.length === 0 ? (
-              <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-accent-300 p-4 text-sm text-accent-600 sm:flex-row sm:items-center sm:justify-between">
-                <span>Aucun bien enregistré pour l’instant.</span>
-                <Button variant="secondary" onClick={() => setModaleBien(true)} className="shrink-0">
-                  <Plus size={16} /> Créer un logement
-                </Button>
+            {biens.length > 0 && (
+              <div className="min-w-0">
+                <Field label="Bien" hint="Choisissez un bien enregistré (toutes ses infos sont utilisées, loyer et charges compris), créez-le, ou saisissez-le pour ce seul bail.">
+                  <Select
+                    value={saisie.bienId ?? ''}
+                    onChange={(e) => {
+                      const id = e.target.value || undefined;
+                      choisirBien(id);
+                      if (id) setSaisieLibre(false);
+                    }}
+                  >
+                    <option value="">- Aucun bien sélectionné -</option>
+                    {biens.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.nom} ({b.adresse.ville})
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
               </div>
-            ) : (
-              <>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                  <div className="min-w-0 flex-1">
-                    <Field label="Bien" hint="Choisissez un bien enregistré (toutes ses infos sont utilisées, loyer et charges compris), créez-le, ou saisissez-le ici sans l'enregistrer.">
-                      <Select
-                        value={saisie.bienId ?? ''}
-                        onChange={(e) => choisirBien(e.target.value || undefined)}
-                      >
-                        <option value="">- Saisir un logement ici -</option>
-                        {biens.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.nom} ({b.adresse.ville})
-                          </option>
-                        ))}
-                      </Select>
-                    </Field>
-                  </div>
+            )}
+
+            {bienChoisi ? (
+              <div className="flex items-start gap-3 rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
+                <Building2 size={18} className="mt-0.5 shrink-0 text-accent-500" />
+                <div>
+                  <div className="font-medium text-accent-900">{bienChoisi.nom}</div>
+                  {bienChoisi.type} · {bienChoisi.surfaceBoutin} m² · {formatAdresse(bienChoisi.adresse)}
+                  {bienChoisi.classeDPE && ` · DPE ${bienChoisi.classeDPE}`}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      maj({ bienId: undefined });
+                      setSaisieLibre(true);
+                    }}
+                    className="mt-1 flex items-center gap-1 text-xs font-medium text-accent-700 underline"
+                  >
+                    <Pencil size={12} /> Saisir un logement à la place
+                  </button>
+                </div>
+              </div>
+            ) : !saisieLibre ? (
+              <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-accent-300 p-4 text-sm text-accent-600 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  {biens.length === 0
+                    ? 'Aucun bien enregistré pour l’instant.'
+                    : 'Aucun bien sélectionné pour ce bail.'}
+                </span>
+                <div className="flex flex-wrap items-center gap-3">
                   <Button variant="secondary" onClick={() => setModaleBien(true)} className="shrink-0">
                     <Plus size={16} /> Créer un logement
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => setSaisieLibre(true)}
+                    className="text-xs font-medium text-accent-700 underline"
+                  >
+                    Saisir sans enregistrer
+                  </button>
                 </div>
-                {bienChoisi ? (
-                  <div className="flex items-start gap-3 rounded-lg bg-accent-50 p-3 text-sm text-accent-700">
-                    <Building2 size={18} className="mt-0.5 shrink-0 text-accent-500" />
-                    <div>
-                      <div className="font-medium text-accent-900">{bienChoisi.nom}</div>
-                      {bienChoisi.type} · {bienChoisi.surfaceBoutin} m² · {formatAdresse(bienChoisi.adresse)}
-                      {bienChoisi.classeDPE && ` · DPE ${bienChoisi.classeDPE}`}
-                      <button
-                        type="button"
-                        onClick={() => maj({ bienId: undefined })}
-                        className="mt-1 flex items-center gap-1 text-xs font-medium text-accent-700 underline"
-                      >
-                        <Pencil size={12} /> Saisir un logement à la place
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Désignation (usage interne)">
-                        <Input value={saisie.bien.nom ?? ''} onChange={(e) => majBien({ nom: e.target.value })} placeholder="T2 Chamalières" />
-                      </Field>
-                      <Field label="Type" required>
-                        <Select value={saisie.bien.type ?? ''} onChange={(e) => majBien({ type: (e.target.value || undefined) as TypeBien })}>
-                          <option value="">-</option>
-                          {TYPES_BIEN.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                    </div>
-                    <Field label="Adresse du logement" required>
-                      <Input value={saisie.bien.adresse.ligne1} onChange={(e) => majAdresse({ ligne1: e.target.value })} placeholder="12 rue des Lilas" />
-                    </Field>
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                      <Field label="Code postal" required>
-                        <Input value={saisie.bien.adresse.codePostal} onChange={(e) => majAdresse({ codePostal: e.target.value })} />
-                      </Field>
-                      <Field label="Ville" required>
-                        <Input value={saisie.bien.adresse.ville} onChange={(e) => majAdresse({ ville: e.target.value })} />
-                      </Field>
-                      <Field label="Étage / bâtiment (optionnel)">
-                        <Input value={saisie.bien.etage ?? ''} onChange={(e) => majBien({ etage: e.target.value })} />
-                      </Field>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                      <Field label="Surface Boutin (m²)" required>
-                        <Input type="number" step="0.01" min="0" value={saisie.bien.surfaceBoutin ?? ''} onChange={(e) => majBien({ surfaceBoutin: e.target.value === '' ? undefined : Number(e.target.value) })} />
-                      </Field>
-                      <Field label="Nb de pièces" required>
-                        <Input type="number" min="0" value={saisie.bien.nbPieces ?? ''} onChange={(e) => majBien({ nbPieces: e.target.value === '' ? undefined : Number(e.target.value) })} />
-                      </Field>
-                      <Field label="Classe DPE">
-                        <Select value={saisie.bien.classeDPE ?? ''} onChange={(e) => majBien({ classeDPE: (e.target.value || undefined) as ClasseDPE })}>
-                          <option value="">-</option>
-                          {CLASSES_DPE.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                      <Field label="Identifiant fiscal (optionnel)">
-                        <Input value={saisie.bien.identifiantFiscal ?? ''} onChange={(e) => majBien({ identifiantFiscal: e.target.value })} />
-                      </Field>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="Chauffage" hint="Texte libre, ex. « individuel électrique »">
-                        <Input value={saisie.bien.chauffage ?? ''} onChange={(e) => majBien({ chauffage: e.target.value })} />
-                      </Field>
-                      <Field label="Eau chaude" hint="Texte libre, ex. « individuelle gaz »">
-                        <Input value={saisie.bien.eauChaude ?? ''} onChange={(e) => majBien({ eauChaude: e.target.value })} />
-                      </Field>
-                    </div>
-                  </>
-                )}
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col items-start gap-2 rounded-lg bg-accent-50 p-3 text-xs text-accent-600 sm:flex-row sm:items-center sm:justify-between">
+                  <span>Logement saisi pour ce seul bail, sans être enregistré.</span>
+                  <button
+                    type="button"
+                    onClick={() => setSaisieLibre(false)}
+                    className="font-medium text-accent-700 underline"
+                  >
+                    Utiliser un bien enregistré à la place
+                  </button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Désignation (usage interne)">
+                    <Input value={saisie.bien.nom ?? ''} onChange={(e) => majBien({ nom: e.target.value })} placeholder="T2 Chamalières" />
+                  </Field>
+                  <Field label="Type" required>
+                    <Select value={saisie.bien.type ?? ''} onChange={(e) => majBien({ type: (e.target.value || undefined) as TypeBien })}>
+                      <option value="">-</option>
+                      {TYPES_BIEN.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+                <Field label="Adresse du logement" required>
+                  <Input value={saisie.bien.adresse.ligne1} onChange={(e) => majAdresse({ ligne1: e.target.value })} placeholder="12 rue des Lilas" />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <Field label="Code postal" required>
+                    <Input value={saisie.bien.adresse.codePostal} onChange={(e) => majAdresse({ codePostal: e.target.value })} />
+                  </Field>
+                  <Field label="Ville" required>
+                    <Input value={saisie.bien.adresse.ville} onChange={(e) => majAdresse({ ville: e.target.value })} />
+                  </Field>
+                  <Field label="Étage / bâtiment (optionnel)">
+                    <Input value={saisie.bien.etage ?? ''} onChange={(e) => majBien({ etage: e.target.value })} />
+                  </Field>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <Field label="Surface Boutin (m²)" required>
+                    <Input type="number" step="0.01" min="0" value={saisie.bien.surfaceBoutin ?? ''} onChange={(e) => majBien({ surfaceBoutin: e.target.value === '' ? undefined : Number(e.target.value) })} />
+                  </Field>
+                  <Field label="Nb de pièces" required>
+                    <Input type="number" min="0" value={saisie.bien.nbPieces ?? ''} onChange={(e) => majBien({ nbPieces: e.target.value === '' ? undefined : Number(e.target.value) })} />
+                  </Field>
+                  <Field label="Classe DPE">
+                    <Select value={saisie.bien.classeDPE ?? ''} onChange={(e) => majBien({ classeDPE: (e.target.value || undefined) as ClasseDPE })}>
+                      <option value="">-</option>
+                      {CLASSES_DPE.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Identifiant fiscal (optionnel)">
+                    <Input value={saisie.bien.identifiantFiscal ?? ''} onChange={(e) => majBien({ identifiantFiscal: e.target.value })} />
+                  </Field>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Chauffage" hint="Texte libre, ex. « individuel électrique »">
+                    <Input value={saisie.bien.chauffage ?? ''} onChange={(e) => majBien({ chauffage: e.target.value })} />
+                  </Field>
+                  <Field label="Eau chaude" hint="Texte libre, ex. « individuelle gaz »">
+                    <Input value={saisie.bien.eauChaude ?? ''} onChange={(e) => majBien({ eauChaude: e.target.value })} />
+                  </Field>
+                </div>
               </>
             )}
           </Section>

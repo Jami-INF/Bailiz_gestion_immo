@@ -1,11 +1,11 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { masquerSaisieDate, parserDateFr, versDateFr } from '@/lib/dates';
 import { useLiaisonChamp } from './champContexte';
 
 /**
  * Champ de date saisissable au clavier (JJ/MM/AAAA, masque automatique)
- * doublé d'un sélecteur calendrier natif accessible via l'icône.
+ * doublé d'un sélecteur calendrier natif ouvert par le bouton icône.
  *
  * `value` et `onChange` travaillent en ISO `yyyy-MM-dd` ('' si vide/invalide).
  *
@@ -30,6 +30,7 @@ export function DateInput({
   const [texte, setTexte] = useState(() => versDateFr(value));
   const [invalide, setInvalide] = useState(false);
   const idErreur = useId();
+  const refCalendrier = useRef<HTMLInputElement>(null);
   const liaison = useLiaisonChamp();
   /*
    * Le message « Date invalide » s'ajoute à l'aide du `Field` au lieu de la
@@ -58,6 +59,27 @@ export function DateInput({
     }
   };
 
+  /*
+   * `showPicker()` est la seule façon fiable d'ouvrir le calendrier : superposer
+   * l'icône à l'indicateur natif ne marchait pas - comprimé à 44 px de large, le
+   * champ date natif relègue son indicateur dans ses tout derniers pixels, hors
+   * de l'icône dessinée, et le clic tombait sur les sous-champs texte.
+   */
+  const ouvrirCalendrier = () => {
+    const el = refCalendrier.current;
+    if (!el || disabled) return;
+    if (typeof el.showPicker === 'function') {
+      try {
+        el.showPicker();
+        return;
+      } catch {
+        // Navigateur qui refuse l'appel : on retombe sur le clic direct.
+      }
+    }
+    el.focus();
+    el.click();
+  };
+
   return (
     <div className={className}>
       <div className="relative">
@@ -79,8 +101,14 @@ export function DateInput({
               : 'border-accent-400 focus:border-accent-700 focus:ring-accent-700'
           }`}
         />
-        {/* Sélecteur natif invisible superposé à l'icône : un clic ouvre le calendrier. */}
+        {/*
+          Champ natif invisible : il porte le calendrier (le popup s'ancre sur
+          lui) et reçoit la date choisie. Hors du parcours clavier - c'est le
+          bouton ci-dessous qui l'ouvre - et hors du parcours souris, sans quoi
+          ses sous-champs texte captureraient les clics destinés à l'icône.
+        */}
         <input
+          ref={refCalendrier}
           type="date"
           tabIndex={-1}
           aria-hidden="true"
@@ -93,12 +121,17 @@ export function DateInput({
               onChange(e.target.value);
             }
           }}
-          className="absolute inset-y-0 right-0 w-11 cursor-pointer opacity-0 disabled:cursor-default"
+          className="pointer-events-none absolute inset-y-0 right-0 w-11 opacity-0"
         />
-        <Calendar
-          size={18}
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-accent-400"
-        />
+        <button
+          type="button"
+          onClick={ouvrirCalendrier}
+          disabled={disabled}
+          aria-label="Ouvrir le calendrier"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-accent-400 hover:text-accent-700 focus:outline-none focus:ring-1 focus:ring-accent-700 disabled:cursor-default disabled:text-accent-400"
+        >
+          <Calendar size={18} />
+        </button>
       </div>
       {invalide && (
         <p id={idErreur} className="mt-1 text-xs font-medium text-red-600">
