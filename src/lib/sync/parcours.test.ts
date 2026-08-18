@@ -315,7 +315,7 @@ describe('allers-retours répétés entre les deux appareils', () => {
 
     // …et le dépôt n'a pas enflé : une photo par tour, plus les six de départ.
     expect(depot.compter('photos')).toBe(12);
-    expect(depot.compter('donnees')).toBe(4 + 12 + 1 + 1); // fiches + photos + PDF + paramètres
+    expect(depot.compter('donnees')).toBe(4 + 12 + 1); // fiches + photos + PDF
   });
 });
 

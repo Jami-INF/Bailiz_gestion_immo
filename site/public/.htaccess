@@ -67,10 +67,26 @@ ErrorDocument 404 /404.html
   # `'wasm-unsafe-eval'` : @react-pdf/renderer met en page via yoga-layout, un
   # module WebAssembly. Sans ce mot-clé le navigateur refuse
   # `WebAssembly.instantiate()` et la génération des PDF échoue à l'étape E4.
-  # Il n'autorise QUE le WASM - ne pas le remplacer par `'unsafe-eval'`, qui
-  # réouvrirait `eval()` à tout le bundle. Demande Chrome/Edge 97+, Firefox
-  # 102+, Safari 16.4+ ; en dessous, basculer yoga sur son build asm.js.
-  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; font-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client; connect-src 'self' https://accounts.google.com/gsi/ https://www.googleapis.com https://oauth2.googleapis.com; frame-src 'self' blob: https://accounts.google.com/gsi/; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+  # Il n'autorise QUE le WASM, et suffit à Chrome/Edge 97+, Firefox 102+ et
+  # Safari 16.4+.
+  #
+  # `'unsafe-eval'` : le même besoin, pour Safari antérieur à 16.4 - iPadOS 15
+  # et 16.0-16.3, encore répandus sur les tablettes qui ne reçoivent plus de
+  # mise à jour majeure. Ces versions ne connaissent pas `'wasm-unsafe-eval'`
+  # (mot-clé inconnu, donc écarté sans erreur) et exigent `'unsafe-eval'` pour
+  # instancier du WebAssembly : sur iPad, la génération échouait sur « Refused
+  # to create a WebAssembly object because 'unsafe-eval' is not an allowed
+  # source of script ». C'est l'usage central du produit qui est en jeu -
+  # l'état des lieux se remplit sur place, sur tablette.
+  #
+  # Ce que ça rouvre : `eval()` et `new Function()` pour tout le bundle.
+  # `script-src 'self'` continue d'interdire le chargement comme l'injection
+  # d'un script tiers ; le surcoût réel suppose une faille XSS qui ferait déjà
+  # passer une chaîne par `eval()`, ce que l'application ne fait nulle part.
+  # Les deux mots-clés sont gardés côte à côte pour que la suppression
+  # d'`'unsafe-eval'`, le jour où Safari 16.3 aura disparu du parc, se fasse
+  # sans avoir à redécouvrir lequel servait à quoi.
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; font-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' https://accounts.google.com/gsi/client; connect-src 'self' https://accounts.google.com/gsi/ https://www.googleapis.com https://oauth2.googleapis.com; frame-src 'self' blob: https://accounts.google.com/gsi/; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
 </IfModule>
 
 # ---------------------------------------------------------------------------

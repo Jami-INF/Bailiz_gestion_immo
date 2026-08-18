@@ -599,6 +599,28 @@ async function synchroniserParametres(
   const neuf = empreintesSections(parametresDefaut());
 
   /*
+   * Appareil vierge et dépôt sans singleton : il n'y a rien à publier. Écrire
+   * ici déposerait sur le Drive des « réglages » que personne n'a saisis -
+   * civilité et qualité du bailleur par défaut, grille de vétusté, catalogue de
+   * clauses et modèle de fiche de visite livrés avec l'application. Et
+   * l'appareil réellement configuré qui synchroniserait ensuite n'aurait, faute
+   * de référence commune, aucun moyen de distinguer ces valeurs d'origine d'un
+   * vrai réglage concurrent : il signalerait une collision là où il n'y a rien
+   * à trancher.
+   *
+   * Les compteurs de séquence entrent dans le test : entamés, ils doivent
+   * converger même sur un appareil dont la configuration n'a jamais bougé,
+   * sinon deux appareils rattribueraient les mêmes références.
+   */
+  const jamaisConfigure = SECTIONS_PARAMETRES.every(
+    (section) => empreintesSections(local)[section] === neuf[section],
+  );
+  const compteursIntacts = (['bail', 'edl', 'inventaire', 'document'] as const).every(
+    (cle) => !local.compteursSequence[cle],
+  );
+  if (!distantFichier && jamaisConfigure && compteursIntacts) return [];
+
+  /*
    * Reprise de l'empreinte d'un seul bloc des versions précédentes : la
    * découper en sections vaut mieux que repartir sans référence, ce qui
    * rejouerait au premier cycle une fusion déjà tranchée.

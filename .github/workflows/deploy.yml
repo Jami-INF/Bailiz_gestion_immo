@@ -196,6 +196,23 @@ jobs:
             https://www.bailiz.fr/ | grep -q '^301 https://bailiz.fr/' \
             || echo "::warning::www ne redirige pas en 301 - .htaccess ignoré ?"
 
+          # La CSP a déjà bloqué la génération des PDF deux fois, et jamais en
+          # développement : le serveur de dev n'envoie pas d'en-tête. On vérifie
+          # donc sur le site servi que les deux mots-clés dont yoga-layout a
+          # besoin sont bien là - `'wasm-unsafe-eval'` pour les navigateurs
+          # récents, `'unsafe-eval'` pour Safari < 16.4 (iPad).
+          echo "- CSP compatible avec la génération des PDF"
+          CSP=$(curl -sS --max-time 20 -o /dev/null -D - https://bailiz.fr/app/ \
+            | tr -d '\r' | grep -i '^content-security-policy:' || true)
+          case "$CSP" in
+            *"'wasm-unsafe-eval'"*) ;;
+            *) echo "::error::CSP sans 'wasm-unsafe-eval' - les PDF échoueront. [$CSP]"; exit 1 ;;
+          esac
+          case "$CSP" in
+            *"'unsafe-eval'"*) ;;
+            *) echo "::warning::CSP sans 'unsafe-eval' - les PDF échoueront sur iPad Safari < 16.4" ;;
+          esac
+
           # --- Intégrité du bundle applicatif ---
           #
           # Le transfert se fait en clair (cf. étape précédente). Ce contrôle est

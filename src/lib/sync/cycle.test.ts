@@ -88,7 +88,9 @@ describe('cycle de synchronisation', () => {
 
     expect(resultat.etat).toBe('ok');
     expect(resultat.etat === 'ok' && resultat.envoyes).toBe(1);
-    expect(depot.compter('donnees')).toBe(2); // le bien + les paramètres
+    // Le bien seul : un appareil dont la configuration n'a jamais bougé ne
+    // dépose pas de paramètres (voir « n’écrit rien depuis un appareil vierge »).
+    expect(depot.compter('donnees')).toBe(1);
     expect(await db.changements.count()).toBe(0);
   });
 
@@ -408,6 +410,58 @@ describe('photos et documents (blobs immuables)', () => {
 });
 
 describe('paramètres (singleton)', () => {
+  it('n’écrit rien depuis un appareil vierge', async () => {
+    /*
+     * Un appareil neuf ne « possède » aucun réglage : la civilité et la qualité
+     * du bailleur, la grille de vétusté et le catalogue de clauses viennent de
+     * l'application, personne ne les a saisis. Les déposer donnait à l'utilisateur
+     * l'impression d'avoir poussé des données depuis une app vide, et l'appareil
+     * réellement configuré qui synchronisait ensuite signalait une collision sur
+     * des sections que nul n'avait touchées.
+     */
+    const depot = new DepotMemoire();
+
+    const resultat = await synchroniser(depot);
+
+    expect(resultat.etat).toBe('ok');
+    expect(depot.compter('donnees')).toBe(0);
+    expect(await db.syncEtat.get(['parametres', 'singleton'])).toBeUndefined();
+  });
+
+  it('dépose les compteurs de séquence même sans réglage modifié', async () => {
+    // Le garde-fou ci-dessus ne doit pas retenir les compteurs : deux appareils
+    // qui ne les partagent pas rattribuent les mêmes références de documents.
+    const depot = new DepotMemoire();
+    const params = await getParametres();
+    await db.parametres.put({
+      ...params,
+      compteursSequence: { ...params.compteursSequence, bail: 3 },
+    });
+
+    await synchroniser(depot);
+
+    expect(depot.compter('donnees')).toBe(1);
+  });
+
+  it('publie les réglages du premier appareil configuré, sans collision', async () => {
+    /*
+     * Ordre défavorable : l'appareil vide synchronise d'abord, celui qui porte
+     * la configuration ensuite. Sans référence commune, une section déposée par
+     * l'appareil vide passait pour un réglage concurrent - collision annoncée,
+     * alors que rien n'était en concurrence.
+     */
+    const depot = new DepotMemoire();
+    await synchroniser(depot); // appareil vide
+
+    await reinitialiser();
+    const params = await getParametres();
+    await db.parametres.put({ ...params, bailleur: { ...params.bailleur, nom: 'Infante' } });
+    const resultat = await synchroniser(depot);
+
+    expect(resultat.etat === 'ok' && resultat.reglagesEcrases).toEqual([]);
+    expect((await getParametres()).bailleur.nom).toBe('Infante');
+  });
+
   it('ne perd pas un réglage modifié localement', async () => {
     // Les paramètres portent le bailleur, la grille de vétusté, le catalogue de
     // clauses et le modèle de fiche de visite : les écraser à chaque cycle
@@ -707,7 +761,7 @@ describe('robustesse du cycle', () => {
     const reprise = await synchroniser(depot);
 
     expect(reprise.etat).toBe('ok');
-    expect(depot.compter('donnees')).toBe(2); // la photo + le singleton parametres
+    expect(depot.compter('donnees')).toBe(1); // la photo, sans doublon
     expect(depot.compter('photos')).toBe(1);
     expect(await db.changements.count()).toBe(0);
   });
