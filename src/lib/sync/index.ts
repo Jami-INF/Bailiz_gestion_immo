@@ -1,5 +1,6 @@
 import { db, getParametres } from '@/lib/db';
 import { decrireErreur } from '@/lib/erreurs';
+import { ErreurJetonExpire } from '@/lib/gdrive';
 import { ouvrirDepotDrive } from './drive';
 import {
   synchroniser,
@@ -221,6 +222,17 @@ export async function lancerCycle(
     }
     return resultat;
   } catch (e) {
+    /*
+     * Jeton expiré en pleine course, que le renouvellement silencieux n'a pas pu
+     * remplacer - le cas courant sur Safari/iPad, où les cookies tiers sont
+     * bloqués. Ce n'est pas une panne : c'est le même « il faut reconnecter »
+     * que lorsque le dépôt ne s'ouvre pas, et il doit s'afficher comme tel,
+     * sinon on envoie chercher une panne inexistante.
+     */
+    if (e instanceof ErreurJetonExpire) {
+      definirEtat({ etat: 'reconnexion' });
+      return { etat: 'indisponible' };
+    }
     console.error('Cycle de synchronisation interrompu :', e);
     derniereErreurSync = decrireErreur(e);
     definirEtat({ etat: 'erreur', details: derniereErreurSync });

@@ -268,8 +268,22 @@ System Access :
 - **Auth** : Google Identity Services (script `gsi/client` chargé à la demande, jamais au
   démarrage - l'app reste 100 % hors-ligne tant qu'on ne pousse pas), flux « token client »,
   scope non sensible **`drive.file`** (l'app ne voit que ses propres fichiers). Le jeton
-  (~1 h) vit en mémoire uniquement, jamais persisté ; renouvellement silencieux
+  (~1 h) vit en mémoire, recopié dans le `sessionStorage` de l'onglet (clé
+  `bailiz.gdrive.jeton`) et **jamais au-delà** : ni base, ni disque, ni `localStorage`.
+  C'est ce qui lui fait passer un rechargement de page - sur iPad, WebKit décharge la
+  page dès que la mémoire manque (ouverture de la caméra, Centre de contrôle), et le
+  Drive se retrouvait déconnecté en plein état des lieux. Effacé à la déconnexion et au
+  premier 401 ; fermer l'application l'efface aussi. Renouvellement silencieux
   (`prompt: ''`) sinon interaction requise. Types ambiants dans `src/types/gsi.d.ts`.
+- **Expiration** : le jeton est renouvelé avant chaque cycle (`obtenirJeton`, marge d'une
+  minute), et **aussi en cours de cycle** - `appelDrive` rattrape un 401, reprend un jeton
+  en silence et rejoue l'appel une fois. Sans quoi un long échange (première
+  synchronisation, photos d'un état des lieux complet) pouvait franchir l'heure de validité
+  en pleine course et perdre tout le reste du cycle. Si le renouvellement silencieux échoue
+  - le cas courant sur Safari/iPad, cookies tiers bloqués -, `ErreurJetonExpire` remonte et
+  le cycle publie `reconnexion`, **pas** `erreur` : le geste attendu est de reconnecter
+  Google, pas de chercher une panne. Il n'y a pas de *refresh token* (flux navigateur sans
+  serveur) : passé une heure de session Google perdue, un geste utilisateur est inévitable.
 - **Config** dans `parametres.sauvegardeGDrive` (`clientId` public, `actif`, `dossierId`,
   `dernierPush`) - voyage donc avec l'export ZIP, ce qui est voulu (restauration sur un
   nouvel appareil : il ne reste qu'à se reconnecter). Le Client ID OAuth est saisi par
@@ -334,7 +348,8 @@ synchronisé garde ses ZIP, indépendamment.
 
 Ne jamais reconstruire l'objet `sauvegardeGDrive` à neuf (`activerGDrive`) : on y perdrait
 `derniereSync`, dont la disparition force au cycle suivant un re-listage et une réécriture
-complète de la base. La reconnexion Google est un geste banal - le jeton n'est jamais persisté.
+complète de la base. La reconnexion Google est un geste banal - le jeton ne survit pas à la
+fermeture de l'application.
 
 **Déclenchement** : à l'ouverture, à chaque retour au premier plan, toutes les
 `INTERVALLE_SYNC_MS` (5 min) tant que l'application est visible, après chaque signature, et

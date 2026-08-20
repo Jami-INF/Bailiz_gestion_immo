@@ -9,7 +9,8 @@ import { uid } from './ids';
  * - upload multipart du ZIP dans un dossier « Bailiz » à la racine du Drive ;
  * - même rotation que le dossier local (10 archives conservées).
  *
- * Le jeton d'accès n'est jamais persisté (mémoire uniquement, ~1 h) ; son
+ * Le jeton d'accès (~1 h) vit en mémoire et n'est recopié que dans le
+ * `sessionStorage` de l'onglet - jamais en base, jamais sur le disque ; son
  * renouvellement est silencieux tant que la session Google est active, sinon
  * une interaction utilisateur est nécessaire (bouton dans les Paramètres).
  */
@@ -39,8 +40,73 @@ export interface ConfigGDrive {
 }
 
 let chargementGsi: Promise<void> | null = null;
-/** Jeton d'accès, en mémoire uniquement - jamais persisté (~1 h de validité). */
-let jeton: { accessToken: string; expireA: number } | null = null;
+
+interface JetonAcces {
+  accessToken: string;
+  /** Instant d'expiration (ms epoch), tel qu'annoncé par Google. */
+  expireA: number;
+}
+
+/**
+ * Clé du jeton dans le `sessionStorage`.
+ *
+ * **Pourquoi il y est.** Sur iPad, WebKit décharge la page dès qu'il manque de
+ * mémoire - typiquement quand la caméra s'ouvre pour une photo d'état des lieux,
+ * ou pendant un passage par le Centre de contrôle. Au retour, la page est
+ * rechargée à neuf : une variable de module aurait disparu, et l'application se
+ * retrouvait « déconnectée de Google Drive » en plein constat, sans que personne
+ * n'ait rien fait. Le `sessionStorage`, lui, survit à ce rechargement.
+ *
+ * **Ce que ça coûte.** Le jeton devient lisible par un script de la page, alors
+ * qu'une variable de module ne l'était que par le code du module. Le compromis
+ * est étroit : portée `drive.file` (les seuls fichiers créés par l'app), durée
+ * de vie d'une heure au plus, effacement à la déconnexion comme au premier 401,
+ * et périmètre limité à l'onglet - fermer l'application l'efface. Ni
+ * `localStorage` ni IndexedDB pour cette raison : ils survivraient à la session.
+ */
+const CLE_JETON = 'bailiz.gdrive.jeton';
+
+/** Marge avant expiration : un jeton sur le point d'expirer est traité comme mort. */
+const MARGE_EXPIRATION_MS = 60_000;
+
+/** Jeton d'accès courant, restauré si la page vient d'être rechargée. */
+let jeton: JetonAcces | null = lireJetonMemorise();
+
+/**
+ * Relit le jeton de la session. Toute anomalie - stockage indisponible (mode
+ * privé, environnement sans DOM), contenu illisible, jeton expiré - se solde par
+ * `null` : on redemandera une autorisation, ce qui est toujours réparable.
+ */
+function lireJetonMemorise(): JetonAcces | null {
+  try {
+    const brut = sessionStorage.getItem(CLE_JETON);
+    if (!brut) return null;
+    const memorise = JSON.parse(brut) as Partial<JetonAcces>;
+    if (typeof memorise.accessToken !== 'string' || typeof memorise.expireA !== 'number') return null;
+    if (Date.now() >= memorise.expireA - MARGE_EXPIRATION_MS) {
+      sessionStorage.removeItem(CLE_JETON);
+      return null;
+    }
+    return { accessToken: memorise.accessToken, expireA: memorise.expireA };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Seul point d'écriture du jeton : mémoire **et** session restent alignées.
+ * Passer `null` révoque les deux. L'échec du stockage n'est pas une erreur -
+ * l'application fonctionne alors comme avant, jusqu'au prochain rechargement.
+ */
+function memoriserJeton(nouveau: JetonAcces | null): void {
+  jeton = nouveau;
+  try {
+    if (nouveau) sessionStorage.setItem(CLE_JETON, JSON.stringify(nouveau));
+    else sessionStorage.removeItem(CLE_JETON);
+  } catch {
+    /* Stockage refusé : le jeton reste valable pour la durée de vie de la page. */
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Connexion par redirection (PWA installée sur iOS)
@@ -115,7 +181,10 @@ export function recupererJetonRedirection(): boolean {
   window.history.replaceState(null, '', window.location.pathname + route);
 
   if (!token || !etatRecu || etatRecu !== etatAttendu) return false;
-  jeton = { accessToken: token, expireA: Date.now() + Number(params.get('expires_in') ?? 3600) * 1000 };
+  memoriserJeton({
+    accessToken: token,
+    expireA: Date.now() + Number(params.get('expires_in') ?? 3600) * 1000,
+  });
   sessionStorage.setItem(CLE_RETOUR, '1');
   return true;
 }
@@ -170,8 +239,8 @@ export async function connecterGDrive(clientId = CLIENT_ID_GDRIVE): Promise<bool
  * (Ré)active la destination Google Drive.
  *
  * La configuration existante est **conservée** : l'autorisation Google expire
- * souvent (Safari/iOS bloque les cookies tiers, le jeton n'est jamais
- * persisté), et se reconnecter est le geste normal. Repartir d'un objet neuf
+ * souvent (Safari/iOS bloque les cookies tiers, et le jeton ne survit pas à la
+ * fermeture de l'application), et se reconnecter est le geste normal. Repartir d'un objet neuf
  * effacerait `derniereSync`, dont la perte force au cycle suivant un
  * re-listage et une réécriture complète de la base.
  */
@@ -192,7 +261,7 @@ export async function desactiverGDrive(): Promise<void> {
     } catch {
       // Révocation best-effort (script gsi éventuellement déchargé).
     }
-    jeton = null;
+    memoriserJeton(null);
   }
   await db.parametres.put({
     ...params,
@@ -236,12 +305,20 @@ function chargerGsi(): Promise<void> {
  * n'affiche aucune fenêtre : échoue si la session Google ne le permet pas.
  */
 function obtenirJeton(clientId: string, interactif: boolean): Promise<string | null> {
-  if (jeton && Date.now() < jeton.expireA - 60_000) return Promise.resolve(jeton.accessToken);
+  clientIdCourant = clientId;
+  if (jeton && Date.now() < jeton.expireA - MARGE_EXPIRATION_MS) return Promise.resolve(jeton.accessToken);
   // Aucune attente insérée si le script est déjà chargé : sur Safari/iOS, la
   // fenêtre Google n'est autorisée que tant que dure l'activation du geste
   // utilisateur, qu'un simple `await` suffit parfois à faire expirer.
   return gsiPret() ? demanderJeton(clientId, interactif) : chargerGsi().then(() => demanderJeton(clientId, interactif));
 }
+
+/**
+ * Client ID de la dernière autorisation demandée. Retenu pour pouvoir renouveler
+ * un jeton expiré au milieu d'un cycle, là où la configuration n'est plus à
+ * portée : la relire coûterait un aller-retour IndexedDB au pire moment.
+ */
+let clientIdCourant: string | null = null;
 
 /** Vrai si Google Identity Services est chargé et utilisable immédiatement. */
 function gsiPret(): boolean {
@@ -255,10 +332,10 @@ function demanderJeton(clientId: string, interactif: boolean): Promise<string | 
       scope: SCOPE,
       callback: (reponse) => {
         if (reponse.access_token) {
-          jeton = {
+          memoriserJeton({
             accessToken: reponse.access_token,
             expireA: Date.now() + (reponse.expires_in ?? 3600) * 1000,
-          };
+          });
           resolve(reponse.access_token);
         } else {
           resolve(null);
@@ -270,7 +347,16 @@ function demanderJeton(clientId: string, interactif: boolean): Promise<string | 
   });
 }
 
-class ErreurJetonExpire extends Error {}
+/**
+ * Le jeton a expiré en cours de route et n'a pas pu être renouvelé en silence.
+ *
+ * **Exportée exprès.** Tant qu'elle ne l'était pas, elle remontait jusqu'au
+ * `catch` générique du cycle et s'affichait comme une panne - « Cycle de
+ * synchronisation interrompu » - alors que la situation est banale et que le
+ * geste attendu est tout autre : reconnecter Google. Un message d'erreur qui
+ * désigne le mauvais problème coûte plus cher que pas de message du tout.
+ */
+export class ErreurJetonExpire extends Error {}
 
 /**
  * Échec d'un appel à l'API Drive, avec son code HTTP. Le code compte : un 404
@@ -306,13 +392,48 @@ export async function contexteDrive(
 
 export { appelDrive as appelApiDrive };
 
-async function appelDrive(token: string, url: string, init?: RequestInit): Promise<Response> {
+/**
+ * Un appel à l'API Drive, avec **renouvellement du jeton en cours de route**.
+ *
+ * Le jeton Google vaut une heure, et l'appelant le capture une fois à
+ * l'ouverture du dépôt (`ouvrirDepotDrive`) pour tous les appels du cycle. Un
+ * cycle qui dure - première synchronisation, envoi de dizaines de photos d'état
+ * des lieux - peut donc franchir l'expiration en pleine course : sans ce
+ * rattrapage, tout le reste du cycle partait avec un jeton mort et l'échange
+ * était perdu jusqu'au battement suivant.
+ *
+ * Deux garde-fous : le renouvellement est **silencieux** (jamais de fenêtre
+ * Google surgissant seule pendant un cycle de fond), et l'appel n'est rejoué
+ * qu'**une fois** - un 401 qui persiste avec un jeton frais n'est pas un
+ * problème d'expiration, et boucler ne le résoudrait pas.
+ */
+async function appelDrive(
+  token: string,
+  url: string,
+  init?: RequestInit,
+  rejeu = false,
+): Promise<Response> {
+  /*
+   * Le jeton en mémoire prime sur celui reçu en argument : après un premier
+   * renouvellement, les appels suivants du même cycle portent encore l'ancien.
+   * Sans cette préférence, chacun paierait son propre 401 avant d'être rejoué.
+   */
+  const utilise = jeton?.accessToken ?? token;
   const reponse = await fetch(url, {
     ...init,
-    headers: { ...init?.headers, Authorization: `Bearer ${token}` },
+    headers: { ...init?.headers, Authorization: `Bearer ${utilise}` },
   });
   if (reponse.status === 401) {
-    jeton = null; // le prochain appel redemandera un jeton
+    memoriserJeton(null); // le prochain appel redemandera un jeton
+    /*
+     * Rejeu sûr : les corps envoyés ici sont des `Blob` (multipart ou média),
+     * relisibles autant de fois qu'il le faut. Un corps en flux ne le serait
+     * pas - il faudrait alors le reconstruire avant de réessayer.
+     */
+    if (!rejeu && clientIdCourant) {
+      const frais = await obtenirJeton(clientIdCourant, false);
+      if (frais) return appelDrive(frais, url, init, true);
+    }
     throw new ErreurJetonExpire('Jeton Google expiré');
   }
   if (!reponse.ok) {

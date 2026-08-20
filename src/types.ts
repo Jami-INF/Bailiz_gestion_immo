@@ -583,7 +583,7 @@ export interface Parametres {
   /**
    * Sauvegarde vers Google Drive (API drive.file : l'app ne voit que ses
    * propres fichiers). Le clientId OAuth est public par nature ; aucun jeton
-   * n'est persisté (mémoire uniquement).
+   * n'est stocké ici - il vit dans la session de l'onglet (cf. `lib/gdrive.ts`).
    */
   sauvegardeGDrive?: {
     clientId: string;
