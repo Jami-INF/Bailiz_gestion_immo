@@ -22,6 +22,18 @@ export interface ConfigSauvegardeAuto {
   handle: FileSystemDirectoryHandle;
   nomDossier: string;
   dernierPush?: string;
+  /**
+   * Dernier passage réussi du miroir (`lib/miroir.ts`). Sert de point de départ
+   * au suivant : les fiches plus anciennes et déjà copiées ne sont pas relues.
+   */
+  dernierMiroir?: string;
+  /**
+   * Dernière archive ZIP complète déposée. Séparé de `dernierPush` : le miroir
+   * tourne à chaque modification, l'archive seulement quand elle est due -
+   * confondre les deux ramènerait le régime qui recompressait toute la
+   * photothèque toutes les trente secondes.
+   */
+  derniereArchive?: string;
 }
 
 /**

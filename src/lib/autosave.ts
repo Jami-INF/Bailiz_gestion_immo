@@ -7,16 +7,23 @@ import { decrireErreur } from './erreurs';
 import { getConfigGDrive } from './gdrive';
 import { noterChangement } from './sync/journal';
 import { lancerCycle, type ResultatSync } from './sync';
+import { instantaneDu, INSTANTANES_CONSERVES } from './sync/instantane';
+import { mettreAJourMiroir } from './miroir';
 
 export { fichiersASupprimer } from './rotation';
 
 /**
- * Sauvegarde automatique « push ZIP » vers deux destinations possibles,
- * cumulables :
- * - un dossier local (File System Access, Chrome/Edge desktop), idéalement
- *   synchronisé par le client cloud de l'utilisateur ;
+ * Copie automatique vers deux destinations possibles, cumulables :
+ * - un dossier local (File System Access, Chrome/Edge desktop) ;
  * - Google Drive via l'API (lib/gdrive.ts), qui couvre iPad/Safari.
  * Zéro infrastructure : tout part du navigateur.
+ *
+ * Le dossier local reçoit **deux choses de nature différente** : un miroir des
+ * fiches à plat, tenu à jour en incrémental à chaque modification
+ * (`lib/miroir.ts`), et une archive ZIP complète quand elle est due. Il ne
+ * recevait auparavant que la seconde - une archive entière par salve de saisie,
+ * dont on gardait dix copies : sur une base photographiée, chaque photo ajoutée
+ * relançait la recompression de toute la photothèque.
  */
 
 /** Ancienneté (ms) au-delà de laquelle un push est retenté à l'ouverture. */
@@ -76,29 +83,53 @@ async function permissionAutosave(
   return handle.requestPermission({ mode: 'readwrite' });
 }
 
-/** Exporte le ZIP dans le dossier configuré, avec rotation des anciennes archives. */
-async function pousserSauvegarde(config: ConfigSauvegardeAuto): Promise<void> {
+/**
+ * Met le dossier à jour : le miroir à chaque passage, l'archive complète
+ * seulement quand elle est due.
+ *
+ * Le plancher entre deux archives est celui du Drive (`instantaneDu`) - même
+ * fonction, donc même comportement des deux côtés : une journée entre deux
+ * signatures, une semaine sinon.
+ */
+async function copierDansDossier(
+  config: ConfigSauvegardeAuto,
+  options?: { apresSignature?: boolean },
+): Promise<void> {
+  const miroir = await mettreAJourMiroir(config.handle, config.dernierMiroir);
+  const maj: Partial<ConfigSauvegardeAuto> = {
+    dernierMiroir: miroir.jusqua,
+    dernierPush: nowISO(),
+  };
+  if (instantaneDu(config.derniereArchive, { apresSignature: options?.apresSignature })) {
+    await deposerArchive(config.handle);
+    maj.derniereArchive = nowISO();
+  }
+  await db.sauvegardeAuto.put({ ...config, ...maj });
+}
+
+/** Dépose une archive ZIP complète, avec rotation des plus anciennes. */
+async function deposerArchive(handle: FileSystemDirectoryHandle): Promise<void> {
   const blob = await exporterSauvegarde();
   const nom = `bailiz-sauvegarde-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.zip`;
-  const fichier = await config.handle.getFileHandle(nom, { create: true });
+  const fichier = await handle.getFileHandle(nom, { create: true });
   const flux = await fichier.createWritable();
   await flux.write(blob);
   await flux.close();
 
-  // Rotation : on ne garde que les N archives les plus récentes.
+  // Rotation : on ne garde que les N archives les plus récentes. Même nombre
+  // que sur le Drive - le miroir couvrant désormais le quotidien, les archives
+  // n'ont plus à faire office d'historique fin.
   try {
     const noms: string[] = [];
-    for await (const entree of config.handle.values()) {
+    for await (const entree of handle.values()) {
       if (entree.kind === 'file') noms.push(entree.name);
     }
-    for (const aSupprimer of fichiersASupprimer(noms)) {
-      await config.handle.removeEntry(aSupprimer);
+    for (const aSupprimer of fichiersASupprimer(noms, INSTANTANES_CONSERVES)) {
+      await handle.removeEntry(aSupprimer);
     }
   } catch {
     // La rotation est un confort : son échec ne doit pas faire échouer le push.
   }
-
-  await db.sauvegardeAuto.put({ ...config, dernierPush: nowISO() });
 }
 
 /**
@@ -115,8 +146,11 @@ export function derniereErreurSauvegarde(): string | undefined {
 /** Évite les pushs concurrents (bouton + planifié + signature). */
 let pushEnCours = false;
 
-/** Push vers le dossier local uniquement. */
-async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPush> {
+/** Copie vers le dossier local uniquement. */
+async function pousserVersDossier(
+  gesteUtilisateur: boolean,
+  options?: { apresSignature?: boolean },
+): Promise<ResultatPush> {
   if (!autosaveSupportee()) return 'non_supporte';
   const config = await getConfigAutosave();
   if (!config) return 'inactif';
@@ -124,7 +158,7 @@ async function pousserVersDossier(gesteUtilisateur: boolean): Promise<ResultatPu
   try {
     const permission = await permissionAutosave(config.handle, gesteUtilisateur);
     if (permission !== 'granted') return 'permission_requise';
-    await pousserSauvegarde(config);
+    await copierDansDossier(config, options);
     return 'ok';
   } catch (e) {
     console.error('Sauvegarde vers le dossier impossible :', e);
@@ -150,7 +184,7 @@ export async function pousserSiActive(
   pushEnCours = true;
   try {
     const resultats: ResultatPush[] = [
-      await pousserVersDossier(gesteUtilisateur),
+      await pousserVersDossier(gesteUtilisateur, { apresSignature: options?.apresSignature }),
       traduireResultatCycle(
         await lancerCycle(gesteUtilisateur, { apresSignature: options?.apresSignature }),
       ),

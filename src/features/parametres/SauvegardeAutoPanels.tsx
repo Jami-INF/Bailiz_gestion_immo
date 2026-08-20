@@ -56,9 +56,9 @@ export function SauvegardeAutoPanel() {
     try {
       await choisirDossierAutosave();
       const resultat = await pousserSiActive(true);
-      if (resultat === 'ok') toast('success', 'Dossier configuré - première archive déposée.');
+      if (resultat === 'ok') toast('success', 'Dossier configuré - copie initiale effectuée.');
       else if (resultat === 'base_vide') toast('warning', `Dossier configuré. ${MSG_BASE_VIDE}`);
-      else toast('warning', 'Dossier configuré, mais la première archive a échoué.');
+      else toast('warning', 'Dossier configuré, mais la première copie a échoué.');
     } catch {
       // Sélecteur annulé par l'utilisateur : rien à faire.
     }
@@ -66,18 +66,18 @@ export function SauvegardeAutoPanel() {
 
   const pousserMaintenant = async () => {
     const resultat = await pousserSiActive(true);
-    if (resultat === 'ok') toast('success', 'Archive déposée dans le dossier.');
+    if (resultat === 'ok') toast('success', 'Dossier mis à jour.');
     else if (resultat === 'base_vide') toast('warning', MSG_BASE_VIDE);
     else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
-    else toast('error', `Échec de l'archive automatique - ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
+    else toast('error', `Échec de la copie automatique - ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
   };
 
   return (
     <CarteRepliable
       identifiant="dossier-local"
-      titre="Archive automatique dans un dossier"
+      titre="Copie dans un dossier de l'ordinateur"
       icone={<FolderSync size={18} />}
       resume={config ? `Dossier « ${config.nomDossier} »` : 'Aucun dossier configuré'}
     >
@@ -90,10 +90,11 @@ export function SauvegardeAutoPanel() {
         <>
           <p className="mb-3 text-sm text-accent-600">
             Choisissez un dossier <span className="font-medium">synchronisé par votre cloud</span>{' '}
-            (Google Drive, OneDrive, iCloud Drive…) : l'application y poussera automatiquement
-            l'archive complète après chaque document signé et à l'ouverture si la dernière
-            archive date de plus de 7 jours. Les 10 archives les plus récentes sont
-            conservées, les plus anciennes supprimées.
+            (Google Drive, OneDrive, iCloud Drive…) : l'application y tient à jour une copie de
+            chaque fiche, photo et document - <span className="font-medium">seul ce qui a changé
+            est réécrit</span> - et y dépose une archive ZIP complète de loin en loin, comme
+            filet. Les 6 archives les plus récentes sont conservées, les plus anciennes
+            supprimées.
           </p>
           {config ? (
             <div className="space-y-3">
@@ -106,7 +107,7 @@ export function SauvegardeAutoPanel() {
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => void pousserMaintenant()}>
-                  <FolderSync size={14} /> Archiver maintenant
+                  <FolderSync size={14} /> Copier maintenant
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => void activer()}>
                   Changer de dossier
@@ -115,7 +116,7 @@ export function SauvegardeAutoPanel() {
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    void desactiverAutosave().then(() => toast('info', 'Archive automatique désactivée.'))
+                    void desactiverAutosave().then(() => toast('info', 'Copie automatique désactivée.'))
                   }
                 >
                   Désactiver
@@ -128,7 +129,7 @@ export function SauvegardeAutoPanel() {
             </div>
           ) : (
             <Button onClick={() => void activer()}>
-              <FolderSync size={16} /> Choisir le dossier d'archives
+              <FolderSync size={16} /> Choisir le dossier
             </Button>
           )}
         </>

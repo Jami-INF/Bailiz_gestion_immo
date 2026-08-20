@@ -128,8 +128,8 @@ export function ChoixDestination({ onChoisi }: { onChoisi?: () => void }) {
       {surOrdinateur ? (
         <Option
           icone={<FolderSync size={20} />}
-          titre="Déposer une archive sur cet ordinateur"
-          description="Un dossier de votre choix - y compris synchronisé par Drive, OneDrive ou iCloud - reçoit une archive complète après chaque document signé."
+          titre="Garder une copie sur cet ordinateur"
+          description="Un dossier de votre choix - y compris synchronisé par Drive, OneDrive ou iCloud - reçoit chaque fiche et chaque photo au fil de la saisie, plus une archive complète de loin en loin."
           bouton="Choisir un dossier"
           onClick={() => void choisirDossier()}
           enCours={enCours}

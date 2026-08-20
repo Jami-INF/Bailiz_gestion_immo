@@ -259,6 +259,40 @@ Chrome/Edge desktop uniquement ; le panneau Paramètres affiche un repli explici
   destination est configurée (`pousserSiActive(true)`, donc capable de re-demander la
   permission).
 
+### 4.5 bis Miroir du dossier local (`lib/miroir.ts`)
+
+Le dossier ne recevait que des **archives ZIP complètes**, et une par salve de modifications -
+trente secondes après la dernière écriture, pas seulement après une signature. Sur une base
+photographiée, chaque photo ajoutée relançait donc la recompression de toute la photothèque,
+dont on gardait dix copies. Le même calcul avait déjà conduit le Drive à abandonner ce régime
+(cf. `INSTANTANES_CONSERVES`) ; le dossier local y était resté.
+
+Il reçoit désormais **deux choses de nature différente** :
+- un **miroir** des fiches à plat, tenu à jour à chaque passage, dans l'arborescence du Drive
+  (`donnees/<table>__<cle>.json`, `photos/<cle>.jpg`, `documents/<cle>.pdf`, mêmes enveloppes) -
+  une seule convention à connaître, et une restauration pourra un jour relire l'un comme l'autre ;
+- une **archive** ZIP complète quand elle est due, avec le plancher du Drive (`instantaneDu` :
+  une journée entre deux signatures, une semaine sinon) et six copies conservées.
+
+Deux propriétés à ne pas perdre :
+1. **Les blobs ne sont jamais relus.** Photos et documents sont immuables : si le fichier est
+   déjà dans le miroir, l'enregistrement n'est pas chargé du tout - donc pas son blob. C'est
+   tout le gain, et `miroir.test.ts` l'atteste par un espion sur `db.photos.get`.
+2. **Le repère (`dernierMiroir`) est relevé avant le travail, jamais après**, et comparé
+   strictement (`<`) : une fiche modifiée pendant l'écriture, ou dans la milliseconde même du
+   relevé, repart au passage suivant. Recopier pour rien coûte un fichier JSON ; l'inverse
+   perdrait une modification en silence.
+
+**Ce n'est pas un dépôt de synchronisation**, et cela ne doit pas le devenir : un miroir
+s'écrit, ne se lit pas, n'arbitre rien. En faire l'équivalent du Drive demanderait une
+référence temporelle commune aux appareils (`heureServeur`), qu'un système de fichiers n'a pas ;
+le garde-fou d'écart d'horloge se comparerait à lui-même. S'ajoutent trois obstacles : l'API
+File System Access n'existe pas sur iPad - donc jamais pour le couple iPad/ordinateur, seul cas
+d'usage -, un dossier relayé par OneDrive ou Drive Desktop produit des « copies en conflit » que
+le protocole ne reconnaîtrait pas et ignorerait en silence, et la permission du handle retombe à
+`prompt` au redémarrage du navigateur, ce qu'un cycle de fond ne peut pas relever. La
+convergence entre appareils reste l'affaire de `lib/sync/`.
+
 ### 4.6 Sauvegarde Google Drive (`lib/gdrive.ts`) - le cas iPad
 
 Deuxième destination de push, cumulable avec le dossier local, qui fonctionne sur **tous**

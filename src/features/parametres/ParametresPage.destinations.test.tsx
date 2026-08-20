@@ -37,7 +37,7 @@ describe('page Paramètres', () => {
     rendre(<ParametresPage />);
 
     expect(
-      await screen.findByRole('button', { name: /Archive automatique dans un dossier/ }),
+      await screen.findByRole('button', { name: /Copie dans un dossier/ }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Synchronisation entre appareils/ }),
