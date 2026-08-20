@@ -18,6 +18,7 @@ import { dateLimiteRestitution, formatOctets } from '@/lib/calculs';
 import { sauvegardeAncienne } from '@/lib/backup';
 import { useQuotaStockage } from '@/hooks/useStatuts';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
+import { CarteDonnees } from '@/features/accueil/CarteDonnees';
 
 interface Alerte {
   cle: string;
@@ -93,14 +94,17 @@ export function TableauDeBordPage() {
     });
   }
 
-  // Sauvegarde ancienne
-  if (parametres && sauvegardeAncienne(parametres.derniereSauvegarde)) {
+  /*
+   * Sauvegarde ancienne, et **seulement** ancienne : le cas « jamais sauvegardé »
+   * appartient désormais à la carte « Vos données », qui l'annonce en continu au
+   * lieu d'attendre le délai d'alerte. Le laisser ici en ferait un doublon, dit
+   * deux fois, dont une sur le ton du reproche.
+   */
+  if (parametres?.derniereSauvegarde && sauvegardeAncienne(parametres.derniereSauvegarde)) {
     alertes.push({
       cle: 'sauvegarde',
       niveau: 'orange',
-      texte: parametres.derniereSauvegarde
-        ? `Dernière sauvegarde le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy')} - pensez à exporter vos données`
-        : 'Aucune sauvegarde effectuée - exportez vos données depuis les Paramètres',
+      texte: `Dernière archive le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy')} - pensez à exporter vos données`,
       lien: '/parametres',
     });
   }
@@ -163,108 +167,116 @@ export function TableauDeBordPage() {
          * Premier écran de quelqu'un qui arrive de bailiz.fr, où on lui a promis
          * « choisissez un outil, remplissez, générez ». L'entrée se fait donc
          * par le document et non par la fiche du logement - que le formulaire de
-         * bail sait de toute façon créer en cours de route.
+         * bail sait de toute façon créer en cours de route. La destination des
+         * données vient **après** cet appel à l'action : tant qu'il n'y a aucune
+         * fiche, il n'y a rien à perdre.
          */
-        <EmptyState
-          icon={FileText}
-          titre="Commencez par le document dont vous avez besoin"
-          message="Le logement et le locataire se saisissent directement dans le formulaire, rien n'est à préparer avant. L'état des lieux ne réclame aucun bail : votre contrat peut avoir été signé sur papier ou rédigé ailleurs."
-          action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Link to="/baux/nouveau">
-                <Button>
-                  <FileText size={16} /> Rédiger un bail
-                </Button>
-              </Link>
-              <Link to="/edl/nouveau">
-                <Button variant="secondary">
-                  <ClipboardList size={16} /> Faire un état des lieux
-                </Button>
-              </Link>
-            </div>
-          }
-        />
+        <div className="space-y-4">
+          <EmptyState
+            icon={FileText}
+            titre="Commencez par le document dont vous avez besoin"
+            message="Le logement et le locataire se saisissent directement dans le formulaire, rien n'est à préparer avant. L'état des lieux ne réclame aucun bail : votre contrat peut avoir été signé sur papier ou rédigé ailleurs."
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link to="/baux/nouveau">
+                  <Button>
+                    <FileText size={16} /> Rédiger un bail
+                  </Button>
+                </Link>
+                <Link to="/edl/nouveau">
+                  <Button variant="secondary">
+                    <ClipboardList size={16} /> Faire un état des lieux
+                  </Button>
+                </Link>
+              </div>
+            }
+          />
+          <CarteDonnees />
+        </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <h2 className="mb-3 flex items-center gap-2 font-semibold text-accent-900">
-              <Building2 size={18} /> Mes biens
-            </h2>
-            <ul className="space-y-2">
-              {biens.map((bien) => {
-                const bail = baux.find((b) => b.bienId === bien.id && estBailEnCours(b));
-                return (
-                  <li key={bien.id}>
-                    <Link
-                      to={`/biens/${bien.id}`}
-                      className="flex items-center justify-between rounded-lg border border-accent-200 px-3 py-2 text-sm hover:bg-accent-50"
-                    >
-                      <span className="font-medium text-accent-900">{bien.nom}</span>
-                      <span className="flex items-center gap-2">
-                        {bail && <span className="text-xs text-accent-500">{bail.reference}</span>}
-                        <Badge tone={bail ? 'green' : 'blue'}>{bail ? 'Loué' : 'Vacant'}</Badge>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-
-          <Card>
-            <h2 className="mb-3 flex items-center gap-2 font-semibold text-accent-900">
-              <AlertTriangle size={18} /> Alertes
-            </h2>
-            {alertes.length === 0 ? (
-              <p className="text-sm text-accent-500">Aucune alerte.</p>
-            ) : (
+        <div className="space-y-4">
+          <CarteDonnees />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <h2 className="mb-3 flex items-center gap-2 font-semibold text-accent-900">
+                <Building2 size={18} /> Mes biens
+              </h2>
               <ul className="space-y-2">
-                {alertes.map((a) => (
-                  <li key={a.cle}>
-                    <Link
-                      to={a.lien}
-                      className={`flex items-start gap-2 rounded-lg border p-2.5 text-sm ${
-                        a.niveau === 'red'
-                          ? 'border-red-200 bg-red-50 text-red-800'
-                          : 'border-amber-200 bg-amber-50 text-amber-800'
-                      }`}
-                    >
-                      {a.cle === 'sauvegarde' || a.cle === 'quota' ? (
-                        <HardDriveDownload size={16} className="mt-0.5 shrink-0" />
-                      ) : (
-                        <ClipboardList size={16} className="mt-0.5 shrink-0" />
-                      )}
-                      {a.texte}
-                    </Link>
-                  </li>
-                ))}
+                {biens.map((bien) => {
+                  const bail = baux.find((b) => b.bienId === bien.id && estBailEnCours(b));
+                  return (
+                    <li key={bien.id}>
+                      <Link
+                        to={`/biens/${bien.id}`}
+                        className="flex items-center justify-between rounded-lg border border-accent-200 px-3 py-2 text-sm hover:bg-accent-50"
+                      >
+                        <span className="font-medium text-accent-900">{bien.nom}</span>
+                        <span className="flex items-center gap-2">
+                          {bail && <span className="text-xs text-accent-500">{bail.reference}</span>}
+                          <Badge tone={bail ? 'green' : 'blue'}>{bail ? 'Loué' : 'Vacant'}</Badge>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
-            )}
-          </Card>
+            </Card>
 
-          <Card className="lg:col-span-2">
-            <h2 className="mb-3 flex items-center gap-2 font-semibold text-accent-900">
-              <CalendarClock size={18} /> Échéancier
-            </h2>
-            {echeances.length === 0 ? (
-              <p className="text-sm text-accent-500">
-                Aucune échéance à venir (fins de bail, révisions IRL).
-              </p>
-            ) : (
-              <ul className="divide-y divide-accent-100">
-                {echeances.slice(0, 8).map((e, i) => (
-                  <li key={i}>
-                    <Link to={e.lien} className="flex items-center justify-between py-2 text-sm hover:bg-accent-50">
-                      <span className="text-accent-800">{e.texte}</span>
-                      <span className="font-medium text-accent-600">
-                        {format(e.date, 'd MMMM yyyy', { locale: fr })}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+            <Card>
+              <h2 className="mb-3 flex items-center gap-2 font-semibold text-accent-900">
+                <AlertTriangle size={18} /> Alertes
+              </h2>
+              {alertes.length === 0 ? (
+                <p className="text-sm text-accent-500">Aucune alerte.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {alertes.map((a) => (
+                    <li key={a.cle}>
+                      <Link
+                        to={a.lien}
+                        className={`flex items-start gap-2 rounded-lg border p-2.5 text-sm ${
+                          a.niveau === 'red'
+                            ? 'border-red-200 bg-red-50 text-red-800'
+                            : 'border-amber-200 bg-amber-50 text-amber-800'
+                        }`}
+                      >
+                        {a.cle === 'sauvegarde' || a.cle === 'quota' ? (
+                          <HardDriveDownload size={16} className="mt-0.5 shrink-0" />
+                        ) : (
+                          <ClipboardList size={16} className="mt-0.5 shrink-0" />
+                        )}
+                        {a.texte}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <h2 className="mb-3 flex items-center gap-2 font-semibold text-accent-900">
+                <CalendarClock size={18} /> Échéancier
+              </h2>
+              {echeances.length === 0 ? (
+                <p className="text-sm text-accent-500">
+                  Aucune échéance à venir (fins de bail, révisions IRL).
+                </p>
+              ) : (
+                <ul className="divide-y divide-accent-100">
+                  {echeances.slice(0, 8).map((e, i) => (
+                    <li key={i}>
+                      <Link to={e.lien} className="flex items-center justify-between py-2 text-sm hover:bg-accent-50">
+                        <span className="text-accent-800">{e.texte}</span>
+                        <span className="font-medium text-accent-600">
+                          {format(e.date, 'd MMMM yyyy', { locale: fr })}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
         </div>
       )}
     </div>

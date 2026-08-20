@@ -36,11 +36,17 @@ import { decrireErreur } from '@/lib/erreurs';
 import { Button, CarteRepliable, ConfirmModal, Field, Input, useToast } from '@/components/ui';
 
 /**
- * Panneaux de sauvegarde automatique (dossier local synchronisé et Google
- * Drive), extraits de la page Paramètres qui devenait trop longue.
+ * Les deux destinations, extraites de la page Paramètres qui devenait trop
+ * longue.
+ *
+ * **Deux mots, deux mécanismes**, et jamais l'un pour l'autre : une *archive*
+ * est le ZIP complet déposé dans un dossier - un filet de sécurité, qu'on
+ * restaure en bloc ; la *synchronisation* est l'échange fiche par fiche avec le
+ * Drive, qui fait converger deux appareils. Les deux s'appelaient « sauvegarde »,
+ * et personne ne pouvait deviner lequel faisait quoi.
  */
 const MSG_BASE_VIDE =
-  "Aucune donnée sur cet appareil : rien n'a été envoyé, pour ne pas écraser vos sauvegardes existantes. Utilisez « Importer une sauvegarde » pour récupérer vos données ici.";
+  "Aucune donnée sur cet appareil : rien n'a été envoyé, pour ne pas écraser vos sauvegardes existantes. Utilisez « Importer une archive » pour récupérer vos données ici.";
 
 export function SauvegardeAutoPanel() {
   const toast = useToast();
@@ -50,9 +56,9 @@ export function SauvegardeAutoPanel() {
     try {
       await choisirDossierAutosave();
       const resultat = await pousserSiActive(true);
-      if (resultat === 'ok') toast('success', 'Dossier configuré - première sauvegarde effectuée.');
+      if (resultat === 'ok') toast('success', 'Dossier configuré - première archive déposée.');
       else if (resultat === 'base_vide') toast('warning', `Dossier configuré. ${MSG_BASE_VIDE}`);
-      else toast('warning', 'Dossier configuré, mais la première sauvegarde a échoué.');
+      else toast('warning', 'Dossier configuré, mais la première archive a échoué.');
     } catch {
       // Sélecteur annulé par l'utilisateur : rien à faire.
     }
@@ -60,18 +66,18 @@ export function SauvegardeAutoPanel() {
 
   const pousserMaintenant = async () => {
     const resultat = await pousserSiActive(true);
-    if (resultat === 'ok') toast('success', 'Sauvegarde poussée dans le dossier.');
+    if (resultat === 'ok') toast('success', 'Archive déposée dans le dossier.');
     else if (resultat === 'base_vide') toast('warning', MSG_BASE_VIDE);
     else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', "Autorisation refusée : re-sélectionnez le dossier pour ré-autoriser l'écriture.");
-    else toast('error', `Échec de la sauvegarde automatique - ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
+    else toast('error', `Échec de l'archive automatique - ${derniereErreurSauvegarde() ?? 'cause inconnue'}`);
   };
 
   return (
     <CarteRepliable
       identifiant="dossier-local"
-      titre="Sauvegarde automatique (dossier synchronisé)"
+      titre="Archive automatique dans un dossier"
       icone={<FolderSync size={18} />}
       resume={config ? `Dossier « ${config.nomDossier} »` : 'Aucun dossier configuré'}
     >
@@ -86,7 +92,7 @@ export function SauvegardeAutoPanel() {
             Choisissez un dossier <span className="font-medium">synchronisé par votre cloud</span>{' '}
             (Google Drive, OneDrive, iCloud Drive…) : l'application y poussera automatiquement
             l'archive complète après chaque document signé et à l'ouverture si la dernière
-            sauvegarde date de plus de 7 jours. Les 10 archives les plus récentes sont
+            archive date de plus de 7 jours. Les 10 archives les plus récentes sont
             conservées, les plus anciennes supprimées.
           </p>
           {config ? (
@@ -100,7 +106,7 @@ export function SauvegardeAutoPanel() {
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => void pousserMaintenant()}>
-                  <FolderSync size={14} /> Sauvegarder maintenant
+                  <FolderSync size={14} /> Archiver maintenant
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => void activer()}>
                   Changer de dossier
@@ -109,7 +115,7 @@ export function SauvegardeAutoPanel() {
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    void desactiverAutosave().then(() => toast('info', 'Sauvegarde automatique désactivée.'))
+                    void desactiverAutosave().then(() => toast('info', 'Archive automatique désactivée.'))
                   }
                 >
                   Désactiver
@@ -122,7 +128,7 @@ export function SauvegardeAutoPanel() {
             </div>
           ) : (
             <Button onClick={() => void activer()}>
-              <FolderSync size={16} /> Choisir le dossier de sauvegarde
+              <FolderSync size={16} /> Choisir le dossier d'archives
             </Button>
           )}
         </>
@@ -300,7 +306,7 @@ export function SauvegardeGDrivePanel() {
   return (
     <CarteRepliable
       identifiant="drive"
-      titre="Google Drive - synchronisation entre appareils"
+      titre="Synchronisation entre appareils (Google Drive)"
       icone={<RefreshCw size={18} />}
       resume={
         config?.actif
@@ -493,7 +499,7 @@ export function SauvegardeGDrivePanel() {
         onClose={() => setConfirmerSuppressions(false)}
         onConfirm={() => void synchroniserMaintenant({ forcerSuppressions: true })}
         title="Appliquer les suppressions reçues ?"
-        message="Les fiches supprimées sur l'autre appareil seront également supprimées ici. Cette opération est définitive : exportez une sauvegarde d'abord si vous avez un doute."
+        message="Les fiches supprimées sur l'autre appareil seront également supprimées ici. Cette opération est définitive : exportez une archive d'abord si vous avez un doute."
         confirmLabel="Supprimer ici aussi"
         danger
       />
@@ -502,7 +508,7 @@ export function SauvegardeGDrivePanel() {
         onClose={() => setARestaurer(null)}
         onConfirm={restaurer}
         title="Restaurer cet instantané ?"
-        message="Toutes les données de cet appareil seront remplacées par celles de l'archive. Ce qui a été saisi depuis sera définitivement perdu, ici comme sur les autres appareils une fois la synchronisation passée. Exportez d'abord une sauvegarde locale si vous avez le moindre doute."
+        message="Toutes les données de cet appareil seront remplacées par celles de l'archive. Ce qui a été saisi depuis sera définitivement perdu, ici comme sur les autres appareils une fois la synchronisation passée. Exportez d'abord une archive locale si vous avez le moindre doute."
         confirmLabel="Remplacer mes données"
         danger
       />

@@ -21,7 +21,7 @@ import {
 import { useEnLigne, useModeAutonome, usePersistanceStockage } from '@/hooks/useStatuts';
 import { appliquerMiseAJour, miseAJourDisponible, sAbonnerMiseAJour } from '@/lib/majApp';
 import { format, isToday } from 'date-fns';
-import { db, getParametres, lireParametres } from '@/lib/db';
+import { getParametres, lireParametres } from '@/lib/db';
 import {
   destinationConfiguree,
   getConfigAutosave,
@@ -40,13 +40,16 @@ import {
   saisiesRemplacees,
 } from '@/lib/sync';
 import {
+  activerGDrive,
   CLIENT_ID_GDRIVE,
+  consommerRetourRedirection,
   demanderAutorisationGoogle,
   estApplicationInstallee,
   lancerConnexionParRedirection,
 } from '@/lib/gdrive';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
-import { Button, Logo, Modal, useToast } from '@/components/ui';
+import { Button, Logo, useToast } from '@/components/ui';
+import { ParcoursAccueil } from '@/features/accueil/ParcoursAccueil';
 import { LimiteErreur } from './LimiteErreur';
 
 const nav = [
@@ -82,14 +85,14 @@ function SauvegardeStatut() {
 
   const quand = synchronise ? config?.derniereSync : parametres?.derniereSauvegarde;
   const date = quand ? new Date(quand) : null;
-  const quoi = synchronise ? 'Synchronisé' : 'Dernière sauvegarde';
+  const quoi = synchronise ? 'Synchronisé' : 'Dernière archive';
   const libelle = date
     ? isToday(date)
       ? `${quoi} à ${format(date, "HH'h'mm")}`
       : `${quoi} le ${format(date, "dd/MM 'à' HH'h'mm")}`
     : synchronise
       ? 'Pas encore synchronisé'
-      : 'Aucune sauvegarde';
+      : 'Aucune archive';
 
   const sauvegarder = async () => {
     /*
@@ -113,7 +116,7 @@ function SauvegardeStatut() {
     }
     const resultat = await pousserSiActive(true);
     setEnCours(false);
-    if (resultat === 'ok') toast('success', 'Sauvegarde poussée vers la destination configurée.');
+    if (resultat === 'ok') toast('success', 'Données mises à l’abri sur la destination configurée.');
     else if (resultat === 'bloque') toast('warning', "Synchronisation interrompue par une vérification de sécurité (horloge de l'appareil, ou suppressions inhabituelles). Ouvrez les Paramètres pour décider.");
     else if (resultat === 'permission_requise')
       toast('warning', 'Autorisation à renouveler dans les Paramètres (dossier ou Google Drive).');
@@ -316,42 +319,6 @@ function BandeauSync() {
   );
 }
 
-export const DISCLAIMER_JURIDIQUE =
-  "Cet outil est une aide à la rédaction. Il ne constitue pas un conseil juridique. Vérifiez les évolutions légales sur service-public.fr. Pour la signature du bail, un prestataire de signature électronique qualifié eIDAS est recommandé.";
-
-function DisclaimerPremiereUtilisation() {
-  /*
-   * Lecture **brute** volontaire, seule du projet : c'est l'absence de la ligne
-   * qui porte l'information. `lireParametres()` rendrait les valeurs par défaut,
-   * donc un objet défini avec `disclaimerAccepte` faux, et la modale
-   * s'afficherait avant même que la ligne n'existe - c'est-à-dire par-dessus le
-   * premier rendu, pendant que `getParametres()` la crée encore.
-   */
-  const params = useLiveQuery(() => db.parametres.get('singleton'));
-  if (params === undefined || params?.disclaimerAccepte) return null;
-  return (
-    <Modal
-      open
-      // L'acceptation est la seule sortie : la modale n'affiche donc ni croix ni
-      // fermeture par Échap. Les deux étaient rendues mais sans effet, `onClose`
-      // ne faisant rien - une commande visible qui ne répond pas.
-      fermable={false}
-      onClose={() => {}}
-      title="Avertissement"
-      footer={
-        <Button
-          onClick={() =>
-            getParametres().then((p) => db.parametres.put({ ...p, disclaimerAccepte: true }))
-          }
-        >
-          J'ai compris
-        </Button>
-      }
-    >
-      <p className="text-sm text-accent-700">{DISCLAIMER_JURIDIQUE}</p>
-    </Modal>
-  );
-}
 
 /**
  * Nouvelle version prête à installer. Elle n'est **jamais** appliquée d'office :
@@ -390,6 +357,27 @@ export function AppLayout() {
   useEffect(() => {
     void getParametres();
   }, []);
+
+  /*
+   * Retour d'une connexion Google par redirection (PWA installée sur iOS).
+   *
+   * Le jeton a été récupéré avant le montage, dans `main.tsx` - mais personne
+   * n'activait la destination en base : `lancerConnexionParRedirection` quitte
+   * l'application avant d'avoir pu l'écrire, et `consommerRetourRedirection`,
+   * écrite pour cette finalisation, n'était appelée nulle part. On revenait donc
+   * de Google avec une autorisation parfaitement valide et un Drive toujours
+   * annoncé « non connecté » - sur l'iPad, seul appareil concerné par ce flux.
+   */
+  useEffect(() => {
+    const clientId = consommerRetourRedirection();
+    if (!clientId) return;
+    void (async () => {
+      await activerGDrive(clientId);
+      reinitialiserAvertissements();
+      toast('success', 'Google Drive connecté - première synchronisation en cours.');
+      await lancerCycle(true);
+    })();
+  }, [toast]);
 
   // Push automatique regroupé à chaque modification d'entité (30 s après la
   // dernière écriture), avec message de confirmation.
@@ -630,7 +618,7 @@ export function AppLayout() {
           )}
         </div>
       </main>
-      <DisclaimerPremiereUtilisation />
+      <ParcoursAccueil />
     </div>
   );
 }

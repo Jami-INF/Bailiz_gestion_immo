@@ -53,7 +53,7 @@ async function archiveDeLaBase(nom = 'bailiz-sauvegarde.zip'): Promise<File> {
 async function televerser(fichier: File) {
   const u = utilisateur();
   const { container } = rendre(<ParametresPage />);
-  const carte = await screen.findByRole('button', { name: /Sauvegarde et restauration/ });
+  const carte = await screen.findByRole('button', { name: /Archive complète/ });
   if (carte.getAttribute('aria-expanded') !== 'true') await u.click(carte);
   const champ = await waitFor(() => {
     const el = container.querySelector<HTMLInputElement>('input[type="file"][accept=".zip"]');
@@ -72,7 +72,7 @@ describe('restauration d’une sauvegarde', () => {
     await viderBase();
 
     const u = await televerser(archive);
-    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ }, ATTENTE_ARCHIVE);
+    const modale = await screen.findByRole('dialog', { name: /Restaurer l.archive/ }, ATTENTE_ARCHIVE);
     expect(within(modale).getByText(/Aucun conflit détecté/)).toBeInTheDocument();
     await u.click(within(modale).getByRole('button', { name: /Tout remplacer/ }));
 
@@ -92,7 +92,7 @@ describe('restauration d’une sauvegarde', () => {
     await db.biens.add(unBien({ id: 'bien-2', nom: 'Studio Jaude' }));
 
     const u = await televerser(archive);
-    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ }, ATTENTE_ARCHIVE);
+    const modale = await screen.findByRole('dialog', { name: /Restaurer l.archive/ }, ATTENTE_ARCHIVE);
     expect(within(modale).getByText(/existent déjà sur/)).toBeInTheDocument();
     await u.click(within(modale).getByRole('button', { name: /Fusionner par identifiant/ }));
 
@@ -111,7 +111,7 @@ describe('restauration d’une sauvegarde', () => {
     await db.biens.add(unBien({ id: 'bien-2', nom: 'Studio Jaude' }));
 
     const u = await televerser(archive);
-    const modale = await screen.findByRole('dialog', { name: /Restaurer la sauvegarde/ }, ATTENTE_ARCHIVE);
+    const modale = await screen.findByRole('dialog', { name: /Restaurer l.archive/ }, ATTENTE_ARCHIVE);
     await u.click(within(modale).getByRole('button', { name: /Tout remplacer/ }));
 
     await waitFor(async () => expect(await db.biens.count()).toBe(1), ATTENTE_ARCHIVE);
@@ -138,7 +138,7 @@ describe('refus d’une archive inexploitable', () => {
     await televerser(futur);
 
     expect(await screen.findByText(/version plus récente de Bailiz/, undefined, ATTENTE_ARCHIVE)).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { name: /Restaurer la sauvegarde/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /Restaurer l.archive/ })).not.toBeInTheDocument();
     // Rien n'a été touché : le refus intervient avant toute écriture.
     expect(await db.biens.count()).toBe(1);
   });

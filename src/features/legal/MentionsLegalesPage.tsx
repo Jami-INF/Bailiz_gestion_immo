@@ -1,6 +1,6 @@
 import { ExternalLink, Github, Linkedin } from 'lucide-react';
 import { Card, PageHeader } from '@/components/ui';
-import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
+import { DISCLAIMER_JURIDIQUE } from '@/lib/juridique';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
 
 function LienExterne({ href, children }: { href: string; children: React.ReactNode }) {

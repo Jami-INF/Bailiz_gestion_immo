@@ -1,4 +1,4 @@
-import { db, getParametres } from './db';
+import { db, getParametres, lireParametres } from './db';
 import { uid } from './ids';
 
 /**
@@ -201,8 +201,14 @@ export function consommerRetourRedirection(): string | undefined {
   return clientId;
 }
 
+/**
+ * Configuration Drive, **sans écrire** : `getParametres()` crée la ligne par
+ * défaut quand elle manque, ce qu'une transaction de `liveQuery` interdit
+ * (`ReadOnlyError`, et écran blanc au tout premier lancement). Les écrans
+ * observent cette configuration ; la lecture doit donc rester une lecture.
+ */
 export async function getConfigGDrive(): Promise<ConfigGDrive | undefined> {
-  return (await getParametres()).sauvegardeGDrive;
+  return (await lireParametres()).sauvegardeGDrive;
 }
 
 async function majConfigGDrive(maj: Partial<ConfigGDrive>): Promise<void> {

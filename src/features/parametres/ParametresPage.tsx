@@ -34,7 +34,8 @@ import { EmpreintePanel } from './EmpreintePanel';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { FicheVisitePanel } from './FicheVisitePanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
-import { DISCLAIMER_JURIDIQUE } from '@/components/AppLayout';
+import { DISCLAIMER_JURIDIQUE } from '@/lib/juridique';
+import { CarteDonnees } from '@/features/accueil/CarteDonnees';
 import {
   Button,
   CarteRepliable,
@@ -140,11 +141,15 @@ export function ParametresPage() {
     <div>
       <PageHeader titre="Paramètres" />
       <div className="space-y-4">
+        {/* En tête, et jamais repliée : la première chose qu'on vient vérifier
+            ici, c'est où vont les données - pas comment elles y vont. */}
+        <CarteDonnees avecLien={false} />
+
         <BailleurPanel parametres={parametres} />
 
         <CarteRepliable
           identifiant="sauvegarde"
-          titre="Sauvegarde et restauration"
+          titre="Archive complète : export et restauration"
           icone={<HardDriveDownload size={18} />}
           resume={
             parametres.derniereSauvegarde
@@ -153,12 +158,12 @@ export function ParametresPage() {
           }
         >
           <p className="mb-1 text-sm text-accent-600">
-            Toutes les données restent sur cet appareil. Exportez régulièrement une sauvegarde
+            Toutes les données restent sur cet appareil. Exportez régulièrement une archive
             complète (fichier ZIP : données + photos + PDF), notamment après chaque état des
             lieux signé.
           </p>
           <p className="mb-3 text-xs text-accent-500">
-            Dernière sauvegarde :{' '}
+            Dernière archive :{' '}
             {parametres.derniereSauvegarde
               ? format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')
               : 'jamais'}{' '}
@@ -175,16 +180,16 @@ export function ParametresPage() {
           {quota?.critique && (
             <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               Le stockage de ce navigateur est occupé à {quota.pct} %. Au-delà, il peut refuser
-              d'enregistrer une photo ou un PDF - en plein état des lieux. Exportez une sauvegarde,
+              d'enregistrer une photo ou un PDF - en plein état des lieux. Exportez une archive,
               puis libérez de la place (états des lieux anciens, documents archivés).
             </p>
           )}
           <div className="flex flex-wrap gap-2">
             <Button onClick={exporter}>
-              <HardDriveDownload size={16} /> Exporter la sauvegarde (.zip)
+              <HardDriveDownload size={16} /> Exporter l'archive (.zip)
             </Button>
             <Button variant="secondary" onClick={() => fichierRef.current?.click()}>
-              <HardDriveUpload size={16} /> Importer une sauvegarde
+              <HardDriveUpload size={16} /> Importer une archive
             </Button>
             <input
               ref={fichierRef}
@@ -353,7 +358,7 @@ export function ParametresPage() {
       <Modal
         open={importEnAttente !== null}
         onClose={() => setImportEnAttente(null)}
-        title="Restaurer la sauvegarde"
+        title="Restaurer l'archive"
         footer={
           <>
             <Button variant="secondary" onClick={() => setImportEnAttente(null)}>

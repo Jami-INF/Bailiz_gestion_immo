@@ -689,6 +689,50 @@ obligatoires forment une pièce dédiée « Mobilier obligatoire », marquée `o
   même référence ; les versions signées sont immuables et conservées.
 - `DocumentsPage` : filtres par bien / bail / type, téléchargement direct du Blob stocké.
 
+### 5.0 Parcours d'arrivée (`features/accueil/`)
+
+Une application locale doit dire qu'elle est locale. Rien ne le faisait : on pouvait mener un
+état des lieux complet, photos et signatures comprises, sans jamais apprendre que les données
+vivent dans IndexedDB et qu'un vidage du cache Safari les efface. Le sujet n'apparaissait que
+par une alerte tardive du tableau de bord, ou en dépliant la troisième carte des Paramètres.
+
+- `ParcoursAccueil` - deux temps : l'avertissement juridique (inchangé, `disclaimerAccepte`),
+  puis « Où sont enregistrées vos données ? ». **Jamais bloquant** : un état des lieux se fait
+  devant l'appartement, souvent sans réseau, et une étape obligatoire y condamnerait l'outil.
+- `ChoixDestination` - les deux destinations nommées par le besoin et non par la technique,
+  partagé par l'accueil et par la carte du tableau de bord : une seule formulation de la
+  question dans toute l'application. L'option « dossier » n'est **pas affichée** sans
+  `autosaveSupportee()` (Safari/iPad), et l'on dit pourquoi plutôt que de laisser chercher.
+- `CarteDonnees` - l'état des données en continu sur le tableau de bord. Sa place suit l'enjeu :
+  sous l'appel à l'action tant que la base est vide, en tête dès qu'il existe des fiches. La
+  même carte ouvre les Paramètres (`avecLien={false}`, le détail étant juste en dessous) : la
+  page commence par la réponse - où sont mes données - et non par le catalogue des mécanismes.
+- `lib/accueil.ts` - le drapeau de fin de parcours est dans `localStorage` et **jamais dans
+  `Parametres`**, pour la même raison que `identifiantAppareil` : les paramètres voyagent dans
+  le ZIP et dans la synchronisation, et un appareil restauré hériterait d'un « accueil déjà
+  fait » alors que c'est précisément lui qui n'a pas de destination.
+
+**Vocabulaire, à tenir** : une *archive* est le ZIP complet - un filet qu'on restaure en bloc,
+manuellement (« Archive complète ») ou automatiquement dans un dossier (« Archive automatique
+dans un dossier ») ; la *synchronisation* est l'échange fiche par fiche avec le Drive, qui fait
+converger deux appareils. Les deux s'appelaient « sauvegarde », et rien ne permettait de savoir
+lequel faisait quoi. « Sauvegarder » ne subsiste que comme verbe générique - mettre à l'abri -
+et ne désigne plus aucun des deux mécanismes. `ParametresPage.destinations.test.tsx` tient la
+distinction, qui se reperd au premier libellé écrit à la va-vite. Les noms de symboles
+(`SauvegardeAutoPanel`, `derniereSauvegarde`) gardent l'ancien vocabulaire : les renommer
+toucherait le schéma de la base et l'archive elle-même, pour rien.
+
+Trois pièges, tous déjà payés une fois :
+1. **Le clic Google en première instruction du gestionnaire**, sans `await` avant - Safari/iOS
+   n'ouvre la fenêtre que dans l'activation du geste.
+2. **En PWA installée, connecter le Drive quitte l'application** (`lancerConnexionParRedirection`).
+   Le retour est finalisé dans `AppLayout` par `consommerRetourRedirection` + `activerGDrive` :
+   sans cet appel - qui n'existait nulle part, alors que la fonction était écrite pour lui - on
+   revenait de Google avec une autorisation valide et un Drive annoncé « non connecté ».
+3. **Jamais `getParametres()` dans un `useLiveQuery`** : il crée la ligne par défaut, donc une
+   transaction en écriture, interdite là (`ReadOnlyError`, écran blanc au premier lancement).
+   `lireParametres()` et `getConfigGDrive()` sont les formes sans écriture.
+
 ### 5.6 Tableau de bord
 
 Toute la logique d'alertes est dans `TableauDeBordPage` (pas de lib dédiée) :
@@ -696,7 +740,9 @@ Toute la logique d'alertes est dans `TableauDeBordPage` (pas de lib dédiée) :
 - dépôt à restituer : EDL de sortie signé → date limite par `dateLimiteRestitution`
   (1 ou 2 **mois** calendaires selon dégradations, art. 22 - jamais 30/60 jours), alerte
   affichée à ≤ 45 jours de l'échéance (rouge à ≤ 7 jours) ;
-- sauvegarde > 30 jours.
+- sauvegarde > 30 jours - **uniquement si une sauvegarde a déjà eu lieu**. Le cas « jamais
+  sauvegardé » appartient à la carte « Vos données » (§ 5.0), qui l'annonce en continu au lieu
+  d'attendre le délai d'alerte ; le laisser ici le disait deux fois, dont une en reproche.
 Échéancier : terme du bail via `termeDuBail` et prochain anniversaire de révision IRL des baux
 révisables. **Distinguer reconduction et fin de plein droit est obligatoire** : un meublé d'un
 an se reconduit tacitement faute de congé, et annoncer « fin de bail » laissait croire que le
