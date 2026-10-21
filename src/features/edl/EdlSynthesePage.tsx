@@ -22,6 +22,7 @@ import { depotGarantieEdl } from '@/lib/edl';
 import { genererEtArchiver, nomsPersonnes } from '@/lib/pdf/generer';
 import { LettreRestitutionPdf } from '@/lib/pdf/LettreRestitutionPdf';
 import { Button, Card, Field, Input, PageHeader, Select, useToast } from '@/components/ui';
+import { useActionUnique } from '@/hooks/useActionUnique';
 import { chargerContexteEdl } from './edlPdfUtils';
 
 function MiniPhoto({ photoId }: { photoId: string }) {
@@ -73,6 +74,7 @@ export function EdlSynthesePage() {
   const edl = useLiveQuery(() => (id ? db.edls.get(id) : undefined), [id]);
   const contexte = useLiveQuery(async () => (edl ? chargerContexteEdl(edl) : undefined), [edl?.id]);
   const parametres = useLiveQuery(() => lireParametres());
+  const generation = useActionUnique();
 
   if (!edl || !contexte || !parametres) return null;
   if (edl.type !== 'sortie') {
@@ -349,7 +351,7 @@ export function EdlSynthesePage() {
       )}
 
       <div className="mt-4">
-        <Button onClick={genererLettre}>
+        <Button onClick={() => generation.lancer(genererLettre)} disabled={generation.enCours}>
           <FileText size={16} /> Générer la lettre de restitution du dépôt (PDF)
         </Button>
       </div>

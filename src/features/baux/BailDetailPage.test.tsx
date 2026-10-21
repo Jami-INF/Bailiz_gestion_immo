@@ -12,9 +12,10 @@ import { figerDate } from '@/test/setup';
  * tests dans `lib/pdf/`. Sans ce bouchon, chaque cas paierait une seconde de
  * rendu pour un résultat qu'il ne regarde pas.
  */
+const archivage = vi.hoisted(() => vi.fn(async () => undefined));
 vi.mock('@/lib/pdf/generer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/pdf/generer')>()),
-  genererEtArchiver: vi.fn(async () => undefined),
+  genererEtArchiver: archivage,
 }));
 
 beforeEach(async () => {
@@ -144,5 +145,23 @@ describe('fiche de bail - robustesse', () => {
 
     expect(await screen.findByText(/Le bien associé à ce bail n'existe plus/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Supprimer/ })).toBeInTheDocument();
+  });
+});
+
+describe('double-clic sur les documents annexes du bail', () => {
+  it('n’archive qu’une seule fiche d’aide juridique', async () => {
+    const u = utilisateur();
+    archivage.mockClear();
+    archivage.mockImplementation(() => new Promise((r) => setTimeout(r, 80)) as Promise<undefined>);
+    await semer({ edl: {} });
+    rendreBail();
+
+    const bouton = await screen.findByRole('button', { name: /Fiche d'aide juridique/ });
+    await u.click(bouton);
+    await u.click(bouton);
+
+    await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
+    expect(archivage).toHaveBeenCalledTimes(1);
+    archivage.mockReset();
   });
 });

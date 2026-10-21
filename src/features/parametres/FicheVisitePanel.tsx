@@ -6,6 +6,7 @@ import { CONDITION_SECTION_LABELS } from '@/types';
 import { ecrireParametres, lireParametres } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import { MODELE_FICHE_VISITE_DEFAUT } from '@/lib/defauts';
+import { useActionUnique } from '@/hooks/useActionUnique';
 import { rendrePdf } from '@/lib/pdf/generer';
 import { FicheVisitePdf } from '@/lib/pdf/FicheVisitePdf';
 import { ouvrirBlob } from '@/lib/backup';
@@ -91,6 +92,9 @@ export function FicheVisitePanel() {
   const toast = useToast();
   const parametres = useLiveQuery(() => lireParametres());
   const [confirmReset, setConfirmReset] = useState(false);
+  // L'aperçu n'archive rien, mais son rendu est lent : deux clics ouvraient
+  // deux fois le même document.
+  const generation = useActionUnique();
   // Les champs sont non contrôlés (écriture au `blur`, comme la grille de
   // vétusté) : après une réinitialisation, seul un remontage leur fait relire
   // les valeurs par défaut.
@@ -340,7 +344,7 @@ export function FicheVisitePanel() {
         >
           <Plus size={14} /> Ajouter une section
         </Button>
-        <Button size="sm" onClick={() => void apercu()}>
+        <Button size="sm" onClick={() => generation.lancer(apercu)} disabled={generation.enCours}>
           <Eye size={14} /> Aperçu (PDF)
         </Button>
         <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>

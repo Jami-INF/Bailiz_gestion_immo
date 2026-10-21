@@ -35,6 +35,7 @@ import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPane
 import { FicheVisitePanel } from './FicheVisitePanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
 import { DISCLAIMER_JURIDIQUE } from '@/lib/juridique';
+import { useActionUnique } from '@/hooks/useActionUnique';
 import { CarteDonnees } from '@/features/accueil/CarteDonnees';
 import {
   Button,
@@ -53,6 +54,7 @@ export function ParametresPage() {
   const parametres = useLiveQuery(() => lireParametres());
   const persiste = usePersistanceStockage();
   const quota = useQuotaStockage();
+  const generation = useActionUnique();
   const fichierRef = useRef<HTMLInputElement>(null);
   const [importEnAttente, setImportEnAttente] = useState<{
     zip: Awaited<ReturnType<typeof lireSauvegarde>>['zip'];
@@ -299,7 +301,11 @@ export function ParametresPage() {
             <Button variant="ghost" size="sm" onClick={() => majGrille(() => GRILLE_VETUSTE_DEFAUT)}>
               Réinitialiser la grille par défaut
             </Button>
-            <Button size="sm" onClick={() => void genererGrillePdf()}>
+            <Button
+              size="sm"
+              onClick={() => generation.lancer(genererGrillePdf)}
+              disabled={generation.enCours}
+            >
               <Scale size={14} /> Télécharger la grille (PDF, avec mode d'emploi)
             </Button>
           </div>
@@ -326,7 +332,7 @@ export function ParametresPage() {
             payer, 6 semaines, trêve hivernale), délais du dépôt de garantie, prescription des
             loyers, interlocuteurs en cas de litige (ADIL, commission de conciliation).
           </p>
-          <Button onClick={() => void genererFicheAide()}>
+          <Button onClick={() => generation.lancer(genererFicheAide)} disabled={generation.enCours}>
             <FileText size={16} /> Télécharger la fiche d'aide (PDF)
           </Button>
         </CarteRepliable>

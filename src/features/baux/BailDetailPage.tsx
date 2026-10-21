@@ -35,6 +35,7 @@ import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
 import { ouvrirBlob } from '@/lib/backup';
 import { formatAdresse } from '@/lib/adresse';
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
+import { useActionUnique } from '@/hooks/useActionUnique';
 import { STATUT_BAIL_UI } from './BauxPage';
 import { BoutonSupprimerBail } from './SupprimerBail';
 
@@ -106,6 +107,12 @@ export function BailDetailPage() {
   const edls = useLiveQuery(() => (id ? db.edls.where('bailId').equals(id).toArray() : []), [id]);
   const parametres = useLiveQuery(() => lireParametres());
   const [modaleIrl, setModaleIrl] = useState(false);
+  /*
+   * Un seul document à la fois : tous ces boutons tirent une référence et
+   * archivent un PDF, et deux générations lancées coup sur coup produisaient
+   * deux documents pour un seul geste voulu.
+   */
+  const generation = useActionUnique();
   const [nouvelIndice, setNouvelIndice] = useState(0);
   const [nouveauTrimestre, setNouveauTrimestre] = useState('');
 
@@ -358,7 +365,12 @@ export function BailDetailPage() {
         <Card>
           <h2 className="mb-3 font-semibold text-accent-900">Documents et cycle de vie</h2>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={telechargerPdf}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => generation.lancer(telechargerPdf)}
+              disabled={generation.enCours}
+            >
               <Download size={14} /> Télécharger le PDF
             </Button>
             <Link to={`/baux/${bail.id}/modifier`}>
@@ -449,8 +461,9 @@ export function BailDetailPage() {
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => void genererFicheAide()}
-              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+              onClick={() => generation.lancer(genererFicheAide)}
+              disabled={generation.enCours}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50 disabled:opacity-60"
             >
               <Scale size={16} className="mt-0.5 shrink-0 text-accent-400" />
               <span>
@@ -462,8 +475,9 @@ export function BailDetailPage() {
             </button>
             <button
               type="button"
-              onClick={() => void telechargerActeCautionnement()}
-              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+              onClick={() => generation.lancer(telechargerActeCautionnement)}
+              disabled={generation.enCours}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50 disabled:opacity-60"
             >
               <ShieldQuestion size={16} className="mt-0.5 shrink-0 text-accent-400" />
               <span>
@@ -475,8 +489,9 @@ export function BailDetailPage() {
             </button>
             <button
               type="button"
-              onClick={() => void genererGrilleVetuste()}
-              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50"
+              onClick={() => generation.lancer(genererGrilleVetuste)}
+              disabled={generation.enCours}
+              className="flex w-full items-start gap-3 rounded-lg border border-accent-200 px-3 py-2 text-left hover:bg-accent-50 disabled:opacity-60"
             >
               <Ruler size={16} className="mt-0.5 shrink-0 text-accent-400" />
               <span>
@@ -544,7 +559,10 @@ export function BailDetailPage() {
             <Button variant="secondary" onClick={() => setModaleIrl(false)}>
               Fermer
             </Button>
-            <Button onClick={genererCourrierIrl} disabled={!calcIrl || !nouveauTrimestre.trim()}>
+            <Button
+              onClick={() => generation.lancer(genererCourrierIrl)}
+              disabled={!calcIrl || !nouveauTrimestre.trim() || generation.enCours}
+            >
               Générer le courrier PDF
             </Button>
           </>

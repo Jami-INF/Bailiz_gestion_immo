@@ -153,3 +153,54 @@ describe('lettre de restitution', () => {
     expect(retenuesDeLaLettre().depotGarantie).toBe(1500);
   });
 });
+
+describe('double-clic sur « Générer la lettre »', () => {
+  /**
+   * Chaque génération tire une référence neuve et archive un document : deux
+   * clics produisaient deux lettres et consommaient deux numéros, que le
+   * dédoublonnage par référence d'`enregistrerDocument` ne pouvait pas
+   * rapprocher. Le bouton doit se désarmer le temps de l'opération.
+   */
+  it('n’archive qu’une seule lettre', async () => {
+    const u = utilisateur();
+    archivage.mockClear();
+    // Génération lente, comme sur une tablette : la fenêtre du second clic.
+    archivage.mockImplementation(() => new Promise((r) => setTimeout(r, 80)));
+    const edl = uneSortieDegradee();
+    edl.pieces[0].elements[0].coutRemiseEnEtat = 300;
+    await semer({ edl, parametres: { grilleVetuste: GRILLE } });
+    rendreSynthese();
+
+    const bouton = await screen.findByRole('button', { name: /Générer la lettre/ });
+    await u.click(bouton);
+    await u.click(bouton);
+
+    await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
+    expect(archivage).toHaveBeenCalledTimes(1);
+    archivage.mockReset();
+  });
+
+  it('réarme le bouton quand la génération échoue', async () => {
+    // Un verrou qui ne se relâche pas serait une panne pire que le double-clic.
+    const u = utilisateur();
+    const erreurs = vi.spyOn(console, 'error').mockImplementation(() => {});
+    archivage.mockClear();
+    archivage.mockRejectedValueOnce(new DOMException('quota', 'QuotaExceededError'));
+    const edl = uneSortieDegradee();
+    edl.pieces[0].elements[0].coutRemiseEnEtat = 300;
+    await semer({ edl, parametres: { grilleVetuste: GRILLE } });
+    rendreSynthese();
+
+    const bouton = await screen.findByRole('button', { name: /Générer la lettre/ });
+    await u.click(bouton);
+    await vi.waitFor(() => expect(bouton).toBeEnabled());
+
+    // Et une seconde tentative part bien.
+    archivage.mockResolvedValueOnce(undefined);
+    await u.click(bouton);
+    await vi.waitFor(() => expect(archivage).toHaveBeenCalledTimes(2));
+
+    archivage.mockReset();
+    erreurs.mockRestore();
+  });
+});
