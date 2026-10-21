@@ -71,38 +71,53 @@ export function EdlSignaturePage() {
         />
       ));
       edlSigne.pdfHash = hash;
-      // Verrouillage : l'EDL signé devient immuable (lecture seule dans l'app).
-      await db.edls.put(edlSigne);
       const suffixe = edl.rectifications?.length
         ? ` (rectificatif n°${edl.rectifications.length}, signé)`
         : ' (signé)';
-      await enregistrerDocument({
-        reference: edl.reference,
-        type: edl.type === 'entree' ? 'edl_entree' : 'edl_sortie',
-        titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} - ${bien.nom} - ${nomsPersonnes(locataires)}${suffixe}`,
-        blob,
-        hash,
-        signe: true,
-        bienId: bien.id,
-        bailId: bail?.id,
-        edlId: edl.id,
-      });
       /*
-       * Les bascules de statut ci-dessous n'ont de sens que s'il existe un bail.
-       * Un constat établi sans contrat rédigé ici n'en invente aucun :
-       * l'application ne sait pas si le logement est loué, elle ne l'affirme pas.
+       * Tout ou rien. Le PDF est rendu, l'empreinte calculée : les trois
+       * écritures qui restent (verrouillage de l'EDL, archivage du document,
+       * bascule du bail) tiennent dans une seule transaction. Enchaînées à
+       * découvert, un échec de l'archivage - quota dépassé, cas réaliste sur
+       * une tablette chargée de photos - laissait l'état des lieux verrouillé
+       * en « signé » sans aucun document archivé, donc en lecture seule
+       * partout, avec pour seule sortie une « rectification » inscrite dans
+       * l'historique juridique d'une signature qui n'avait jamais abouti.
+       *
+       * Le rendu reste **dehors** : il est long et ne passe pas par Dexie, et
+       * attendre une promesse étrangère committe la transaction en cours.
        */
-      if (bail && edl.type === 'sortie') {
-        await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
-      } else if (bail && bail.statut !== 'actif' && bail.statut !== 'termine') {
+      await db.transaction('rw', db.edls, db.documents, db.baux, async () => {
+        // Verrouillage : l'EDL signé devient immuable (lecture seule dans l'app).
+        await db.edls.put(edlSigne);
+        await enregistrerDocument({
+          reference: edl.reference,
+          type: edl.type === 'entree' ? 'edl_entree' : 'edl_sortie',
+          titre: `EDL ${edl.type === 'entree' ? "d'entrée" : 'de sortie'} - ${bien.nom} - ${nomsPersonnes(locataires)}${suffixe}`,
+          blob,
+          hash,
+          signe: true,
+          bienId: bien.id,
+          bailId: bail?.id,
+          edlId: edl.id,
+        });
         /*
-         * Un EDL d'entrée signé, c'est la remise des clés : le logement est
-         * loué. Le bail restait sinon « généré » jusqu'à ce que l'utilisateur
-         * pense à cliquer « Marquer le logement loué » - et le tableau de bord
-         * annonçait le logement vacant, sans fin de bail ni révision à venir.
+         * Les bascules de statut ci-dessous n'ont de sens que s'il existe un bail.
+         * Un constat établi sans contrat rédigé ici n'en invente aucun :
+         * l'application ne sait pas si le logement est loué, elle ne l'affirme pas.
          */
-        await db.baux.put({ ...bail, statut: 'actif', updatedAt: nowISO() });
-      }
+        if (bail && edl.type === 'sortie') {
+          await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
+        } else if (bail && bail.statut !== 'actif' && bail.statut !== 'termine') {
+          /*
+           * Un EDL d'entrée signé, c'est la remise des clés : le logement est
+           * loué. Le bail restait sinon « généré » jusqu'à ce que l'utilisateur
+           * pense à cliquer « Marquer le logement loué » - et le tableau de bord
+           * annonçait le logement vacant, sans fin de bail ni révision à venir.
+           */
+          await db.baux.put({ ...bail, statut: 'actif', updatedAt: nowISO() });
+        }
+      });
       setResultat({ hash, blob });
       /*
        * Mise à l'abri immédiate. `apresSignature` abaisse le seuil de
@@ -118,7 +133,12 @@ export function EdlSignaturePage() {
       });
     } catch (e) {
       console.error(e);
-      toast('error', `Échec de la signature - ${decrireErreur(e)}`);
+      /*
+       * « Rien n'a été enregistré » n'est pas une formule de politesse : c'est
+       * ce que garantit la transaction ci-dessus, et ce que l'utilisateur doit
+       * savoir pour oser recommencer sans craindre un document à moitié signé.
+       */
+      toast('error', `Échec de la signature, rien n'a été enregistré - ${decrireErreur(e)}`);
     } finally {
       setEnCours(false);
     }

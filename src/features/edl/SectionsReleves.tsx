@@ -9,6 +9,14 @@ import { Plus, Trash2 } from 'lucide-react';
  * clés, extraits de la page pour la garder lisible. Aucun état propre : tout
  * remonte au parent qui autosauvegarde.
  *
+ * Chaque gestionnaire lit la valeur de l'événement **avant** d'appeler `onMaj` :
+ * la transformation, elle, tourne dans la transaction qui relit la base, donc
+ * de façon asynchrone. Un champ contrôlé - la liste du type de compteur - a
+ * alors déjà retrouvé son ancienne valeur dans le DOM, et lire `e.target` à ce
+ * moment-là rendait le changement de type impossible à enregistrer. Les champs
+ * non contrôlés y survivaient, mais par chance seulement : le DOM gardait le
+ * texte saisi.
+ *
  * `onMaj` reçoit une **transformation** de la liste, jamais la liste finale :
  * les champs sont non contrôlés et n'écrivent qu'au `blur`, or cliquer
  * « Ajouter » ou la corbeille enchaîne `blur` puis `click` en quelques
@@ -37,9 +45,10 @@ export function SectionCompteurs({
               <Select
                 value={c.type}
                 disabled={lectureSeule}
-                onChange={(e) =>
-                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, type: e.target.value as TypeCompteur } : x)))
-                }
+                onChange={(e) => {
+                  const choisi = e.target.value as TypeCompteur;
+                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, type: choisi } : x)));
+                }}
               >
                 {Object.entries(COMPTEUR_LABELS).map(([v, l]) => (
                   <option key={v} value={v}>
@@ -54,9 +63,10 @@ export function SectionCompteurs({
                 defaultValue={c.numero ?? ''}
                 disabled={lectureSeule}
                 placeholder="N° 12345678"
-                onBlur={(e) =>
-                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, numero: e.target.value || undefined } : x)))
-                }
+                onBlur={(e) => {
+                  const saisi = e.target.value;
+                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, numero: saisi || undefined } : x)));
+                }}
               />
             </Field>
             <Field label="Relevé" hint="Index affiché, en kWh ou m³.">
@@ -67,9 +77,10 @@ export function SectionCompteurs({
                 defaultValue={c.releve || ''}
                 disabled={lectureSeule}
                 placeholder="45210"
-                onBlur={(e) =>
-                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, releve: Number(e.target.value) } : x)))
-                }
+                onBlur={(e) => {
+                  const saisi = Number(e.target.value);
+                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, releve: saisi } : x)));
+                }}
               />
             </Field>
             <PhotoCapture
@@ -126,7 +137,10 @@ export function SectionCles({
               defaultValue={c.designation}
               disabled={lectureSeule}
               placeholder="Clé porte d'entrée, badge parking…"
-              onBlur={(e) => onMaj((l) => l.map((x, j) => (j === i ? { ...x, designation: e.target.value } : x)))}
+              onBlur={(e) => {
+                const saisi = e.target.value;
+                onMaj((l) => l.map((x, j) => (j === i ? { ...x, designation: saisi } : x)));
+              }}
             />
           </Field>
           <Field label="Nombre">
@@ -137,7 +151,10 @@ export function SectionCles({
               key={`cle-nb-${i}-${cles.length}`}
               defaultValue={c.nombre}
               disabled={lectureSeule}
-              onBlur={(e) => onMaj((l) => l.map((x, j) => (j === i ? { ...x, nombre: Number(e.target.value) } : x)))}
+              onBlur={(e) => {
+                const saisi = Number(e.target.value);
+                onMaj((l) => l.map((x, j) => (j === i ? { ...x, nombre: saisi } : x)));
+              }}
             />
           </Field>
           <Field label="Commentaire">
@@ -146,9 +163,10 @@ export function SectionCles({
               defaultValue={c.commentaire ?? ''}
               disabled={lectureSeule}
               placeholder="Ex. : double remis au locataire"
-              onBlur={(e) =>
-                onMaj((l) => l.map((x, j) => (j === i ? { ...x, commentaire: e.target.value || undefined } : x)))
-              }
+              onBlur={(e) => {
+                const saisi = e.target.value;
+                onMaj((l) => l.map((x, j) => (j === i ? { ...x, commentaire: saisi || undefined } : x)));
+              }}
             />
           </Field>
           {!lectureSeule && (

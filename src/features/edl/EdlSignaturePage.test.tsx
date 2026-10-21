@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { db } from '@/lib/db';
+import { enregistrerDocument } from '@/lib/pdf/generer';
 import { rendreRoute, semer, utilisateur, viderBase } from '@/test/utils';
 import { EdlSignaturePage } from './EdlSignaturePage';
 
@@ -89,6 +90,12 @@ vi.mock('@/lib/pdf/generer', async (importOriginal) => {
       blob: pdfFactice(),
       hash: await sha256Hex(OCTETS_PDF() as unknown as ArrayBuffer),
     })),
+    /*
+     * Enveloppé mais pas remplacé : l'implémentation réelle continue d'archiver
+     * en base pour tous les tests. Seul le test d'atomicité la fait échouer, le
+     * temps d'un appel, pour reproduire un quota dépassé.
+     */
+    enregistrerDocument: vi.fn(reel.enregistrerDocument),
   };
 });
 
@@ -153,6 +160,41 @@ describe('signature d’un état des lieux', () => {
     expect(docs[0].signe).toBe(true);
     expect(docs[0].hash).toBe(edl?.pdfHash);
     expect(docs[0].edlId).toBe('edl-1');
+  });
+
+  /*
+   * Tout ou rien. La séquence écrivait l'EDL signé **avant** d'archiver le PDF :
+   * un échec de l'archivage - quota dépassé, cas réaliste sur une tablette
+   * chargée de photos - laissait l'état des lieux verrouillé en « signé », sans
+   * aucun document, et un message d'échec à l'écran. L'EDL devenait alors en
+   * lecture seule partout, et la seule sortie était « rectifier », qui inscrit
+   * une rectification dans l'historique juridique du document pour une signature
+   * qui n'avait jamais abouti.
+   */
+  it('n’écrit rien du tout si l’archivage du PDF échoue', async () => {
+    await semer({ edl: {}, bail: { statut: 'genere' } });
+    vi.mocked(enregistrerDocument).mockRejectedValueOnce(
+      new DOMException('The quota has been exceeded.', 'QuotaExceededError'),
+    );
+    monter();
+    await signerJusquAuBout();
+
+    expect(await screen.findByText(/Échec de la signature/)).toBeInTheDocument();
+
+    // L'état des lieux est resté un brouillon : ni statut, ni signatures, ni empreinte.
+    const edl = await db.edls.get('edl-1');
+    expect(edl?.statut).toBe('brouillon');
+    expect(edl?.signatures).toBeUndefined();
+    expect(edl?.pdfHash).toBeUndefined();
+    expect(await db.documents.count()).toBe(0);
+    // Le bail ne bascule pas non plus : il n'y a pas eu de remise des clés.
+    expect((await db.baux.get('bail-1'))?.statut).toBe('genere');
+    /*
+     * Et l'écran reste celui de la signature, pas l'écran de verrouillage :
+     * l'utilisateur peut corriger ce qui a échoué puis resigner.
+     */
+    expect(screen.queryByText(/déjà signé et verrouillé/)).not.toBeInTheDocument();
+    expect(await screen.findByLabelText(/Lieu de signature/)).toBeInTheDocument();
   });
 
   it('rend le bail actif : un état des lieux d’entrée signé, c’est la remise des clés', async () => {

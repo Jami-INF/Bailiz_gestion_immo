@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, Save, Trash2, UserRound } from 'lucide-react';
-import { db, getParametres } from '@/lib/db';
+import { ecrireParametres, getParametres } from '@/lib/db';
 import { bailleurRenseigne, nomBailleur } from '@/lib/bailleur';
-import type { Bailleur, Parametres, PersonneBailleur, QualiteBailleur } from '@/types';
+import type { Bailleur, PersonneBailleur, QualiteBailleur } from '@/types';
 import { QUALITE_BAILLEUR_LABELS } from '@/types';
 import { Button, CarteRepliable, Field, Input, Select, useToast } from '@/components/ui';
 
@@ -50,7 +50,7 @@ function ChampsPersonne({
  * Jusqu'ici l'application ne savait décrire qu'un bailleur personne physique
  * unique - beaucoup de LMNP sont détenus à deux.
  */
-export function BailleurPanel({ parametres }: { parametres: Parametres }) {
+export function BailleurPanel() {
   const toast = useToast();
   const [bailleur, setBailleur] = useState<Bailleur | null>(null);
 
@@ -66,7 +66,15 @@ export function BailleurPanel({ parametres }: { parametres: Parametres }) {
     maj({ coIndivisaires: indivisaires.map((p, j) => (j === i ? { ...p, ...m } : p)) });
 
   const enregistrer = async () => {
-    await db.parametres.put({ ...parametres, bailleur });
+    /*
+     * `ecrireParametres` et non un `put` du singleton : le panneau en recevait
+     * une copie en prop, datée du dernier rendu de la page, et l'enregistrement
+     * du bailleur réécrivait par-dessus les champs qu'un autre panneau venait
+     * de modifier - la grille de vétusté notamment - sous un message de succès.
+     * N'ayant plus à réécrire que son propre champ, il n'a plus besoin du
+     * singleton du tout.
+     */
+    await ecrireParametres(() => ({ bailleur }));
     toast('success', 'Identité du bailleur enregistrée.');
   };
 

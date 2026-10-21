@@ -67,13 +67,26 @@ export async function enregistrerDocument(params: {
     signe: params.signe ?? false,
     createdAt: nowISO(),
   };
-  // Un document non signé regénéré remplace l'ancienne version de même référence.
-  const existants = await db.documents.where('reference').equals(params.reference).toArray();
-  for (const e of existants) {
-    if (!e.signe) await db.documents.delete(e.id);
-  }
-  await db.documents.add(doc);
-  return doc;
+  /*
+   * Suppression et ajout dans la même transaction : l'`add` peut échouer après
+   * coup (stockage saturé, un PDF de visite pesant plusieurs mégaoctets), et la
+   * séquence à découvert laissait alors l'utilisateur sans aucune version du
+   * document - l'ancienne effacée, la nouvelle jamais écrite. Le remplacement
+   * est atomique ou n'a pas lieu.
+   *
+   * Transaction imbriquée quand l'appelant en a déjà ouverte une (la signature
+   * d'un état des lieux) : Dexie la rattache à la transaction en cours, dont
+   * l'échec ici entraîne l'annulation complète.
+   */
+  return db.transaction('rw', db.documents, async () => {
+    // Un document non signé regénéré remplace l'ancienne version de même référence.
+    const existants = await db.documents.where('reference').equals(params.reference).toArray();
+    for (const e of existants) {
+      if (!e.signe) await db.documents.delete(e.id);
+    }
+    await db.documents.add(doc);
+    return doc;
+  });
 }
 
 /** « Marie Dupont » / « Marie Dupont et Jean Martin » / « Marie Dupont et 2 autres ». */

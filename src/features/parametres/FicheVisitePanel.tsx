@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowDown, ArrowUp, ClipboardList, Eye, Plus, Trash2 } from 'lucide-react';
-import type { Bien, ConditionSection, ModeleFicheVisite, SectionDossier } from '@/types';
+import type { Bien, ConditionSection, ModeleFicheVisite, PieceDossier, SectionDossier } from '@/types';
 import { CONDITION_SECTION_LABELS } from '@/types';
-import { db, lireParametres } from '@/lib/db';
+import { ecrireParametres, lireParametres } from '@/lib/db';
 import { uid, nowISO } from '@/lib/ids';
 import { MODELE_FICHE_VISITE_DEFAUT } from '@/lib/defauts';
 import { rendrePdf } from '@/lib/pdf/generer';
@@ -99,21 +99,47 @@ export function FicheVisitePanel() {
   if (!parametres) return null;
   const modele = parametres.ficheVisite ?? MODELE_FICHE_VISITE_DEFAUT;
 
-  const majModele = (m: Partial<ModeleFicheVisite>) =>
-    db.parametres.put({ ...parametres, ficheVisite: { ...modele, ...m } });
+  /**
+   * `transformer` plutôt qu'un modèle tout fait : les textes n'écrivent qu'au
+   * `blur`, et les cases à cocher écrivent sur `onChange`, donc dans la
+   * milliseconde qui suit. La transformation s'applique au modèle relu en base
+   * par `ecrireParametres`.
+   */
+  const majModele = (transformer: (actuel: ModeleFicheVisite) => Partial<ModeleFicheVisite>) =>
+    ecrireParametres((p) => {
+      const base = p.ficheVisite ?? MODELE_FICHE_VISITE_DEFAUT;
+      return { ficheVisite: { ...base, ...transformer(base) } };
+    });
 
-  const majSections = (sections: SectionDossier[]) => majModele({ sections });
+  const majSections = (transformer: (sections: SectionDossier[]) => SectionDossier[]) =>
+    majModele((actuel) => ({ sections: transformer(actuel.sections) }));
 
-  const majSection = (i: number, m: Partial<SectionDossier>) =>
-    majSections(modele.sections.map((s, j) => (j === i ? { ...s, ...m } : s)));
+  /*
+   * Sections et pièces se désignent par leur identifiant, jamais par leur rang
+   * d'affichage : la transformation s'applique à la liste relue en base, qui
+   * peut avoir changé d'ordre ou de longueur depuis le rendu d'où part le clic.
+   * Un index y aurait désigné une autre section que celle visée.
+   */
+  const majSection = (id: string, m: Partial<SectionDossier>) =>
+    majSections((sections) => sections.map((s) => (s.id === id ? { ...s, ...m } : s)));
 
-  const deplacer = (i: number, delta: number) => {
-    const cible = i + delta;
-    if (cible < 0 || cible >= modele.sections.length) return;
-    const sections = [...modele.sections];
-    [sections[i], sections[cible]] = [sections[cible], sections[i]];
-    return majSections(sections);
-  };
+  /** Pièces d'une section, transformées depuis la liste relue en base. */
+  const majPieces = (id: string, transformer: (pieces: PieceDossier[]) => PieceDossier[]) =>
+    majSections((sections) =>
+      sections.map((s) => (s.id === id ? { ...s, pieces: transformer(s.pieces) } : s)),
+    );
+
+  const deplacer = (id: string, delta: number) =>
+    majSections((actuelles) => {
+      // Le rang se recalcule sur la liste relue, d'où la permutation par
+      // identifiant : l'index du rendu aurait pu désigner une voisine.
+      const depart = actuelles.findIndex((s) => s.id === id);
+      const cible = depart + delta;
+      if (depart < 0 || cible < 0 || cible >= actuelles.length) return actuelles;
+      const sections = [...actuelles];
+      [sections[depart], sections[cible]] = [sections[cible], sections[depart]];
+      return sections;
+    });
 
   const apercu = async () => {
     const blob = await rendrePdf(
@@ -150,7 +176,13 @@ export function FicheVisitePanel() {
             key={b.cle}
             label={b.label}
             checked={modele.blocs[b.cle]}
-            onChange={(e) => majModele({ blocs: { ...modele.blocs, [b.cle]: e.target.checked } })}
+            onChange={(e) => {
+              // Valeur lue tout de suite : le transformateur tourne dans la
+              // transaction, où un champ contrôlé a déjà retrouvé son ancien
+              // état dans le DOM.
+              const coche = e.target.checked;
+              void majModele((actuel) => ({ blocs: { ...actuel.blocs, [b.cle]: coche } }));
+            }}
           />
         ))}
       </div>
@@ -161,7 +193,10 @@ export function FicheVisitePanel() {
           <Field key={t.cle} label={t.label} hint={t.hint}>
             <Textarea
               defaultValue={modele[t.cle]}
-              onBlur={(e) => majModele({ [t.cle]: e.target.value } as Partial<ModeleFicheVisite>)}
+              onBlur={(e) => {
+                const saisi = e.target.value;
+                void majModele(() => ({ [t.cle]: saisi }) as Partial<ModeleFicheVisite>);
+              }}
             />
           </Field>
         ))}
@@ -176,14 +211,14 @@ export function FicheVisitePanel() {
       </p>
 
       <div key={`sections-${version}`} className="space-y-3">
-        {modele.sections.map((section, i) => (
+        {modele.sections.map((section) => (
           <div key={section.id} className="rounded-lg border border-accent-200 p-3">
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[12rem] flex-1">
                 <Field label="Titre de la section">
                   <Input
                     defaultValue={section.titre}
-                    onBlur={(e) => majSection(i, { titre: e.target.value })}
+                    onBlur={(e) => majSection(section.id, { titre: e.target.value })}
                   />
                 </Field>
               </div>
@@ -191,7 +226,7 @@ export function FicheVisitePanel() {
                 <Field label="Note (facultative)">
                   <Input
                     defaultValue={section.note ?? ''}
-                    onBlur={(e) => majSection(i, { note: e.target.value || undefined })}
+                    onBlur={(e) => majSection(section.id, { note: e.target.value || undefined })}
                   />
                 </Field>
               </div>
@@ -199,7 +234,7 @@ export function FicheVisitePanel() {
                 <Field label="Imprimée si">
                   <Select
                     value={section.condition}
-                    onChange={(e) => majSection(i, { condition: e.target.value as ConditionSection })}
+                    onChange={(e) => majSection(section.id, { condition: e.target.value as ConditionSection })}
                   >
                     {(Object.keys(CONDITION_SECTION_LABELS) as ConditionSection[]).map((c) => (
                       <option key={c} value={c}>
@@ -210,17 +245,17 @@ export function FicheVisitePanel() {
                 </Field>
               </div>
               <div className="flex gap-1 pb-1">
-                <Button variant="ghost" size="sm" aria-label="Monter" onClick={() => void deplacer(i, -1)}>
+                <Button variant="ghost" size="sm" aria-label="Monter" onClick={() => void deplacer(section.id, -1)}>
                   <ArrowUp size={14} />
                 </Button>
-                <Button variant="ghost" size="sm" aria-label="Descendre" onClick={() => void deplacer(i, 1)}>
+                <Button variant="ghost" size="sm" aria-label="Descendre" onClick={() => void deplacer(section.id, 1)}>
                   <ArrowDown size={14} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   aria-label="Supprimer la section"
-                  onClick={() => void majSections(modele.sections.filter((_, j) => j !== i))}
+                  onClick={() => void majSections((sections) => sections.filter((s) => s.id !== section.id))}
                 >
                   <Trash2 size={14} className="text-red-600" />
                 </Button>
@@ -228,49 +263,46 @@ export function FicheVisitePanel() {
             </div>
 
             <ul className="mt-2 space-y-2">
-              {section.pieces.map((piece, k) => (
+              {section.pieces.map((piece) => (
                 <li key={piece.id} className="flex flex-wrap items-center gap-2">
                   <Checkbox
                     label=""
                     aria-label={`Imprimer « ${piece.libelle} »`}
                     checked={piece.actif}
-                    onChange={(e) =>
-                      majSection(i, {
-                        pieces: section.pieces.map((p, j) =>
-                          j === k ? { ...p, actif: e.target.checked } : p,
-                        ),
-                      })
-                    }
+                    onChange={(e) => {
+                      const coche = e.target.checked;
+                      void majPieces(section.id, (pieces) =>
+                        pieces.map((p) => (p.id === piece.id ? { ...p, actif: coche } : p)),
+                      );
+                    }}
                   />
                   <Input
                     className="min-w-[14rem] flex-1"
                     defaultValue={piece.libelle}
-                    onBlur={(e) =>
-                      majSection(i, {
-                        pieces: section.pieces.map((p, j) =>
-                          j === k ? { ...p, libelle: e.target.value } : p,
-                        ),
-                      })
-                    }
+                    onBlur={(e) => {
+                      const saisi = e.target.value;
+                      void majPieces(section.id, (pieces) =>
+                        pieces.map((p) => (p.id === piece.id ? { ...p, libelle: saisi } : p)),
+                      );
+                    }}
                   />
                   <Input
                     className="min-w-[12rem] flex-1"
                     placeholder="Précision (facultative)"
                     defaultValue={piece.precision ?? ''}
-                    onBlur={(e) =>
-                      majSection(i, {
-                        pieces: section.pieces.map((p, j) =>
-                          j === k ? { ...p, precision: e.target.value || undefined } : p,
-                        ),
-                      })
-                    }
+                    onBlur={(e) => {
+                      const saisi = e.target.value;
+                      void majPieces(section.id, (pieces) =>
+                        pieces.map((p) => (p.id === piece.id ? { ...p, precision: saisi || undefined } : p)),
+                      );
+                    }}
                   />
                   <Button
                     variant="ghost"
                     size="sm"
                     aria-label="Supprimer la pièce"
                     onClick={() =>
-                      void majSection(i, { pieces: section.pieces.filter((_, j) => j !== k) })
+                      void majPieces(section.id, (pieces) => pieces.filter((p) => p.id !== piece.id))
                     }
                   >
                     <Trash2 size={14} className="text-red-600" />
@@ -283,9 +315,10 @@ export function FicheVisitePanel() {
               size="sm"
               className="mt-2"
               onClick={() =>
-                void majSection(i, {
-                  pieces: [...section.pieces, { id: uid(), libelle: 'Nouvelle pièce', actif: true }],
-                })
+                void majPieces(section.id, (pieces) => [
+                  ...pieces,
+                  { id: uid(), libelle: 'Nouvelle pièce', actif: true },
+                ])
               }
             >
               <Plus size={14} /> Ajouter une pièce
@@ -299,8 +332,8 @@ export function FicheVisitePanel() {
           variant="secondary"
           size="sm"
           onClick={() =>
-            void majSections([
-              ...modele.sections,
+            void majSections((sections) => [
+              ...sections,
               { id: uid(), titre: 'Nouvelle section', condition: 'toujours', pieces: [] },
             ])
           }
@@ -319,7 +352,7 @@ export function FicheVisitePanel() {
         open={confirmReset}
         onClose={() => setConfirmReset(false)}
         onConfirm={async () => {
-          await db.parametres.put({ ...parametres, ficheVisite: MODELE_FICHE_VISITE_DEFAUT });
+          await ecrireParametres(() => ({ ficheVisite: MODELE_FICHE_VISITE_DEFAUT }));
           setVersion((v) => v + 1);
           toast('success', 'Modèle de fiche de visite réinitialisé.');
         }}

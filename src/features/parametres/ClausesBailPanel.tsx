@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronDown, Plus, ScrollText, Trash2 } from 'lucide-react';
 import type { ClauseBail, FamilleClause } from '@/types';
 import { FAMILLE_CLAUSE_LABELS } from '@/types';
-import { db, lireParametres } from '@/lib/db';
+import { ecrireParametres, lireParametres } from '@/lib/db';
 import { uid } from '@/lib/ids';
 import { CLAUSES_BAIL_DEFAUT } from '@/lib/defauts';
 import {
@@ -153,9 +153,16 @@ export function ClausesBailPanel() {
   const clauses = parametres.clausesBail ?? CLAUSES_BAIL_DEFAUT;
   const actives = clauses.filter((c) => c.active).length;
 
-  const majClauses = (liste: ClauseBail[]) => db.parametres.put({ ...parametres, clausesBail: liste });
+  /**
+   * `transformer` plutôt qu'une liste toute faite : les champs d'une clause
+   * n'écrivent qu'au `blur`, et « Ajouter une clause » comme la corbeille
+   * partent au `click` qui suit immédiatement. La transformation s'applique aux
+   * clauses relues en base par `ecrireParametres`.
+   */
+  const majClauses = (transformer: (liste: ClauseBail[]) => ClauseBail[]) =>
+    ecrireParametres((p) => ({ clausesBail: transformer(p.clausesBail ?? CLAUSES_BAIL_DEFAUT) }));
   const majClause = (id: string, m: Partial<ClauseBail>) =>
-    majClauses(clauses.map((c) => (c.id === id ? { ...c, ...m } : c)));
+    majClauses((liste) => liste.map((c) => (c.id === id ? { ...c, ...m } : c)));
 
   return (
     <CarteRepliable
@@ -196,15 +203,15 @@ export function ClausesBailPanel() {
                     key={clause.id}
                     clause={clause}
                     onChange={(m) => void majClause(clause.id, m)}
-                    onSupprimer={() => void majClauses(clauses.filter((c) => c.id !== clause.id))}
+                    onSupprimer={() => void majClauses((liste) => liste.filter((c) => c.id !== clause.id))}
                   />
                 ))}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    void majClauses([
-                      ...clauses,
+                    void majClauses((liste) => [
+                      ...liste,
                       { id: uid(), famille, titre: 'Nouvelle clause', texte: '', active: false },
                     ])
                   }
@@ -227,7 +234,7 @@ export function ClausesBailPanel() {
         open={confirmReset}
         onClose={() => setConfirmReset(false)}
         onConfirm={async () => {
-          await db.parametres.put({ ...parametres, clausesBail: CLAUSES_BAIL_DEFAUT });
+          await ecrireParametres(() => ({ clausesBail: CLAUSES_BAIL_DEFAUT }));
           setVersion((v) => v + 1);
           toast('success', 'Clauses du bail réinitialisées.');
         }}

@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { db, lireParametres } from '@/lib/db';
+import { ecrireParametres, lireParametres } from '@/lib/db';
 import { genererEtArchiver } from '@/lib/pdf/generer';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
@@ -65,7 +65,14 @@ export function ParametresPage() {
 
   if (!parametres) return null;
 
-  const majGrille = (grille: LigneVetuste[]) => db.parametres.put({ ...parametres, grilleVetuste: grille });
+  /**
+   * `transformer` plutôt qu'une grille toute faite : les champs du tableau
+   * n'écrivent qu'au `blur`, et « Ajouter un poste » comme la corbeille partent
+   * au `click` qui suit. La transformation s'applique à la grille relue en base
+   * par `ecrireParametres`, là où un tableau construit ici serait déjà périmé.
+   */
+  const majGrille = (transformer: (grille: LigneVetuste[]) => LigneVetuste[]) =>
+    ecrireParametres((p) => ({ grilleVetuste: transformer(p.grilleVetuste) }));
 
   const exporter = async () => {
     const blob = await exporterSauvegarde();
@@ -145,7 +152,7 @@ export function ParametresPage() {
             ici, c'est où vont les données - pas comment elles y vont. */}
         <CarteDonnees avecLien={false} />
 
-        <BailleurPanel parametres={parametres} />
+        <BailleurPanel />
 
         <CarteRepliable
           identifiant="sauvegarde"
@@ -235,9 +242,14 @@ export function ParametresPage() {
                     <td className="py-1 pr-2">
                       <Input
                         defaultValue={l.poste}
-                        onBlur={(e) =>
-                          majGrille(parametres.grilleVetuste.map((x, j) => (j === i ? { ...x, poste: e.target.value } : x)))
-                        }
+                        onBlur={(e) => {
+                          // Lue avant la transaction : le transformateur est
+                          // asynchrone, l'événement ne l'est pas.
+                          const saisi = e.target.value;
+                          void majGrille((g) =>
+                            g.map((x, j) => (j === i ? { ...x, poste: saisi } : x)),
+                          );
+                        }}
                       />
                     </td>
                     {(['dureeVieAnnees', 'franchiseAnnees', 'abattementAnnuelPct'] as const).map((champ) => (
@@ -247,13 +259,12 @@ export function ParametresPage() {
                           min={0}
                           className="w-24"
                           defaultValue={l[champ]}
-                          onBlur={(e) =>
-                            majGrille(
-                              parametres.grilleVetuste.map((x, j) =>
-                                j === i ? { ...x, [champ]: Number(e.target.value) } : x,
-                              ),
-                            )
-                          }
+                          onBlur={(e) => {
+                            const saisi = Number(e.target.value);
+                            void majGrille((g) =>
+                              g.map((x, j) => (j === i ? { ...x, [champ]: saisi } : x)),
+                            );
+                          }}
                         />
                       </td>
                     ))}
@@ -262,7 +273,7 @@ export function ParametresPage() {
                         variant="ghost"
                         size="sm"
                         aria-label="Supprimer"
-                        onClick={() => majGrille(parametres.grilleVetuste.filter((_, j) => j !== i))}
+                        onClick={() => majGrille((g) => g.filter((_, j) => j !== i))}
                       >
                         <Trash2 size={14} className="text-red-600" />
                       </Button>
@@ -277,15 +288,15 @@ export function ParametresPage() {
               variant="secondary"
               size="sm"
               onClick={() =>
-                majGrille([
-                  ...parametres.grilleVetuste,
+                majGrille((g) => [
+                  ...g,
                   { poste: 'Nouveau poste', dureeVieAnnees: 10, franchiseAnnees: 1, abattementAnnuelPct: 10 },
                 ])
               }
             >
               <Plus size={14} /> Ajouter un poste
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => majGrille(GRILLE_VETUSTE_DEFAUT)}>
+            <Button variant="ghost" size="sm" onClick={() => majGrille(() => GRILLE_VETUSTE_DEFAUT)}>
               Réinitialiser la grille par défaut
             </Button>
             <Button size="sm" onClick={() => void genererGrillePdf()}>

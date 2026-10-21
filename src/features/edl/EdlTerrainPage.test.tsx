@@ -231,6 +231,127 @@ describe('compatibilité des enregistrements existants', () => {
   });
 });
 
+describe('champs des relevés, un par un', () => {
+  /**
+   * Tous les gestionnaires de ces deux onglets ont été réécrits pour lire la
+   * valeur de l'événement avant d'ouvrir la transaction d'écriture. Chaque
+   * champ est donc rejoué ici : la correction d'une course ne doit pas se payer
+   * d'une saisie qui ne s'enregistre plus - c'est exactement ce qui était
+   * arrivé à la liste du type de compteur.
+   */
+  async function ouvrirOnglet(nom: string) {
+    await utilisateur().click(await screen.findByRole('button', { name: new RegExp(`^${nom}`) }));
+  }
+
+  const edlEnBase = async () => (await db.edls.get('edl-1'))!;
+
+  it('enregistre le numéro et le relevé d’un compteur', async () => {
+    const u = utilisateur();
+    await semer({ edl: unEdl({ compteurs: [{ type: 'eau_froide', releve: 0 }] }) });
+    rendreTerrain();
+    await ouvrirOnglet('Compteurs');
+
+    const numero = await screen.findByPlaceholderText('N° 12345678');
+    await u.type(numero, 'PDL-77');
+    await u.tab();
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).compteurs[0].numero).toBe('PDL-77');
+    });
+
+    const releve = screen.getByPlaceholderText('45210');
+    await u.clear(releve);
+    await u.type(releve, '1234.5');
+    await u.tab();
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).compteurs[0].releve).toBe(1234.5);
+    });
+  });
+
+  it('ajoute et supprime un compteur', async () => {
+    const u = utilisateur();
+    await semer({ edl: unEdl({ compteurs: [{ type: 'eau_froide', releve: 0 }] }) });
+    rendreTerrain();
+    await ouvrirOnglet('Compteurs');
+
+    await u.click(await screen.findByRole('button', { name: /Ajouter un compteur/ }));
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).compteurs).toHaveLength(2);
+    });
+
+    await u.click(screen.getAllByRole('button', { name: 'Supprimer le compteur' })[0]);
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).compteurs).toHaveLength(1);
+    });
+    // C'est bien la première qui est partie : la seconde est celle qu'on a ajoutée.
+    expect((await edlEnBase()).compteurs[0].type).toBe('eau_chaude');
+  });
+
+  it('enregistre les trois champs d’une clé', async () => {
+    const u = utilisateur();
+    await semer({ edl: unEdl({ cles: [{ designation: 'Clé', nombre: 1 }] }) });
+    rendreTerrain();
+    await ouvrirOnglet('Clés');
+
+    const designation = await screen.findByPlaceholderText("Clé porte d'entrée, badge parking…");
+    await u.clear(designation);
+    await u.type(designation, 'Badge parking');
+    await u.tab();
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).cles[0].designation).toBe('Badge parking');
+    });
+
+    const nombre = screen.getByRole('spinbutton');
+    await u.clear(nombre);
+    await u.type(nombre, '3');
+    await u.tab();
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).cles[0].nombre).toBe(3);
+    });
+
+    const commentaire = screen.getByPlaceholderText(/double remis/);
+    await u.type(commentaire, 'Remis en main propre');
+    await u.tab();
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).cles[0].commentaire).toBe('Remis en main propre');
+    });
+  });
+
+  it('vider le commentaire d’une clé le retire', async () => {
+    const u = utilisateur();
+    await semer({ edl: unEdl({ cles: [{ designation: 'Clé', nombre: 1, commentaire: 'À retirer' }] }) });
+    rendreTerrain();
+    await ouvrirOnglet('Clés');
+
+    await u.clear(await screen.findByDisplayValue('À retirer'));
+    await u.tab();
+    await vi.waitFor(async () => {
+      expect((await edlEnBase()).cles[0].commentaire).toBeUndefined();
+    });
+  });
+});
+
+describe('relevés des compteurs', () => {
+  /**
+   * La liste du type est un champ **contrôlé** : React lui rend sa valeur
+   * d'origine dès que le gestionnaire se termine sans changement d'état. Lire
+   * `e.target.value` depuis la transformation, qui tourne plus tard dans la
+   * transaction d'écriture, renvoyait donc l'ancien type et le changement ne
+   * s'enregistrait jamais. La valeur se lit avant l'appel.
+   */
+  it('enregistre le changement de type de compteur', async () => {
+    const u = utilisateur();
+    await semer({ edl: unEdl({ compteurs: [{ type: 'eau_froide', releve: 0 }] }) });
+    rendreTerrain();
+    await u.click(await screen.findByRole('button', { name: /^Compteurs/ }));
+
+    await u.selectOptions(await screen.findByLabelText('Compteur'), 'electricite');
+
+    await vi.waitFor(async () => {
+      expect((await db.edls.get('edl-1'))!.compteurs[0].type).toBe('electricite');
+    });
+  });
+});
+
 describe('autosauvegarde concurrente (clés et compteurs)', () => {
   /**
    * Les champs de ces deux onglets n'écrivent qu'au `blur`, et cliquer

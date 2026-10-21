@@ -245,6 +245,42 @@ export async function getParametres(): Promise<Parametres> {
 }
 
 /**
+ * **Point d'écriture unique des paramètres.**
+ *
+ * Les paramètres sont un *singleton* qu'écrivent une dizaine d'endroits : les
+ * quatre panneaux de la page Paramètres, l'accueil, la synchronisation Drive,
+ * la restauration d'archive. Chacun ne possède qu'un champ, mais `put` écrit la
+ * ligne entière : un appelant qui repart d'un instantané de rendu réécrit donc
+ * aussi les champs des autres, tels qu'ils étaient à ce moment-là.
+ *
+ * Or un instantané de rendu est périmé dès la première écriture : `parametres`
+ * vient de `useLiveQuery`, qui ne le rafraîchit qu'après un aller-retour
+ * IndexedDB. Deux écritures plus rapprochées que ce délai - le `blur` d'un
+ * champ puis le `click` du bouton voisin, à quelques millisecondes - partaient
+ * du même instantané et la seconde effaçait la première. Entre deux panneaux,
+ * la perte passait même sous un message de succès : modifier la grille de
+ * vétusté puis enregistrer l'identité du bailleur annulait la grille, et
+ * l'application annonçait « Identité du bailleur enregistrée ».
+ *
+ * D'où la forme ci-dessous : l'appelant ne fournit pas des valeurs mais une
+ * fonction qui les **calcule depuis les paramètres relus en base**, dans une
+ * transaction `rw` qui sérialise les écritures concurrentes. Toute écriture
+ * dérivée de l'état existant - et en premier lieu celles qui modifient une
+ * liste (grille de vétusté, clauses, sections de la fiche de visite) - doit
+ * passer par ici plutôt que par `db.parametres.put`.
+ */
+export async function ecrireParametres(
+  m: (actuel: Parametres) => Partial<Parametres>,
+): Promise<Parametres> {
+  return db.transaction('rw', db.parametres, async () => {
+    const actuel = await getParametres();
+    const apres = { ...actuel, ...m(actuel) };
+    await db.parametres.put(apres);
+    return apres;
+  });
+}
+
+/**
  * Génère la prochaine référence "TYPE-ANNEE-XXXX" et incrémente la séquence
  * de façon atomique. La séquence est remise à zéro à chaque changement d'année.
  */
