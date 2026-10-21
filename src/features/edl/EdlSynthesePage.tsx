@@ -6,7 +6,7 @@ import { fr } from 'date-fns/locale';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { db, lireParametres } from '@/lib/db';
 import { nowISO } from '@/lib/ids';
-import type { ElementEDL, EtatDesLieux } from '@/types';
+import type { ElementEDL, EtatDesLieux, LigneVetuste } from '@/types';
 import { ETAT_LABELS } from '@/types';
 import {
   coefficientVetuste,
@@ -18,6 +18,7 @@ import {
   type LigneRetenue,
 } from '@/lib/calculs';
 import { elementsDegrades } from '@/lib/etat';
+import { depotGarantieEdl } from '@/lib/edl';
 import { genererEtArchiver, nomsPersonnes } from '@/lib/pdf/generer';
 import { LettreRestitutionPdf } from '@/lib/pdf/LettreRestitutionPdf';
 import { Button, Card, Field, Input, PageHeader, Select, useToast } from '@/components/ui';
@@ -38,6 +39,30 @@ function MiniPhoto({ photoId }: { photoId: string }) {
     };
   }, [photoId]);
   return url ? <img src={url} alt="" className="h-16 w-16 rounded object-cover" /> : null;
+}
+
+/**
+ * Lignes de retenue d'un EDL de sortie, à la grille de vétusté donnée.
+ *
+ * Fonction pure, et c'est le point : la même règle sert à l'affichage et à la
+ * lettre, qui l'applique à l'enregistrement relu en base (cf. `genererLettre`).
+ */
+function lignesRetenue(edlSortie: EtatDesLieux, grille: LigneVetuste[]): LigneRetenue[] {
+  return elementsDegrades(edlSortie)
+    .filter(({ element }) => (element.coutRemiseEnEtat ?? 0) > 0)
+    .map(({ pieceNom, element }) => {
+      const ligneGrille = grille.find((g) => g.poste === element.posteVetuste);
+      const age = element.ageEquipementAnnees ?? 0;
+      const coef = ligneGrille ? coefficientVetuste(ligneGrille, age) : 1;
+      return {
+        pieceNom,
+        elementNom: element.nom,
+        description: element.commentaire ?? 'Dégradation constatée',
+        cout: element.coutRemiseEnEtat ?? 0,
+        coefVetuste: coef,
+        retenue: retenueApresVetuste(element.coutRemiseEnEtat ?? 0, ligneGrille, age),
+      };
+    });
 }
 
 /** Synthèse comparative de l'EDL de sortie : dégradations, vétusté, retenues. */
@@ -98,21 +123,7 @@ export function EdlSynthesePage() {
       })),
     }));
 
-  const lignes: LigneRetenue[] = degrades
-    .filter(({ element }) => (element.coutRemiseEnEtat ?? 0) > 0)
-    .map(({ pieceNom, element }) => {
-      const ligneGrille = grille.find((g) => g.poste === element.posteVetuste);
-      const age = element.ageEquipementAnnees ?? 0;
-      const coef = ligneGrille ? coefficientVetuste(ligneGrille, age) : 1;
-      return {
-        pieceNom,
-        elementNom: element.nom,
-        description: element.commentaire ?? 'Dégradation constatée',
-        cout: element.coutRemiseEnEtat ?? 0,
-        coefVetuste: coef,
-        retenue: retenueApresVetuste(element.coutRemiseEnEtat ?? 0, ligneGrille, age),
-      };
-    });
+  const lignes = lignesRetenue(edl, grille);
   const total = totalRetenues(lignes);
   const delai = delaiRestitutionMois(total > 0);
   const dateLimite = edl.signatures
@@ -120,6 +131,16 @@ export function EdlSynthesePage() {
     : undefined;
 
   const genererLettre = async () => {
+    /*
+     * La lettre part de l'EDL **relu en base**, et non de l'instantané de
+     * rendu. Les champs d'estimation n'écrivent qu'au `blur` : cliquer droit
+     * sur ce bouton depuis le champ « Coût de remise en état » enchaîne `blur`
+     * puis `click` plus vite que l'aller-retour IndexedDB qui rafraîchit la
+     * page, et le PDF partait alors sur les chiffres d'avant la saisie. Ce
+     * document est archivé dans les Documents et tient le décompte opposable au
+     * locataire : il ne peut pas valoir moins que ce que montre l'écran.
+     */
+    const aJour = (await db.edls.get(edl.id)) ?? edl;
     await genererEtArchiver({
       type: 'lettre_restitution',
       titre: `Restitution du dépôt - ${bien.nom} - ${nomsPersonnes(locataires)}`,
@@ -129,15 +150,15 @@ export function EdlSynthesePage() {
       element: (reference) => (
         <LettreRestitutionPdf
           reference={reference}
-          depotGarantie={depotGarantie}
-          bailReference={bail?.reference ?? edl.bailExterne?.reference}
+          depotGarantie={depotGarantieEdl(aJour, bail)}
+          bailReference={bail?.reference ?? aJour.bailExterne?.reference}
           bien={bien}
           locataires={locataires}
           parametres={parametres}
-          retenues={lignes}
+          retenues={lignesRetenue(aJour, grille)}
           autresRetenues={[]}
-          dateEdlSortie={edl.signatures?.dateSignature ?? edl.date}
-          nouvelleAdresse={edl.nouvelleAdresseLocataire}
+          dateEdlSortie={aJour.signatures?.dateSignature ?? aJour.date}
+          nouvelleAdresse={aJour.nouvelleAdresseLocataire}
         />
       ),
     });

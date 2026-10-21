@@ -5,6 +5,26 @@ import { db } from '@/lib/db';
 import { EdlSynthesePage } from './EdlSynthesePage';
 import { rendreRoute, semer, unEdl, utilisateur, viderBase } from '@/test/utils';
 
+/**
+ * La génération réelle produit un PDF : ce qu'on veut vérifier ici, c'est le
+ * décompte qui lui est remis, pas son rendu. On intercepte donc l'archivage et
+ * on lit les retenues passées à la lettre.
+ */
+const archivage = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/pdf/generer', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/pdf/generer')>()),
+  genererEtArchiver: archivage,
+}));
+
+/** Retenues remises à la lettre lors du dernier archivage. */
+function retenuesDeLaLettre() {
+  const appels = archivage.mock.calls;
+  const args = appels[appels.length - 1][0] as {
+    element: (r: string) => { props: Record<string, unknown> };
+  };
+  return args.element('DOC-2026-0001').props;
+}
+
 beforeEach(async () => {
   vi.useRealTimers();
   await viderBase();
@@ -90,5 +110,46 @@ describe('dépôt de garantie saisi faute de bail enregistré', () => {
     await vi.waitFor(async () => {
       expect((await db.edls.get('edl-1'))!.depotGarantie).toBe(1500);
     });
+  });
+});
+
+describe('lettre de restitution', () => {
+  /**
+   * Le PDF est archivé dans les Documents et porte le décompte opposable au
+   * locataire. Il se calculait sur l'instantané de rendu : cliquer sur le
+   * bouton depuis le champ « Coût » qu'on venait de remplir l'enchaînait au
+   * `blur` plus vite que le rafraîchissement de la page, et la lettre partait
+   * sur les chiffres d'avant la saisie - un décompte à 0 € de retenues.
+   */
+  it('part du coût qu’on vient de saisir, pas de celui affiché au rendu', async () => {
+    const u = utilisateur();
+    archivage.mockClear();
+    await semer({ edl: uneSortieDegradee(), parametres: { grilleVetuste: GRILLE } });
+    rendreSynthese();
+
+    await u.type(await screen.findByLabelText('Coût de remise en état (€)'), '480');
+    // Clic direct sur « Générer », sans passer par un autre champ.
+    await u.click(screen.getByRole('button', { name: /Générer la lettre/ }));
+
+    await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
+    expect(retenuesDeLaLettre().retenues).toEqual([
+      expect.objectContaining({ elementNom: 'Sol', cout: 480, retenue: 480 }),
+    ]);
+  });
+
+  it('part du dépôt de garantie qu’on vient de saisir', async () => {
+    const u = utilisateur();
+    archivage.mockClear();
+    const edl = uneSortieDegradee();
+    edl.bailId = undefined;
+    edl.pieces[0].elements[0].coutRemiseEnEtat = 200;
+    await semer({ edl, parametres: { grilleVetuste: GRILLE } });
+    rendreSynthese();
+
+    await u.type(await screen.findByLabelText('Dépôt de garantie versé (€)'), '1500');
+    await u.click(screen.getByRole('button', { name: /Générer la lettre/ }));
+
+    await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
+    expect(retenuesDeLaLettre().depotGarantie).toBe(1500);
   });
 });
