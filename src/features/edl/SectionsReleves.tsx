@@ -8,6 +8,13 @@ import { Plus, Trash2 } from 'lucide-react';
  * Onglets « Compteurs » et « Clés » du mode terrain : relevés et remise des
  * clés, extraits de la page pour la garder lisible. Aucun état propre : tout
  * remonte au parent qui autosauvegarde.
+ *
+ * `onMaj` reçoit une **transformation** de la liste, jamais la liste finale :
+ * les champs sont non contrôlés et n'écrivent qu'au `blur`, or cliquer
+ * « Ajouter » ou la corbeille enchaîne `blur` puis `click` en quelques
+ * millisecondes. Un tableau construit ici depuis la prop `cles` serait déjà
+ * périmé au second coup, et la saisie en cours disparaissait. La transformation
+ * est appliquée à la liste relue en base par `ecrireEdl`.
  */
 export function SectionCompteurs({
   edl,
@@ -16,7 +23,7 @@ export function SectionCompteurs({
 }: {
   edl: EtatDesLieux;
   lectureSeule: boolean;
-  onMaj: (compteurs: Compteur[]) => void;
+  onMaj: (transformer: (compteurs: Compteur[]) => Compteur[]) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -31,7 +38,7 @@ export function SectionCompteurs({
                 value={c.type}
                 disabled={lectureSeule}
                 onChange={(e) =>
-                  onMaj(edl.compteurs.map((x, j) => (j === i ? { ...x, type: e.target.value as TypeCompteur } : x)))
+                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, type: e.target.value as TypeCompteur } : x)))
                 }
               >
                 {Object.entries(COMPTEUR_LABELS).map(([v, l]) => (
@@ -48,7 +55,7 @@ export function SectionCompteurs({
                 disabled={lectureSeule}
                 placeholder="N° 12345678"
                 onBlur={(e) =>
-                  onMaj(edl.compteurs.map((x, j) => (j === i ? { ...x, numero: e.target.value || undefined } : x)))
+                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, numero: e.target.value || undefined } : x)))
                 }
               />
             </Field>
@@ -61,7 +68,7 @@ export function SectionCompteurs({
                 disabled={lectureSeule}
                 placeholder="45210"
                 onBlur={(e) =>
-                  onMaj(edl.compteurs.map((x, j) => (j === i ? { ...x, releve: Number(e.target.value) } : x)))
+                  onMaj((l) => l.map((x, j) => (j === i ? { ...x, releve: Number(e.target.value) } : x)))
                 }
               />
             </Field>
@@ -71,7 +78,7 @@ export function SectionCompteurs({
               photoIds={c.photoId ? [c.photoId] : []}
               lectureSeule={lectureSeule}
               onChange={(ids) =>
-                onMaj(edl.compteurs.map((x, j) => (j === i ? { ...x, photoId: ids[ids.length - 1] } : x)))
+                onMaj((l) => l.map((x, j) => (j === i ? { ...x, photoId: ids[ids.length - 1] } : x)))
               }
             />
             {!lectureSeule && (
@@ -79,7 +86,7 @@ export function SectionCompteurs({
                 variant="ghost"
                 size="sm"
                 aria-label="Supprimer le compteur"
-                onClick={() => onMaj(edl.compteurs.filter((_, j) => j !== i))}
+                onClick={() => onMaj((l) => l.filter((_, j) => j !== i))}
               >
                 <Trash2 size={16} className="text-red-600" />
               </Button>
@@ -88,7 +95,7 @@ export function SectionCompteurs({
         </div>
       ))}
       {!lectureSeule && (
-        <Button variant="secondary" onClick={() => onMaj([...edl.compteurs, { type: 'eau_chaude', releve: 0 }])}>
+        <Button variant="secondary" onClick={() => onMaj((l) => [...l, { type: 'eau_chaude', releve: 0 }])}>
           <Plus size={16} /> Ajouter un compteur
         </Button>
       )}
@@ -103,7 +110,7 @@ export function SectionCles({
 }: {
   cles: Cle[];
   lectureSeule: boolean;
-  onMaj: (cles: Cle[]) => void;
+  onMaj: (transformer: (cles: Cle[]) => Cle[]) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -119,7 +126,7 @@ export function SectionCles({
               defaultValue={c.designation}
               disabled={lectureSeule}
               placeholder="Clé porte d'entrée, badge parking…"
-              onBlur={(e) => onMaj(cles.map((x, j) => (j === i ? { ...x, designation: e.target.value } : x)))}
+              onBlur={(e) => onMaj((l) => l.map((x, j) => (j === i ? { ...x, designation: e.target.value } : x)))}
             />
           </Field>
           <Field label="Nombre">
@@ -130,7 +137,7 @@ export function SectionCles({
               key={`cle-nb-${i}-${cles.length}`}
               defaultValue={c.nombre}
               disabled={lectureSeule}
-              onBlur={(e) => onMaj(cles.map((x, j) => (j === i ? { ...x, nombre: Number(e.target.value) } : x)))}
+              onBlur={(e) => onMaj((l) => l.map((x, j) => (j === i ? { ...x, nombre: Number(e.target.value) } : x)))}
             />
           </Field>
           <Field label="Commentaire">
@@ -140,19 +147,24 @@ export function SectionCles({
               disabled={lectureSeule}
               placeholder="Ex. : double remis au locataire"
               onBlur={(e) =>
-                onMaj(cles.map((x, j) => (j === i ? { ...x, commentaire: e.target.value || undefined } : x)))
+                onMaj((l) => l.map((x, j) => (j === i ? { ...x, commentaire: e.target.value || undefined } : x)))
               }
             />
           </Field>
           {!lectureSeule && (
-            <Button variant="ghost" size="sm" aria-label="Supprimer" onClick={() => onMaj(cles.filter((_, j) => j !== i))}>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Supprimer"
+              onClick={() => onMaj((l) => l.filter((_, j) => j !== i))}
+            >
               <Trash2 size={16} className="text-red-600" />
             </Button>
           )}
         </div>
       ))}
       {!lectureSeule && (
-        <Button variant="secondary" onClick={() => onMaj([...cles, { designation: 'Clé', nombre: 1 }])}>
+        <Button variant="secondary" onClick={() => onMaj((l) => [...l, { designation: 'Clé', nombre: 1 }])}>
           <Plus size={16} /> Ajouter une clé / un badge
         </Button>
       )}

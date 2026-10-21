@@ -201,6 +201,7 @@ describe('journalisation depuis un hook Dexie', () => {
    */
   const brancher = () => {
     db.biens.hook('creating', (cle) => noterChangement('biens', String(cle), 'maj'));
+    db.biens.hook('updating', (_m, cle) => noterChangement('biens', String(cle), 'maj'));
     db.biens.hook('deleting', (cle) => noterChangement('biens', String(cle), 'suppr'));
   };
   let branche = false;
@@ -244,5 +245,29 @@ describe('journalisation depuis un hook Dexie', () => {
     });
     await attendreVidage();
     expect(await db.changements.count()).toBe(0);
+  });
+
+  /**
+   * Les écrans qui autosauvegardent écrivent en lecture-modification-écriture
+   * dans une transaction `rw` explicite, portant la seule table modifiée (cf.
+   * `ecrireEdl` du mode terrain). Le hook s'exécute alors dans une transaction
+   * qui ne contient pas `changements` - exactement le cas que la file en
+   * mémoire existe pour absorber. Sans elle, la modification ne serait jamais
+   * poussée vers Drive et l'app annoncerait tout de même « sauvegardé ».
+   */
+  it('enregistre une écriture faite dans une transaction explicite', async () => {
+    await db.biens.put({ id: 'b1', nom: 'Avant', updatedAt: '2026-08-08T10:00:00.000Z' } as never);
+    await attendreVidage();
+    await db.changements.clear();
+
+    await db.transaction('rw', db.biens, async () => {
+      const actuel = await db.biens.get('b1');
+      await db.biens.put({ ...actuel, nom: 'Après', updatedAt: '2026-08-08T10:05:00.000Z' } as never);
+    });
+    await attendreVidage();
+
+    const attente = await db.changements.toArray();
+    expect(attente).toHaveLength(1);
+    expect(attente[0]).toMatchObject({ table: 'biens', cle: 'b1', type: 'maj' });
   });
 });

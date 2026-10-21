@@ -62,21 +62,41 @@ export function EdlSynthesePage() {
   const grille = parametres.grilleVetuste;
 
   /**
+   * **Point d'écriture unique de la synthèse.**
+   *
+   * Lecture-modification-écriture atomique, pour la raison exposée en détail
+   * sur `ecrireEdl` du mode terrain : `edl` vient de `useLiveQuery` et ne se
+   * rafraîchit qu'après un aller-retour IndexedDB. Deux écritures plus
+   * rapprochées que ce délai partaient du même instantané et la seconde
+   * effaçait la première - quitter le champ « Coût de remise en état » en
+   * cliquant droit sur la liste « Poste (grille de vétusté) » suffisait à
+   * perdre le montant saisi, le `blur` et le `change` s'enchaînant en quelques
+   * millisecondes. D'où la forme fonction, qui calcule les champs depuis
+   * l'enregistrement relu en base et non depuis le rendu.
+   *
+   * Aucune garde de signature ici, à dessein : le coût, l'âge, le poste de
+   * vétusté et le dépôt de garantie ne font pas partie du constat signé,
+   * seulement du décompte de restitution. C'est dit à chacun de leurs champs.
+   */
+  const ecrireEdl = (m: (actuel: EtatDesLieux) => Partial<EtatDesLieux>) =>
+    void db.transaction('rw', db.edls, async () => {
+      const actuel = await db.edls.get(edl.id);
+      if (!actuel) return;
+      await db.edls.put({ ...actuel, ...m(actuel), updatedAt: nowISO() });
+    });
+
+  /**
    * Les champs d'estimation (coût, âge, poste de vétusté) restent modifiables
    * après signature : ils ne font pas partie du constat signé, seulement du
    * décompte de restitution.
    */
-  const majElement = (elementId: string, m: Partial<ElementEDL>) => {
-    const maj: EtatDesLieux = {
-      ...edl,
-      pieces: edl.pieces.map((p) => ({
+  const majElement = (elementId: string, m: Partial<ElementEDL>) =>
+    ecrireEdl((e) => ({
+      pieces: e.pieces.map((p) => ({
         ...p,
         elements: p.elements.map((el) => (el.id === elementId ? { ...el, ...m } : el)),
       })),
-      updatedAt: nowISO(),
-    };
-    void db.edls.put(maj);
-  };
+    }));
 
   const lignes: LigneRetenue[] = degrades
     .filter(({ element }) => (element.coutRemiseEnEtat ?? 0) > 0)
@@ -162,13 +182,12 @@ export function EdlSynthesePage() {
                   min="0"
                   step="10"
                   defaultValue=""
-                  onBlur={(e) =>
-                    void db.edls.put({
-                      ...edl,
-                      depotGarantie: e.target.value === '' ? undefined : Number(e.target.value),
-                      updatedAt: nowISO(),
-                    })
-                  }
+                  onBlur={(e) => {
+                    const saisi = e.target.value;
+                    ecrireEdl(() => ({
+                      depotGarantie: saisi === '' ? undefined : Number(saisi),
+                    }));
+                  }}
                 />
               </Field>
             </div>

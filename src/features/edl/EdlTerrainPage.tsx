@@ -16,6 +16,15 @@ import { CarteElement, type DemandeVisionneuse } from './CarteElement';
 import { ModaleAvenant, ModaleOublis, ModalePiece, ModaleRectifier } from './ModalesTerrain';
 import { EnteteTerrain } from './EnteteTerrain';
 
+/**
+ * Mise à jour de l'état des lieux : soit des champs posés tels quels, soit une
+ * fonction qui les calcule depuis l'enregistrement **relu en base**. Toute
+ * modification qui dérive de l'état existant - et en premier lieu celles qui
+ * rallongent ou raccourcissent une liste (clés, compteurs, pièces, avenants) -
+ * prend la seconde forme. Voir `ecrireEdl`.
+ */
+type MajEdl = Partial<EtatDesLieux> | ((actuel: EtatDesLieux) => Partial<EtatDesLieux>);
+
 /** Mode terrain : plein écran, une pièce à la fois, gros boutons, autosauvegarde continue. */
 export function EdlTerrainPage() {
   const { id } = useParams();
@@ -93,47 +102,72 @@ export function EdlTerrainPage() {
    *
    * Les trois seules opérations légitimes sur un EDL signé passent `memeSigne`,
    * et chacune dit pourquoi à son point d'appel.
+   *
+   * **Lecture-modification-écriture atomique.** `edl` vient de `useLiveQuery` :
+   * il ne se rafraîchit qu'après un aller-retour IndexedDB. Deux écritures
+   * séparées par moins que ce délai partaient donc du même instantané, et la
+   * seconde effaçait la première - un clic sur « Ajouter une clé » depuis le
+   * champ qu'on venait de remplir perdait la saisie, le `blur` et le `click`
+   * s'enchaînant en quelques millisecondes. L'enregistrement est désormais relu
+   * en base dans une transaction `rw`, qui sérialise les écritures concurrentes
+   * au lieu de les laisser se piétiner. C'est pourquoi tout ce qui dérive de
+   * l'état existant doit passer la forme fonction de `MajEdl` : la transaction
+   * ne protège que la fusion, pas un tableau déjà figé par l'appelant.
    */
-  const ecrireEdl = (m: Partial<EtatDesLieux>, options?: { memeSigne: true }) => {
-    if (signe && !options?.memeSigne) return Promise.resolve();
-    return db.edls.put({ ...edl, ...m, updatedAt: nowISO() });
-  };
+  const ecrireEdl = (m: MajEdl, options?: { memeSigne: true }): Promise<EtatDesLieux | undefined> =>
+    db.transaction('rw', db.edls, async () => {
+      const actuel = await db.edls.get(edl.id);
+      if (!actuel) return undefined;
+      // La garde se lit sur la base, pas sur le rendu : si la signature vient
+      // d'être posée, l'écriture en vol doit être refusée elle aussi.
+      if (actuel.statut === 'signe' && !options?.memeSigne) return undefined;
+      const apres = { ...actuel, ...(typeof m === 'function' ? m(actuel) : m), updatedAt: nowISO() };
+      await db.edls.put(apres);
+      return apres;
+    });
 
   /** Autosauvegarde : chaque changement écrit immédiatement en IndexedDB. */
-  const maj = (m: Partial<EtatDesLieux>) => void ecrireEdl(m);
+  const maj = (m: MajEdl) => void ecrireEdl(m);
 
   /** Remplace une seule pièce, les autres inchangées. */
-  const pieceModifiee = (pieceId: string, transformer: (p: PieceEDL) => PieceEDL) =>
-    edl.pieces.map((p) => (p.id === pieceId ? transformer(p) : p));
+  const pieceModifiee = (source: EtatDesLieux, pieceId: string, transformer: (p: PieceEDL) => PieceEDL) =>
+    source.pieces.map((p) => (p.id === pieceId ? transformer(p) : p));
 
   /** Applique `transformer` à tous les éléments d'une pièce. */
-  const elementsModifies = (pieceId: string, transformer: (el: ElementEDL) => ElementEDL) =>
-    pieceModifiee(pieceId, (p) => ({ ...p, elements: p.elements.map(transformer) }));
+  const elementsModifies = (
+    source: EtatDesLieux,
+    pieceId: string,
+    transformer: (el: ElementEDL) => ElementEDL,
+  ) => pieceModifiee(source, pieceId, (p) => ({ ...p, elements: p.elements.map(transformer) }));
 
   /**
    * Met à jour les compteurs de l'EDL et mémorise leurs numéros sur le logement :
    * un PDL/PCE ne change pas d'un locataire à l'autre, il n'a donc à être saisi
    * qu'une fois et pré-remplira les états des lieux suivants.
    */
-  const majCompteurs = (compteurs: Compteur[]) => {
+  const majCompteurs = (transformer: (compteurs: Compteur[]) => Compteur[]) => {
     // La garde vaut aussi pour l'écriture sur le logement, qui ne passe pas par
     // `ecrireEdl` : sans elle, un EDL signé ne bougeait pas mais la fiche du
     // bien, si.
     if (signe) return;
-    maj({ compteurs });
-    if (!bien) return;
-    const reference = compteurs.map((c) => ({ type: c.type, numero: c.numero }));
-    const inchange =
-      bien.compteurs?.length === reference.length &&
-      bien.compteurs.every((c, i) => c.type === reference[i].type && c.numero === reference[i].numero);
-    if (inchange) return;
-    void db.biens.put({ ...bien, compteurs: reference, updatedAt: nowISO() });
+    void (async () => {
+      // La référence recopiée sur le logement se lit sur l'EDL *écrit*, pas sur
+      // ce que l'appelant croyait écrire.
+      const apres = await ecrireEdl((e) => ({ compteurs: transformer(e.compteurs) }));
+      if (!apres || !bien) return;
+      const reference = apres.compteurs.map((c) => ({ type: c.type, numero: c.numero }));
+      const inchange =
+        bien.compteurs?.length === reference.length &&
+        bien.compteurs.every((c, i) => c.type === reference[i].type && c.numero === reference[i].numero);
+      if (inchange) return;
+      await db.biens.put({ ...bien, compteurs: reference, updatedAt: nowISO() });
+    })();
   };
 
   const majElement = (pieceId: string, elementId: string, m: Partial<ElementEDL>) => {
-    maj({
-      pieces: elementsModifies(pieceId, (el) => (el.id !== elementId ? el : { ...el, ...m })),
-    });
+    maj((e) => ({
+      pieces: elementsModifies(e, pieceId, (el) => (el.id !== elementId ? el : { ...el, ...m })),
+    }));
   };
 
   const choisirEtat = (pieceId: string, el: ElementEDL, etat: EtatNote) => {
@@ -178,13 +212,13 @@ export function EdlTerrainPage() {
   const renseignerRestants = (piece: PieceEDL, etat: EtatNote) => {
     const restants = piece.elements.filter((el) => el.etat === undefined && !el.manquant);
     if (restants.length === 0) return;
-    maj({
-      pieces: elementsModifies(piece.id, (el) =>
+    maj((e) => ({
+      pieces: elementsModifies(e, piece.id, (el) =>
         el.etat !== undefined || el.manquant
           ? el
           : { ...el, etat, ...(sortie ? { degradation: estDegradation(el.etatEntree, etat) } : {}) },
       ),
-    });
+    }));
     toast(
       'success',
       `${restants.length} élément(s) de « ${piece.nom} » renseigné(s) en « ${ETAT_LABELS[etat]} ». Corrigez les exceptions une par une.`,
@@ -201,9 +235,9 @@ export function EdlTerrainPage() {
     const categorie = nouvelleCategorie;
     const quantite = categorie === 'mobilier' ? 1 : undefined;
     const nouvel: ElementEDL = { id: uid(), nom, categorie, quantite, photoIds: [] };
-    await ecrireEdl({
-      pieces: pieceModifiee(piece.id, (p) => ({ ...p, elements: [...p.elements, nouvel] })),
-    });
+    await ecrireEdl((e) => ({
+      pieces: pieceModifiee(e, piece.id, (p) => ({ ...p, elements: [...p.elements, nouvel] })),
+    }));
     if (bien) {
       await db.biens.put({
         ...bien,
@@ -218,12 +252,12 @@ export function EdlTerrainPage() {
   };
 
   const supprimerElement = (pieceId: string, elementId: string) => {
-    maj({
-      pieces: pieceModifiee(pieceId, (p) => ({
+    maj((e) => ({
+      pieces: pieceModifiee(e, pieceId, (p) => ({
         ...p,
         elements: p.elements.filter((el) => el.id !== elementId),
       })),
-    });
+    }));
   };
 
   /** EDL de sortie : marque un élément comme manquant/retiré (= dégradation), sans le supprimer. */
@@ -240,7 +274,7 @@ export function EdlTerrainPage() {
     const nom = nomNouvellePiece.trim();
     if (!nom || signe) return;
     const ordre = edl.pieces.length ? Math.max(...edl.pieces.map((p) => p.ordre)) + 1 : 0;
-    await ecrireEdl({ pieces: [...edl.pieces, { id: uid(), nom, ordre, elements: [] }] });
+    await ecrireEdl((e) => ({ pieces: [...e.pieces, { id: uid(), nom, ordre, elements: [] }] }));
     if (bien && !bien.piecesModele.some((pm) => pm.nom === nom)) {
       await db.biens.put({
         ...bien,
@@ -261,19 +295,20 @@ export function EdlTerrainPage() {
    * redevient modifiable et devra être re-signé par les deux parties.
    */
   const rectifier = async () => {
-    if (!edl.signatures) return;
+    const signatures = edl.signatures;
+    if (!signatures) return;
     // `memeSigne` : c'est l'opération qui *lève* le figeage, elle ne peut pas
     // s'y soumettre.
     await ecrireEdl(
-      {
+      (e) => ({
         statut: 'brouillon',
         signatures: undefined,
         pdfHash: undefined,
         rectifications: [
-          ...(edl.rectifications ?? []),
-          { dateSignature: edl.signatures.dateSignature, pdfHash: edl.pdfHash },
+          ...(e.rectifications ?? []),
+          { dateSignature: signatures.dateSignature, pdfHash: e.pdfHash },
         ],
-      },
+      }),
       { memeSigne: true },
     );
     setModaleRectifier(false);
@@ -285,7 +320,7 @@ export function EdlTerrainPage() {
     // `memeSigne` : un avenant se pose précisément *après* signature - il ajoute
     // au constat sans le réécrire.
     await ecrireEdl(
-      { avenants: [...edl.avenants, { date: nowISO(), texte: texteAvenant.trim() }] },
+      (e) => ({ avenants: [...e.avenants, { date: nowISO(), texte: texteAvenant.trim() }] }),
       { memeSigne: true },
     );
     setTexteAvenant('');
@@ -400,7 +435,11 @@ export function EdlTerrainPage() {
           <SectionCompteurs edl={edl} lectureSeule={signe} onMaj={majCompteurs} />
         )}
         {onglet?.type === 'cles' && (
-          <SectionCles cles={edl.cles} lectureSeule={signe} onMaj={(cles) => maj({ cles })} />
+          <SectionCles
+            cles={edl.cles}
+            lectureSeule={signe}
+            onMaj={(transformer) => maj((e) => ({ cles: transformer(e.cles) }))}
+          />
         )}
         {onglet?.type === 'piece' && (
           <div className="space-y-3">

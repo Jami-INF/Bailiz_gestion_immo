@@ -193,6 +193,123 @@ describe('verrouillage après signature', () => {
  * **avant** le découpage du fichier en composants : ces cas décrivent le
  * comportement existant, et c'est à eux de dire si l'extraction l'a changé.
  */
+describe('compatibilité des enregistrements existants', () => {
+  it('préserve les champs inconnus et les absents d’un enregistrement ancien', async () => {
+    // Un EDL écrit par une version antérieure (champs optionnels absents) et
+    // portant un champ qu'on ne connaît pas encore (autre appareil plus récent).
+    await semer({ edl: {} });
+    const ancien = {
+      id: 'edl-1',
+      reference: 'EDL-2025-0001',
+      bienId: 'bien-1',
+      type: 'entree',
+      date: '2025-03-01T10:00:00.000Z',
+      compteurs: [],
+      cles: [{ designation: 'Clé', nombre: 1 }],
+      pieces: [],
+      statut: 'brouillon',
+      avenants: [],
+      createdAt: '2025-03-01T10:00:00.000Z',
+      updatedAt: '2025-03-01T10:00:00.000Z',
+      champDuFutur: 'à ne pas perdre',
+    };
+    await db.edls.put(ancien as never);
+
+    rendreTerrain();
+    await utilisateur().click(await screen.findByRole('button', { name: /^Clés/ }));
+    await utilisateur().click(await screen.findByRole('button', { name: /Ajouter une clé/ }));
+
+    await vi.waitFor(async () => {
+      expect((await db.edls.get('edl-1'))!.cles).toHaveLength(2);
+    });
+    const apres = (await db.edls.get('edl-1'))! as unknown as Record<string, unknown>;
+    expect(apres.champDuFutur).toBe('à ne pas perdre');
+    expect(apres.bailId).toBeUndefined();
+    expect(apres.locataireIds).toBeUndefined();
+    expect(apres.reference).toBe('EDL-2025-0001');
+    expect(apres.createdAt).toBe('2025-03-01T10:00:00.000Z');
+  });
+});
+
+describe('autosauvegarde concurrente (clés et compteurs)', () => {
+  /**
+   * Les champs de ces deux onglets n'écrivent qu'au `blur`, et cliquer
+   * « Ajouter » ou la corbeille enchaîne `blur` puis `click` plus vite que
+   * l'aller-retour IndexedDB qui rafraîchit la page. Les deux écritures
+   * partaient donc du même instantané et la seconde effaçait la première : la
+   * ligne qu'on venait de remplir revenait à sa valeur d'avant.
+   */
+  async function ouvrirOnglet(nom: string) {
+    await utilisateur().click(await screen.findByRole('button', { name: new RegExp(`^${nom}`) }));
+  }
+
+  const DESIGNATION = "Clé porte d'entrée, badge parking…";
+
+  it('conserve la clé en cours de saisie quand on en ajoute une autre', async () => {
+    const u = utilisateur();
+    await semer({ edl: { cles: [{ designation: 'Clé', nombre: 1 }] } });
+    rendreTerrain();
+    await ouvrirOnglet('Clés');
+
+    const champ = await screen.findByPlaceholderText(DESIGNATION);
+    await u.clear(champ);
+    await u.type(champ, 'Porte palière');
+    // Clic direct sur « Ajouter », sans passer par un autre champ.
+    await u.click(screen.getByRole('button', { name: /Ajouter une clé/ }));
+
+    await vi.waitFor(async () => {
+      expect((await db.edls.get('edl-1'))!.cles).toHaveLength(2);
+    });
+    const cles = (await db.edls.get('edl-1'))!.cles;
+    expect(cles[0].designation).toBe('Porte palière');
+    expect(cles[1]).toMatchObject({ designation: 'Clé', nombre: 1 });
+  });
+
+  it('conserve la clé en cours de saisie quand on en supprime une autre', async () => {
+    const u = utilisateur();
+    await semer({
+      edl: {
+        cles: [
+          { designation: 'Boîte aux lettres', nombre: 1 },
+          { designation: 'Cave', nombre: 1 },
+        ],
+      },
+    });
+    rendreTerrain();
+    await ouvrirOnglet('Clés');
+
+    const champs = await screen.findAllByPlaceholderText(DESIGNATION);
+    await u.clear(champs[1]);
+    await u.type(champs[1], 'Garage');
+    // La corbeille de la *première* ligne, depuis le champ de la seconde.
+    await u.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]);
+
+    await vi.waitFor(async () => {
+      expect((await db.edls.get('edl-1'))!.cles).toHaveLength(1);
+    });
+    expect((await db.edls.get('edl-1'))!.cles[0].designation).toBe('Garage');
+  });
+
+  it('conserve le relevé en cours de saisie quand on ajoute un compteur', async () => {
+    const u = utilisateur();
+    await semer({ edl: { compteurs: [{ type: 'eau_froide', releve: 0 }] } });
+    rendreTerrain();
+    await ouvrirOnglet('Compteurs');
+
+    const champ = await screen.findByPlaceholderText('N° 12345678');
+    await u.type(champ, 'PDL-42');
+    await u.click(screen.getByRole('button', { name: /Ajouter un compteur/ }));
+
+    await vi.waitFor(async () => {
+      expect((await db.edls.get('edl-1'))!.compteurs).toHaveLength(2);
+    });
+    const compteurs = (await db.edls.get('edl-1'))!.compteurs;
+    expect(compteurs[0].numero).toBe('PDL-42');
+    // Le numéro est aussi recopié sur le logement pour les EDL suivants.
+    expect((await db.biens.get('bien-1'))!.compteurs?.[0].numero).toBe('PDL-42');
+  });
+});
+
 describe('carte d’un élément', () => {
   it('expose l’état relevé et n’en retient qu’un seul', async () => {
     const u = utilisateur();
@@ -213,9 +330,17 @@ describe('carte d’un élément', () => {
     // Un second choix remplace le premier : l'état est exclusif.
     await u.click(within(groupe).getByRole('button', { name: 'Neuf' }));
     await vi.waitFor(async () => expect((await elementsDeLaBase())[0].etat).toBe('neuf'));
-    expect(within(groupe).getByRole('button', { name: 'Usagé' })).toHaveAttribute(
+    // L'attente porte sur le DOM : l'écriture en base précède le réaffichage,
+    // et asserter l'un juste après l'autre revient à courir contre le rendu.
+    await vi.waitFor(() =>
+      expect(within(groupe).getByRole('button', { name: 'Usagé' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      ),
+    );
+    expect(within(groupe).getByRole('button', { name: 'Neuf' })).toHaveAttribute(
       'aria-pressed',
-      'false',
+      'true',
     );
   });
 
