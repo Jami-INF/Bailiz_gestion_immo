@@ -160,6 +160,27 @@ export function BailDetailPage() {
       bailId: bail.id,
     });
     telechargerDocument({ blob, reference: bail.reference, titre });
+    /*
+     * Le nombre d'exemplaires à imprimer, annoncé au moment où l'utilisateur
+     * part vers l'imprimante. Le contrat le dit déjà en page de garde (« autant
+     * d'exemplaires originaux que de parties », art. 3 de la loi du 6 juillet
+     * 1989), mais personne ne relit son propre bail avant de l'imprimer - et
+     * l'erreur se répare mal : un exemplaire manquant se redemande après coup à
+     * un locataire déjà parti avec le sien.
+     *
+     * Compté, pas écrit en dur : « deux » est faux dès qu'il y a deux
+     * colocataires. Chaque caution personne physique compte elle aussi, un
+     * exemplaire du bail devant lui être remis (cf. `ActeCautionnementPdf`) ;
+     * une caution Visale est un organisme, qui n'en reçoit pas.
+     */
+    const cautions = locataires.filter((l) => l.garant && l.garant.type !== 'visale').length;
+    const exemplaires = 1 + locataires.length + cautions;
+    toast(
+      'info',
+      `À imprimer en ${exemplaires} exemplaires originaux : un pour vous, un par locataire${
+        cautions > 0 ? ', un par caution' : ''
+      }. Chaque partie signe tous les exemplaires et en conserve un, annexes comprises.`,
+    );
   };
 
   /** Fiche d'aide juridique (préavis, congés, impayés, délais) - archivée et téléchargée. */

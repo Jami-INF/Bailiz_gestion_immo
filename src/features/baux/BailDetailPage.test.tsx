@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { db } from '@/lib/db';
 import { BailDetailPage } from './BailDetailPage';
-import { rendreRoute, semer, utilisateur, viderBase } from '@/test/utils';
+import { rendreRoute, semer, unLocataire, utilisateur, viderBase } from '@/test/utils';
 import { figerDate } from '@/test/setup';
 
 /*
@@ -13,9 +13,19 @@ import { figerDate } from '@/test/setup';
  * rendu pour un résultat qu'il ne regarde pas.
  */
 const archivage = vi.hoisted(() => vi.fn(async () => undefined));
+/*
+ * Le PDF du bail lui-même est rendu et « téléchargé » pour de faux : ce qui est
+ * vérifié ici, c'est le message d'accompagnement, pas la mise en page (testée
+ * dans `lib/pdf/`) ni l'ouverture d'un onglet, que jsdom n'implémente pas.
+ * L'archivage en base, lui, reste réel.
+ */
+const rendu = vi.hoisted(() => vi.fn(async () => new Blob(['%PDF-factice'], { type: 'application/pdf' })));
+const telechargement = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/pdf/generer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/pdf/generer')>()),
   genererEtArchiver: archivage,
+  rendrePdf: rendu,
+  telechargerDocument: telechargement,
 }));
 
 beforeEach(async () => {
@@ -163,5 +173,103 @@ describe('double-clic sur les documents annexes du bail', () => {
     await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
     expect(archivage).toHaveBeenCalledTimes(1);
     archivage.mockReset();
+  });
+});
+
+describe('échec de la génération d’un document', () => {
+  /*
+   * Régression : aucun des quatre écrans qui génèrent un PDF n'avait de `catch`.
+   * `useActionUnique` journalisait l'échec dans la console - inaccessible sur la
+   * tablette - puis dégrisait le bouton. L'utilisateur voyait un geste sans
+   * effet et recliquait, sans jamais apprendre que le stockage était saturé.
+   */
+  it('le dit à l’écran, avec sa cause, au lieu de la seule console', async () => {
+    const u = utilisateur();
+    /*
+     * Un `Error` portant le nom, et non un `DOMException` : c'est la forme qui
+     * arrive réellement ici, Dexie enveloppant l'erreur d'IndexedDB. Et c'est la
+     * seule qui vaille en test - `DOMException` hérite d'`Error` dans les
+     * navigateurs comme dans Node, mais pas dans jsdom, qui ferait donc échouer
+     * `decrireErreur` pour une raison qui n'existe pas en production.
+     */
+    const quota = new Error('The quota has been exceeded.');
+    quota.name = 'QuotaExceededError';
+    archivage.mockRejectedValueOnce(quota);
+    await semer({ edl: {} });
+    rendreBail();
+
+    await u.click(await screen.findByRole('button', { name: /Fiche d'aide juridique/ }));
+
+    const message = await screen.findByText(/Échec de la génération du document/);
+    expect(message).toBeInTheDocument();
+    // La cause est traduite, pas recopiée telle quelle : c'est ce qui rend le
+    // message actionnable (libérer de l'espace plutôt que recliquer).
+    expect(message).toHaveTextContent(/stockage saturé/);
+  });
+});
+
+describe('nombre d’exemplaires du bail à imprimer', () => {
+  /*
+   * Le bail se signe sur papier, en autant d'originaux que de parties (art. 3
+   * de la loi du 6 juillet 1989). Le contrat le rappelle en page de garde, mais
+   * cette page n'est lue qu'après l'impression : le compte est donc annoncé au
+   * téléchargement, et calculé.
+   */
+  it('en annonce deux pour un locataire seul : un pour le bailleur, un pour lui', async () => {
+    const u = utilisateur();
+    await semer();
+    rendreBail();
+
+    await u.click(await screen.findByRole('button', { name: /Télécharger le PDF/ }));
+
+    expect(await screen.findByText(/2 exemplaires originaux/)).toBeInTheDocument();
+    expect(screen.queryByText(/par caution/)).not.toBeInTheDocument();
+  });
+
+  it('en compte un de plus par colocataire - « deux » serait faux', async () => {
+    const u = utilisateur();
+    await semer();
+    await db.locataires.put(unLocataire({ id: 'loc-2', prenom: 'Jean', nom: 'Martin' }));
+    await db.baux.update('bail-1', { locataireIds: ['loc-1', 'loc-2'] });
+    rendreBail();
+
+    await u.click(await screen.findByRole('button', { name: /Télécharger le PDF/ }));
+
+    expect(await screen.findByText(/3 exemplaires originaux/)).toBeInTheDocument();
+  });
+
+  it('en compte un pour la caution personne physique, qui reçoit le bail', async () => {
+    const u = utilisateur();
+    await semer({
+      locataire: {
+        garant: {
+          type: 'physique',
+          prenom: 'Claire',
+          nom: 'Dupont',
+          adresse: '8 rue des Tilleuls, 63000 Clermont-Ferrand',
+        },
+      },
+    });
+    rendreBail();
+
+    await u.click(await screen.findByRole('button', { name: /Télécharger le PDF/ }));
+
+    const message = await screen.findByText(/3 exemplaires originaux/);
+    expect(message).toHaveTextContent(/un par caution/);
+  });
+
+  it('n’en compte aucun pour Visale, qui est un organisme et n’en reçoit pas', async () => {
+    const u = utilisateur();
+    /* Visale : l'application laisse les champs d'identité vides, seul le visa compte. */
+    await semer({
+      locataire: {
+        garant: { type: 'visale', nom: '', prenom: '', adresse: '', numeroVisa: 'V2026-0001' },
+      },
+    });
+    rendreBail();
+
+    await u.click(await screen.findByRole('button', { name: /Télécharger le PDF/ }));
+
+    expect(await screen.findByText(/2 exemplaires originaux/)).toBeInTheDocument();
   });
 });
