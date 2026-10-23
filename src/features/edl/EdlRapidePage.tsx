@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import { ClipboardList, Home, LogOut, Plus, UserPlus } from 'lucide-react';
-import { db, lireParametres } from '@/lib/db';
+import { db, ecrireParametres, lireParametres } from '@/lib/db';
 import { creerEtatDesLieux, trameProposee } from '@/lib/edl';
 import { bailleurRenseigne } from '@/lib/bailleur';
 import { decrireErreur } from '@/lib/erreurs';
@@ -164,10 +164,16 @@ export function EdlRapidePage() {
     setEnCours(true);
     try {
       if (bailleurAConfigurer && (bailleur.nom?.trim() || bailleur.prenom?.trim())) {
-        await db.parametres.put({
-          ...parametres,
-          bailleur: bailleurSaisi as Bailleur,
-        });
+        /*
+         * Le bailleur est recomposé depuis la ligne relue, et lui seul est
+         * écrit. `parametres` vient de `useLiveQuery` : un `put` de cet
+         * instantané réécrivait toute la ligne - grille de vétusté, clauses,
+         * configuration Drive - telle qu'elle était au dernier rendu, et
+         * annulait ce qu'un autre écran venait d'enregistrer.
+         */
+        await ecrireParametres((actuel) => ({
+          bailleur: { ...actuel.bailleur, ...bailleur } as Bailleur,
+        }));
       }
       const edlEntree =
         sortie && saisie.origineEtatEntree === 'edl_app'

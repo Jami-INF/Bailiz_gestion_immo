@@ -1,4 +1,4 @@
-import { db, getParametres, lireParametres } from './db';
+import { ecrireParametres, lireParametres } from './db';
 import { uid } from './ids';
 
 /**
@@ -212,12 +212,18 @@ export async function getConfigGDrive(): Promise<ConfigGDrive | undefined> {
 }
 
 async function majConfigGDrive(maj: Partial<ConfigGDrive>): Promise<void> {
-  const params = await getParametres();
-  if (!params.sauvegardeGDrive) return;
-  await db.parametres.put({
-    ...params,
-    sauvegardeGDrive: { ...params.sauvegardeGDrive, ...maj },
-  });
+  /*
+   * Par `ecrireParametres` : la ligne est un singleton, et un `put` construit
+   * sur une lecture faite dehors réécrit aussi les champs des autres - grille
+   * de vétusté, clauses, identité du bailleur - tels qu'ils étaient à cette
+   * lecture. La synchronisation écrit ici en tâche de fond, pendant que
+   * l'utilisateur peut très bien être en train de modifier ses réglages.
+   */
+  await ecrireParametres((actuel) =>
+    actuel.sauvegardeGDrive
+      ? { sauvegardeGDrive: { ...actuel.sauvegardeGDrive, ...maj } }
+      : null,
+  );
 }
 
 /**
@@ -251,16 +257,15 @@ export async function connecterGDrive(clientId = CLIENT_ID_GDRIVE): Promise<bool
  * re-listage et une réécriture complète de la base.
  */
 export async function activerGDrive(clientId = CLIENT_ID_GDRIVE): Promise<void> {
-  const params = await getParametres();
-  await db.parametres.put({
-    ...params,
-    sauvegardeGDrive: { ...params.sauvegardeGDrive, clientId: clientId.trim(), actif: true },
-  });
+  await ecrireParametres((actuel) => ({
+    sauvegardeGDrive: { ...actuel.sauvegardeGDrive, clientId: clientId.trim(), actif: true },
+  }));
 }
 
 export async function desactiverGDrive(): Promise<void> {
-  const params = await getParametres();
-  if (!params.sauvegardeGDrive) return;
+  // Garde en lecture seule : elle ne sert qu'à éviter de révoquer un jeton pour
+  // une destination jamais configurée. L'écriture a la sienne, dans sa transaction.
+  if (!(await getConfigGDrive())) return;
   if (jeton) {
     try {
       google.accounts.oauth2.revoke(jeton.accessToken);
@@ -269,10 +274,11 @@ export async function desactiverGDrive(): Promise<void> {
     }
     memoriserJeton(null);
   }
-  await db.parametres.put({
-    ...params,
-    sauvegardeGDrive: { ...params.sauvegardeGDrive, actif: false },
-  });
+  await ecrireParametres((actuel) =>
+    actuel.sauvegardeGDrive
+      ? { sauvegardeGDrive: { ...actuel.sauvegardeGDrive, actif: false } }
+      : null,
+  );
 }
 
 /**

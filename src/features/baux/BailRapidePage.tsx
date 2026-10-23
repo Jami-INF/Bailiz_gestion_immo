@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { AlertTriangle, Building2, Pencil, Plus } from 'lucide-react';
 import type { Bail, ClasseDPE, Locataire, Parametres, SaisieBail, TypeBien } from '@/types';
 import { CLASSES_DPE, QUALITE_BAILLEUR_LABELS, TYPES_BIEN, TYPE_BAIL_LABELS } from '@/types';
-import { db, getParametres, lireParametres, prochaineReference } from '@/lib/db';
+import { db, ecrireParametres, getParametres, lireParametres, prochaineReference } from '@/lib/db';
 import { bailleurRenseigne, nomBailleur } from '@/lib/bailleur';
 import { nowISO } from '@/lib/ids';
 import { formatEuros } from '@/lib/calculs';
@@ -281,7 +281,10 @@ export function BailRapidePage() {
       // prénom complété ensuite.
       const bailleurEnr = bailleurRenseigne(saisie.bailleur) ? saisie.bailleur : params.bailleur;
       if (bailleurRenseigne(saisie.bailleur)) {
-        await db.parametres.put({ ...params, bailleur: saisie.bailleur });
+        // Le seul champ concerné, écrit dans sa transaction : `params` a été lu
+        // plus haut et sert encore au PDF ; le réécrire entier annulerait ce
+        // qu'un autre écran aurait enregistré entre-temps.
+        await ecrireParametres(() => ({ bailleur: saisie.bailleur }));
       }
       const paramsPdf: Parametres = { ...params, bailleur: bailleurEnr };
       const today = format(new Date(), 'yyyy-MM-dd');

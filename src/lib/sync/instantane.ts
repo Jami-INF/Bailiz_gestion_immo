@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { db, getParametres } from '@/lib/db';
+import { ecrireParametres, getParametres } from '@/lib/db';
 import { baseSansDonnees, exporterSauvegarde } from '@/lib/backup';
 import { estArchiveBailiz } from '@/lib/rotation';
 import type { DepotDistant, FichierDistant } from './depot';
@@ -87,13 +87,21 @@ export async function deposerInstantaneSiDu(
       await depot.supprimer(fichier.id).catch(() => undefined);
     }
 
-    const frais = await getParametres();
-    if (frais.sauvegardeGDrive) {
-      await db.parametres.put({
-        ...frais,
-        sauvegardeGDrive: { ...frais.sauvegardeGDrive, dernierInstantane: new Date().toISOString() },
-      });
-    }
+    /*
+     * L'instantané tourne sur minuterie, en tâche de fond : c'est l'écriture la
+     * plus susceptible de tomber au milieu d'une saisie dans les réglages. La
+     * relecture en transaction est donc ici le cas réel, pas le cas d'école.
+     */
+    await ecrireParametres((actuel) =>
+      actuel.sauvegardeGDrive
+        ? {
+            sauvegardeGDrive: {
+              ...actuel.sauvegardeGDrive,
+              dernierInstantane: new Date().toISOString(),
+            },
+          }
+        : null,
+    );
     return true;
   } catch (e) {
     console.warn('Instantané ignoré :', e);

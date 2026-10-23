@@ -288,6 +288,12 @@ export async function importerSauvegarde(
       await db.photos.bulkPut(photos);
       await db.documents.bulkPut(documents as never[]);
       if (data.parametres) {
+        /*
+         * `put` direct, et non `ecrireParametres` : une restauration **remplace**
+         * la ligne par celle de l'archive, elle ne fusionne rien - c'est tout
+         * l'objet d'une restauration. Et l'écriture est déjà dans la transaction
+         * qui porte le reste des tables.
+         */
         await db.parametres.put({ ...(data.parametres as object), id: 'singleton' } as never);
       }
     },

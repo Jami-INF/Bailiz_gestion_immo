@@ -1,4 +1,4 @@
-import { db, getParametres, parametresDefaut, type SyncEtat } from '@/lib/db';
+import { db, ecrireParametres, getParametres, parametresDefaut, type SyncEtat } from '@/lib/db';
 import { retyper, TYPE_PAR_TABLE } from '@/lib/blobs';
 import type { Parametres } from '@/types';
 import { identifiantAppareil } from '@/lib/appareil';
@@ -536,13 +536,11 @@ export async function synchroniser(
 
   // `derniereSync` prend l'heure **serveur** : comparer ensuite des dates
   // serveur à une heure locale ferait manquer des fichiers à chaque cycle.
-  const params = await getParametres();
-  if (params.sauvegardeGDrive) {
-    await db.parametres.put({
-      ...params,
-      sauvegardeGDrive: { ...params.sauvegardeGDrive, derniereSync: heureServeur },
-    });
-  }
+  await ecrireParametres((actuel) =>
+    actuel.sauvegardeGDrive
+      ? { sauvegardeGDrive: { ...actuel.sauvegardeGDrive, derniereSync: heureServeur } }
+      : null,
+  );
 
   /*
    * Après convergence : deux appareils hors-ligne ont pu attribuer la même
@@ -644,6 +642,15 @@ async function synchroniserParametres(
     const distant = enveloppe.donnees as Parametres;
     ({ fusionne, collisions } = fusionnerParametres(local, distant, { reference, neuf }));
     if (JSON.stringify(sansConfigDrive(fusionne)) !== JSON.stringify(sansConfigDrive(local))) {
+      /*
+       * Seul `put` de la ligne entière qui subsiste, et le seul légitime : ce
+       * n'est pas la pose d'un champ mais le résultat d'une fusion à trois
+       * termes (local, distant, empreinte de référence), qui doit s'écrire tel
+       * quel. Le passer par `ecrireParametres` demanderait de rejouer
+       * `fusionnerParametres` **dans** la transaction, `local` étant lu plus
+       * haut - un autre chantier, dans la mécanique la plus délicate de
+       * l'application.
+       */
       await sansJournaliser(async () => {
         await db.parametres.put(fusionne);
       });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, getParametres } from '@/lib/db';
+import { db, ecrireParametres } from '@/lib/db';
 import { destinationConfiguree } from '@/lib/autosave';
 import { DISCLAIMER_JURIDIQUE } from '@/lib/juridique';
 import { accueilTermine, consommerRepriseAccueil, marquerAccueilTermine } from '@/lib/accueil';
@@ -63,7 +63,9 @@ export function ParcoursAccueil() {
         footer={
           <Button
             onClick={() =>
-              getParametres().then((p) => db.parametres.put({ ...p, disclaimerAccepte: true }))
+              // Seul `disclaimerAccepte` part en base : un `put` de la ligne lue
+              // juste avant réécrirait aussi tout le reste des réglages.
+              void ecrireParametres(() => ({ disclaimerAccepte: true }))
             }
           >
             J'ai compris

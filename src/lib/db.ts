@@ -270,11 +270,21 @@ export async function getParametres(): Promise<Parametres> {
  * passer par ici plutôt que par `db.parametres.put`.
  */
 export async function ecrireParametres(
-  m: (actuel: Parametres) => Partial<Parametres>,
+  m: (actuel: Parametres) => Partial<Parametres> | null,
 ): Promise<Parametres> {
   return db.transaction('rw', db.parametres, async () => {
     const actuel = await getParametres();
-    const apres = { ...actuel, ...m(actuel) };
+    const champs = m(actuel);
+    /*
+     * `null` : l'appelant a constaté, une fois la ligne relue, qu'il n'avait
+     * rien à écrire - typiquement une configuration Drive absente. Cette
+     * décision doit se prendre ici : la prendre dehors supposerait une lecture
+     * hors transaction, c'est-à-dire la course même qu'on ferme. La ligne
+     * courante est renvoyée telle quelle, sans `put` : réécrire à l'identique
+     * réveillerait tous les `liveQuery` qui l'observent.
+     */
+    if (!champs) return actuel;
+    const apres = { ...actuel, ...champs };
     await db.parametres.put(apres);
     return apres;
   });
