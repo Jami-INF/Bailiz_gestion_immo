@@ -18,15 +18,15 @@ s'impose un plafond qui ne s'applique pas.
 
 Il concerne les logements situés en **zone d'urbanisation continue de plus de 50 000 habitants**
 marquée par un déséquilibre entre l'offre et la demande. Le périmètre est fixé par décret et
-couvre plus d'un millier de communes — bien au-delà des grandes métropoles.
+couvre plus d'un millier de communes, bien au-delà des grandes métropoles.
 
 Ce qu'il encadre : **l'évolution du loyer à la relocation**. Quand un locataire part et qu'un
 autre arrive, vous ne pouvez pas remettre le logement sur le marché au prix que vous voulez. Un
 décret annuel fixe le maximum d'évolution, qui revient en pratique à reprendre le dernier loyer
 appliqué, révisé au plus de l'IRL.
 
-Des exceptions existent — travaux d'amélioration d'un certain montant, loyer manifestement
-sous-évalué — et elles obéissent à des conditions précises qu'il faut vérifier avant de s'en
+Des exceptions existent (travaux d'amélioration d'un certain montant, loyer manifestement
+sous-évalué), et elles obéissent à des conditions précises qu'il faut vérifier avant de s'en
 prévaloir.
 
 Ce qu'il n'encadre pas : le loyer d'une première mise en location, ni le montant en valeur
@@ -72,7 +72,7 @@ obligatoire du bail type et le point de départ de tout contrôle.
 
 En revanche, **l'application ne vérifie aucun plafond**. Elle ne connaît ni les arrêtés
 préfectoraux, ni les loyers de référence par quartier, et elle ne vous dira pas que votre loyer
-dépasse le majoré. Elle ne fait aucune requête vers un service extérieur — c'est la condition de
+dépasse le majoré. Elle ne fait aucune requête vers un service extérieur : c'est la condition de
 son fonctionnement hors ligne, et c'est aussi sa limite ici.
 
 Le contrôle du plafond reste donc votre travail, avant de remplir le champ. Un loyer excessif

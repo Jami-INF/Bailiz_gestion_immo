@@ -31,25 +31,25 @@ proportionnelle.
 
 ## Dus selon le logement
 
-**Le constat de risque d'exposition au plomb (CREP)** — uniquement si le permis de construire est
+**Le constat de risque d'exposition au plomb (CREP)**, uniquement si le permis de construire est
 antérieur au 1<sup>er</sup> janvier 1949 (articles L.1334-5 et L.1334-7 du code de la santé
 publique).
 
-**L'état de l'installation intérieure de gaz** — si le logement est alimenté en gaz et que
+**L'état de l'installation intérieure de gaz**, quand le logement est alimenté en gaz et que
 l'installation a plus de quinze ans (article 3-3, 6° de la loi de 1989).
 
-**L'état de l'installation intérieure d'électricité** — si l'installation a plus de quinze ans
+**L'état de l'installation intérieure d'électricité** obéit à la même règle des quinze ans
 (article 3-3, 7°).
 
-**L'état des risques et pollutions (ERP)** — dû dès que la commune est concernée par un plan de
+**L'état des risques et pollutions (ERP)** est dû dès que la commune est concernée par un plan de
 prévention des risques, un zonage sismique de 2 à 5, un potentiel radon de niveau 3, un secteur
 d'information sur les sols ou le recul du trait de côte. Sa particularité : il doit être **daté
 de moins de six mois à la signature**. Autrement dit, il est à refaire à chaque relocation, là où
 les autres durent des années. Le portail [Géorisques](https://www.georisques.gouv.fr) indique si
 votre commune est concernée et produit l'état.
 
-**L'état des nuisances sonores aériennes** — si le logement se trouve dans une zone d'exposition
-au bruit d'un aérodrome (article L.112-11 du code de l'urbanisme).
+**L'état des nuisances sonores aériennes**, pour un logement situé dans une zone d'exposition au
+bruit d'un aérodrome (article L.112-11 du code de l'urbanisme).
 
 ## Les annexes qui ne sont pas des diagnostics
 
@@ -60,16 +60,16 @@ On les oublie plus souvent que les diagnostics, parce qu'aucun professionnel ne 
 - **L'état des lieux d'entrée**, qui en meublé vaut inventaire et état détaillé du mobilier. Il
   n'y a donc pas d'inventaire séparé à produire.
 - **L'attestation d'assurance habitation** du locataire, couvrant les risques locatifs.
-- **[La grille de vétusté](/grille-de-vetuste/)**, si vous convenez d'en appliquer une — ce que
-  l'article 4 du décret n°2016-382 autorise, à condition que ce soit dès la signature.
+- **[La grille de vétusté](/grille-de-vetuste/)**, si vous convenez d'en appliquer une, ce que
+  l'article 4 du décret n°2016-382 autorise à condition que ce soit dès la signature.
 - **Les extraits du règlement de copropriété** lorsque le logement est en copropriété : parties
   communes, destination de l'immeuble, quotes-parts.
 
 ## La règle que suit Bailiz
 
 Une pièce n'est retirée de la liste **que lorsqu'on sait qu'elle n'est pas due**. Tant que
-l'information manque sur la fiche du logement — vous n'avez pas renseigné la période de
-construction, par exemple —, la pièce reste affichée avec sa condition écrite en toutes lettres.
+l'information manque sur la fiche du logement (vous n'avez pas renseigné la période de
+construction, par exemple), la pièce reste affichée avec sa condition écrite en toutes lettres.
 
 Mieux vaut une ligne à vérifier qu'un diagnostic oublié. C'est le seul endroit de l'application
 où une liste est volontairement trop longue.

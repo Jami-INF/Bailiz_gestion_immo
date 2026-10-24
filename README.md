@@ -1,4 +1,4 @@
-# Bailiz - Gestion locative LMNP (Baux & États des lieux)
+# Bailiz - Baux meublés et états des lieux
 
 Application web 100 % côté client pour bailleur particulier en LMNP : rédaction de baux
 meublés conformes prêts à imprimer, états des lieux d'entrée/sortie comparatifs avec photos -
@@ -9,7 +9,9 @@ l'état des lieux valant **inventaire du mobilier** -, signature sur écran horo
 PWA installable, fonctionne entièrement hors-ligne après le premier chargement (EDL en cave,
 parking, immeuble mal couvert…).
 
-https://jami-inf.github.io/Bailiz_gestion_immo/
+**[bailiz.fr](https://bailiz.fr/)** - présentation, guides et pages outils.
+L'application s'ouvre sur **[bailiz.fr/app/](https://bailiz.fr/app/)**, sans compte et sans
+inscription.
 
 ## Principe : le document fait foi, pas l'outil
 
@@ -33,7 +35,21 @@ https://jami-inf.github.io/Bailiz_gestion_immo/
 - `react-router-dom` v7, `react-hook-form` + `zod`, `dexie-react-hooks`, `signature_pad`,
   `date-fns` (locale fr), `jszip`, `lucide-react`
 - Qualité : ESLint (flat config), Vitest + Testing Library (`fake-indexeddb` pour la couche
-  Dexie), couverture v8 avec seuils par domaine - 390 tests, cf. `docs/DOCUMENTATION_TECHNIQUE.md` §8
+  Dexie), couverture v8 avec seuils par domaine - 616 tests, cf. `docs/DOCUMENTATION_TECHNIQUE.md` §8
+
+## Deux projets dans un dépôt
+
+| Dossier | Quoi | Servi sous |
+|---|---|---|
+| racine | l'application (React + Vite), ce README la décrit | `bailiz.fr/app/` |
+| `site/` | le site vitrine (Astro, zéro JavaScript) | `bailiz.fr/` |
+
+Une seule origine pour les deux, et c'est délibéré : IndexedDB est cloisonné par origine, et
+c'est là que vivent les données des utilisateurs. Un sous-domaine aurait imposé une migration de
+données à chaque réorganisation ultérieure (cf. `docs/CDC-site-vitrine-seo.md` §3.5).
+
+Un `git push` sur `main` construit et déploie les deux, en FTP vers OVH
+(`.github/workflows/deploy.yml`).
 
 ## Démarrer
 
@@ -44,6 +60,15 @@ npm run lint       # ESLint (exécuté aussi en CI)
 npm test           # toute la suite de tests (Vitest)
 npm run test:coverage  # + couverture et seuils (ce que lance la CI)
 npm run build      # build de production + PWA
+```
+
+Pour le site vitrine :
+
+```bash
+npm install --prefix site
+npm run dev --prefix site    # http://localhost:4321
+npm run build --prefix site
+npm run images --prefix site # régénère og.png et les icônes
 ```
 
 ## Fonctionnalités

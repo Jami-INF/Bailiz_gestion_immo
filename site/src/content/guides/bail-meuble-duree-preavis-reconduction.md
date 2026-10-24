@@ -27,8 +27,8 @@ principale. Il en prévoit deux formes, auxquelles la loi ELAN a ajouté une tro
 </thead>
 <tbody>
 <tr><th scope="row">Meublé</th><td>1 an</td><td>1 mois</td><td>3 mois, à l'échéance</td><td>Tacite, pour un an</td></tr>
-<tr><th scope="row">Meublé étudiant</th><td>9 mois</td><td>1 mois</td><td>—</td><td>Aucune</td></tr>
-<tr><th scope="row">Bail mobilité</th><td>1 à 10 mois</td><td>1 mois</td><td>—</td><td>Aucune</td></tr>
+<tr><th scope="row">Meublé étudiant</th><td>9 mois</td><td>1 mois</td><td>Sans objet</td><td>Aucune</td></tr>
+<tr><th scope="row">Bail mobilité</th><td>1 à 10 mois</td><td>1 mois</td><td>Sans objet</td><td>Aucune</td></tr>
 </tbody>
 </table>
 
@@ -47,7 +47,7 @@ justifier, et la durée d'un an ne l'engage pas : elle engage le bailleur.
 
 **Le bailleur** ne peut donner congé qu'à l'échéance, avec un préavis de trois mois, et pour
 l'un de ces trois motifs seulement : la reprise du logement pour y habiter ou y loger un proche,
-la vente, ou un motif légitime et sérieux — typiquement des impayés répétés ou des troubles de
+la vente, ou un motif légitime et sérieux, typiquement des impayés répétés ou des troubles de
 voisinage établis.
 
 À défaut de congé de part et d'autre, **le contrat est reconduit tacitement pour un an**. Il n'y
@@ -76,7 +76,7 @@ Il n'est pas ouvert à tout le monde. Le locataire doit justifier, à la date de
 qu'il se trouve dans l'une de ces situations : formation professionnelle, études supérieures,
 contrat d'apprentissage, stage, engagement volontaire de service civique, mutation
 professionnelle ou mission temporaire. Si la condition n'est pas remplie, le contrat risque la
-requalification en bail meublé ordinaire — avec sa durée d'un an et son préavis de trois mois.
+requalification en bail meublé ordinaire, avec sa durée d'un an et son préavis de trois mois.
 
 Deux conséquences pratiques à ne pas rater :
 

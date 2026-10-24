@@ -605,6 +605,21 @@ La raison est technique et décisive : les données des utilisateurs sont dans l
 origine - c'est elle qui contient la fonction d'export. La remplacer par une page de renvoi leur
 retirerait le seul moyen d'accéder à leurs baux et à leurs états des lieux.
 
+> **Constaté le 24 octobre 2026 : ce n'est plus le cas.**
+> `https://jami-inf.github.io/Bailiz_gestion_immo/` répond **404 - Site not found**. Le dépôt n'a
+> plus de branche `gh-pages`, et le workflow ne publie plus rien sur Pages depuis la bascule FTP.
+> Le chemin d'export décrit ci-dessous n'existe donc plus pour un utilisateur qui arriverait par
+> cette adresse.
+>
+> Ce qui subsiste : une PWA **déjà installée** garde son précache et ses données, et devrait
+> continuer à s'ouvrir hors ligne, export compris - à vérifier sur un appareil réel avant de s'en
+> satisfaire. Un utilisateur qui avait seulement un signet, lui, n'a plus de porte d'entrée.
+>
+> Pour rétablir le chemin d'export, il faut republier une fois l'application sur Pages
+> (build avec `base: '/Bailiz_gestion_immo/'`, déploiement ponctuel), puis seulement y poser le
+> bandeau de déménagement. Décision à prendre en connaissance du nombre d'utilisateurs concernés,
+> qui n'est pas mesurable - l'application n'ayant jamais rien envoyé.
+
 **Réglage à appliquer** : Settings → Pages → Source → **GitHub Actions**.
 
 - Cela **désactive** le workflow Jekyll automatique, qui échoue sur les fichiers `.astro` du

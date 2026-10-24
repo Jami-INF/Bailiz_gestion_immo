@@ -38,7 +38,7 @@ joint de douche à refaire : c'est le temps qui passe, et le loyer est censé le
 enfoncée, une pièce repeinte en noir sans accord. Ce n'est pas la même chose qu'un vieillissement,
 et la différence se voit.
 
-Entre les deux, il y a les cas discutables — et c'est précisément pour eux qu'on convient d'une
+Entre les deux, il y a les cas discutables, et c'est précisément pour eux qu'on convient d'une
 [grille de vétusté](/grille-de-vetuste/) à la signature. Elle ne tranche pas l'usure contre la
 dégradation ; elle chiffre la part de l'élément déjà consommée par le temps, pour qu'un
 remplacement ne soit pas facturé à neuf.
@@ -62,7 +62,7 @@ l'entrée.
 
 C'est l'erreur qui transforme une visite calme en conflit. Vous n'avez pas encore les devis, vous
 ne connaissez pas l'âge exact de chaque élément, et un montant lancé à la volée sera retenu contre
-vous — d'autant plus qu'il sera trop élevé.
+vous, d'autant plus qu'il sera trop élevé.
 
 Dites ce qui est constaté, pas ce qui sera retenu. Le chiffrage se fait ensuite, posément, avec
 les devis et la grille, et il arrive par écrit dans le délai légal.

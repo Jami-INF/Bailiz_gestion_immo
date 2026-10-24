@@ -34,7 +34,7 @@ connaître par cœur :
 > nouveau colocataire le remplace, et au plus tard six mois après cette date.
 
 Deux lectures s'ensuivent. Si un remplaçant arrive, le partant est libéré immédiatement. Si
-personne ne le remplace, il reste tenu six mois — pas davantage. Passé ce délai, vous n'avez plus
+personne ne le remplace, il reste tenu six mois, pas davantage. Passé ce délai, vous n'avez plus
 que les colocataires restants en face de vous.
 
 La conséquence pratique est qu'un départ en février vous laisse jusqu'en août pour trouver
@@ -57,7 +57,7 @@ case à cocher.
 
 Avec un bail unique, le dépôt est unique : il est versé pour le logement, pas par personne. Sa
 restitution intervient à la fin du bail, une fois, et les colocataires s'arrangent entre eux pour
-la répartition — ce n'est pas votre affaire, et il vaut mieux le dire clairement à la signature.
+la répartition. Ce n'est pas votre affaire, et il vaut mieux le dire clairement à la signature.
 
 Le plafond reste celui du meublé : deux mois de loyer hors charges (article 25-6 de la loi de
 1989).

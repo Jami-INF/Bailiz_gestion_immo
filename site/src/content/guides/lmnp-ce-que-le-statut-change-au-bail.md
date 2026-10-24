@@ -2,7 +2,7 @@
 titre: "LMNP : ce que le statut change pour le bail"
 titreSeo: "LMNP : ce que le statut change pour le bail | Bailiz"
 description: "Le statut de loueur en meublé non professionnel est fiscal. Ce qu'il change au contrat de location est très limité, et tient à une seule mention."
-chapeau: "Le statut est fiscal, le bail est civil. La réponse courte : il ne change presque rien — mais ce presque mérite d'être su."
+chapeau: "Le statut est fiscal, le bail est civil. La réponse courte : il ne change presque rien, mais ce presque mérite d'être su."
 misAJour: 2026-10-24
 outil: /bail-meuble/
 outilLibelle: Rédiger un bail meublé
@@ -33,7 +33,7 @@ mobilité. Le statut fiscal n'y touche pas. Voir
 [durée, préavis et reconduction](/guides/bail-meuble-duree-preavis-reconduction/).
 
 **Le mobilier.** La liste des éléments qu'un logement doit comporter pour être qualifié de meublé
-est fixée par décret, et elle s'impose à tout bailleur en meublé — LMNP ou non. Un logement
+est fixée par décret, et elle s'impose à tout bailleur en meublé, LMNP ou non. Un logement
 insuffisamment équipé peut être requalifié en location nue, avec les conséquences qui vont avec :
 bail de trois ans, préavis de trois mois pour le locataire, dépôt limité à un mois.
 
@@ -51,8 +51,8 @@ LMNP.
 Beaucoup de bailleurs arrivés au meublé par la location courte durée supposent que c'est le même
 contrat. Ce n'en est pas un.
 
-La location d'un **meublé de tourisme** — courte durée, à une clientèle de passage qui n'y élit
-pas domicile — ne relève pas du titre I<sup>er</sup> bis de la loi de 1989. Pas de bail d'un an,
+La location d'un **meublé de tourisme** (courte durée, à une clientèle de passage qui n'y élit pas
+domicile) ne relève pas du titre I<sup>er</sup> bis de la loi de 1989. Pas de bail d'un an,
 pas de préavis, pas de dépôt plafonné à deux mois : d'autres règles, et souvent des obligations
 municipales de déclaration ou d'autorisation de changement d'usage.
 

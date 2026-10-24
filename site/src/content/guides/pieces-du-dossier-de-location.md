@@ -40,8 +40,8 @@ ressources d'un comptable pour un indépendant, justificatifs de pensions, retra
 prestations sociales des trois derniers mois, attestation de droits CAF, revenus fonciers ou
 mobiliers.
 
-**Pour le garant**, les mêmes pièces, à son nom. Rien de plus — auxquelles s'ajoute, une fois le
-choix fait, l'[acte de cautionnement](/acte-de-cautionnement/) qu'il signera.
+**Pour le garant**, les mêmes pièces, à son nom. Rien de plus. S'y ajoutera, une fois votre choix
+fait, l'[acte de cautionnement](/acte-de-cautionnement/) qu'il devra signer.
 
 ## Ce qui est interdit
 
@@ -68,8 +68,8 @@ famille, âge, état de santé, orientation sexuelle, opinions, appartenance ré
 une ethnie ou une religion, entre autres.
 
 Écarter un dossier parce que les revenus ne couvrent pas le loyer est légitime. L'écarter pour un
-motif protégé ne l'est pas, et le fait d'écrire ce motif quelque part — un e-mail, une note sur
-une fiche — en fait une preuve.
+motif protégé ne l'est pas, et le fait de l'écrire quelque part, dans un e-mail ou sur une fiche,
+en fait une preuve.
 
 ## DossierFacile
 
@@ -86,5 +86,5 @@ boursier, travailleur indépendant. Un salarié sans garant ne repart pas avec d
 pièces qui ne le regardent pas.
 
 Les textes et la liste se modifient dans les paramètres. Si vous ajoutez une pièce absente du
-décret, l'application vous le signale — elle ne vous bloque pas, mais elle ne vous laisse pas
-le faire sans le savoir.
+décret, l'application vous le signale. Elle ne vous bloque pas, mais elle ne vous laisse pas le
+faire sans le savoir.

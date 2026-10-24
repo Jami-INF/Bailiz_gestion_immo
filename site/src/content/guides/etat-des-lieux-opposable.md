@@ -43,8 +43,8 @@ l'article 3-2.
 Un document rempli seul après le départ du locataire, puis envoyé pour accord, n'est pas un état
 des lieux contradictoire. Il peut valoir constat, il ne vaut pas preuve de l'état convenu.
 
-Si les parties ne s'accordent pas, l'état des lieux se fait par huissier — commissaire de justice
-depuis 2022 — à frais partagés par moitié.
+Si les parties ne s'accordent pas, l'état des lieux se fait par huissier, devenu commissaire de
+justice en 2022, à frais partagés par moitié.
 
 ## Les deux délais qu'on oublie
 
@@ -65,7 +65,7 @@ C'est la situation la plus coûteuse, et elle est fréquente chez les bailleurs 
 L'article 1731 du code civil pose une présomption, et elle joue contre le bailleur : à défaut
 d'état des lieux d'entrée, le logement est **réputé avoir été reçu en bon état de réparations
 locatives**. Le locataire est donc censé l'avoir trouvé impeccable, et vous ne pouvez lui
-reprocher aucune dégradation — puisque rien n'établit que le logement était en meilleur état le
+reprocher aucune dégradation, puisque rien n'établit que le logement était en meilleur état le
 jour de son arrivée.
 
 La seule exception tient à l'article 3-2 : lorsque le bailleur a été **empêché** d'établir

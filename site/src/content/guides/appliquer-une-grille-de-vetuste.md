@@ -26,7 +26,7 @@ Deux bornes encadrent le résultat. Une **part résiduelle** de 10 % que le coef
 pas en dessous tant que la durée de vie n'est pas atteinte. Et la durée de vie elle-même :
 au-delà, le coefficient tombe à **zéro**, et plus rien n'est facturable.
 
-## Cas 1 — Peintures du salon, 4 ans, devis 500 €
+## Cas 1 : peintures du salon, 4 ans, devis 500 €
 
 Valeurs du poste : durée de vie 10 ans, franchise 1 an, abattement 10 % par an.
 
@@ -37,10 +37,10 @@ font 30 % d'abattement.
 > Retenue = 500 × 0,70 = **350 €**
 
 Le locataire supporte 350 €, vous supportez les 150 € restants. Sans grille, vous auriez réclamé
-500 € et le locataire aurait contesté — avec de bonnes chances, puisque la peinture avait déjà
-quatre ans d'usage.
+500 €, et le locataire aurait contesté avec de bonnes chances : la peinture avait déjà quatre ans
+d'usage.
 
-## Cas 2 — Moquette d'une chambre, 5 ans, devis 900 €
+## Cas 2 : moquette d'une chambre, 5 ans, devis 900 €
 
 Durée de vie 7 ans, franchise 1 an, abattement 15 % par an. La moquette s'use vite, l'abattement
 est plus rapide.
@@ -53,12 +53,12 @@ est plus rapide.
 Un devis presque deux fois plus élevé que le cas précédent aboutit à une retenue comparable. Ce
 n'est pas un hasard : c'est exactement ce que la grille est censée produire.
 
-## Cas 3 — Lave-linge hors d'usage, 9 ans, devis 450 €
+## Cas 3 : lave-linge hors d'usage, 9 ans, devis 450 €
 
 Durée de vie 8 ans pour l'électroménager. L'appareil en a 9.
 
 L'âge dépasse la durée de vie théorique. Le coefficient tombe à **0 %**, et la retenue à
-**0 €** — quel que soit le montant du devis, et même si la panne vient d'une mauvaise
+**0 €**, quel que soit le montant du devis, et même si la panne vient d'une mauvaise
 utilisation.
 
 C'est la borne qui surprend le plus les bailleurs, et c'est la plus solide juridiquement : un

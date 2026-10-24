@@ -41,7 +41,7 @@ systématiquement, sans constat ni facture, est la retenue la plus souvent annul
 maintenu après la fin du bail.
 
 **Une provision sur charges en copropriété.** L'article 22 permet de conserver une part du dépôt
-— au plus 20 % — jusqu'à l'arrêté annuel des comptes de l'immeuble. Le solde se régularise dans
+, au plus 20 %, jusqu'à l'arrêté annuel des comptes de l'immeuble. Le solde se régularise dans
 le mois qui suit.
 
 **Les clés et badges non restitués**, à condition d'avoir noté leur remise à l'entrée.
