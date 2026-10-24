@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { db, getParametres } from '@/lib/db';
+import { db, ecrireParametres, getParametres, prochaineReference } from '@/lib/db';
 import type { Bien, Locataire } from '@/types';
 import { journaliser } from './journal';
 import { synchroniser } from './cycle';
@@ -847,5 +847,73 @@ describe('coût réseau d’un cycle', () => {
     expect(depot.listages).toBeLessThanOrEqual(10);
     expect(depot.compter('photos')).toBe(0);
     expect(await db.changements.count()).toBe(0);
+  });
+});
+
+describe('fusion des paramètres pendant qu’on travaille', () => {
+  /**
+   * Dépôt dont la lecture du singleton distant déclenche une écriture locale.
+   *
+   * C'est la couture qui rend la course déterministe : la lecture du fichier de
+   * réglages est une requête réseau, longue, et rien n'empêche l'utilisateur
+   * d'enregistrer quelque chose pendant ce temps - ni l'application de générer
+   * un document, ce qui incrémente un compteur de séquence.
+   */
+  class DepotQuiLaisseTravailler extends DepotMemoire {
+    public pendant: () => Promise<void> = async () => undefined;
+    private dejaFait = false;
+
+    override async lireTexte(id: string): Promise<string> {
+      const contenu = await super.lireTexte(id);
+      if (!this.dejaFait && contenu.includes('"table":"parametres"')) {
+        this.dejaFait = true;
+        await this.pendant();
+      }
+      return contenu;
+    }
+  }
+
+  it('ne fait pas reculer un compteur de séquence incrémenté entre-temps', async () => {
+    /*
+     * Le cas nuisible : les compteurs fusionnent au maximum des deux appareils,
+     * mais sur un instantané pris avant la lecture réseau, le maximum se calcule
+     * contre une valeur périmée. La référence attribuée pendant le cycle est
+     * alors réattribuée au document suivant - et une référence figure sur un
+     * document imprimé, parfois signé.
+     */
+    const depot = new DepotQuiLaisseTravailler();
+    const params = await getParametres();
+    await db.parametres.put({ ...params, bailleur: { ...params.bailleur, nom: 'Infante' } });
+    await synchroniser(depot); // l'appareil A dépose ses réglages
+
+    await reinitialiser(); // appareil B, vierge, qui va donc fusionner
+    depot.pendant = async () => {
+      await prochaineReference('document');
+    };
+
+    await synchroniser(depot);
+
+    expect((await getParametres()).compteursSequence.document).toBe(1);
+  });
+
+  it('ne perd pas un réglage enregistré pendant la lecture du dépôt', async () => {
+    const depot = new DepotQuiLaisseTravailler();
+    const params = await getParametres();
+    await db.parametres.put({ ...params, bailleur: { ...params.bailleur, nom: 'Infante' } });
+    await synchroniser(depot);
+
+    await reinitialiser();
+    /*
+     * `disclaimerAccepte` n'est pas une section arbitrée par la fusion : il est
+     * repris du local tel quel. Il ne peut donc disparaître que d'une seule
+     * façon - la ligne entière réécrite depuis un instantané périmé.
+     */
+    depot.pendant = async () => {
+      await ecrireParametres(() => ({ disclaimerAccepte: true }));
+    };
+
+    await synchroniser(depot);
+
+    expect((await getParametres()).disclaimerAccepte).toBe(true);
   });
 });

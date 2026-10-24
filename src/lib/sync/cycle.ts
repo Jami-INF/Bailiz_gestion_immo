@@ -640,21 +640,34 @@ async function synchroniserParametres(
   if (distantFichier) {
     const enveloppe = JSON.parse(await depot.lireTexte(distantFichier.id)) as EnveloppeEnregistrement;
     const distant = enveloppe.donnees as Parametres;
-    ({ fusionne, collisions } = fusionnerParametres(local, distant, { reference, neuf }));
-    if (JSON.stringify(sansConfigDrive(fusionne)) !== JSON.stringify(sansConfigDrive(local))) {
-      /*
-       * Seul `put` de la ligne entière qui subsiste, et le seul légitime : ce
-       * n'est pas la pose d'un champ mais le résultat d'une fusion à trois
-       * termes (local, distant, empreinte de référence), qui doit s'écrire tel
-       * quel. Le passer par `ecrireParametres` demanderait de rejouer
-       * `fusionnerParametres` **dans** la transaction, `local` étant lu plus
-       * haut - un autre chantier, dans la mécanique la plus délicate de
-       * l'application.
-       */
-      await sansJournaliser(async () => {
-        await db.parametres.put(fusionne);
-      });
-    }
+    /*
+     * La fusion est rejouée **dans** la transaction, sur la ligne relue, et non
+     * sur le `local` du début de fonction. Entre les deux, il y a eu deux
+     * requêtes réseau - le listage puis la lecture du fichier de réglages -
+     * pendant lesquelles l'utilisateur continue de travailler.
+     *
+     * Ce que coûtait l'instantané : `fusionnerParametres` construit son
+     * résultat sur `{ ...local }`, donc tout champ hors section (`disclaimerAccepte`,
+     * `derniereSauvegarde`) repartait tel qu'il était avant les requêtes, et
+     * les compteurs de séquence - fusionnés au maximum des deux appareils -
+     * se comparaient à une valeur périmée. Un document généré pendant le cycle
+     * voyait son compteur reculer, et sa référence était réattribuée au
+     * document suivant : deux pièces, parfois signées, portant le même numéro.
+     *
+     * Le réseau, lui, reste dehors : attendre une promesse étrangère committe
+     * la transaction en cours.
+     */
+    const resultat = await sansJournaliser(() =>
+      db.transaction('rw', db.parametres, async () => {
+        const frais = await getParametres();
+        const fusion = fusionnerParametres(frais, distant, { reference, neuf });
+        if (JSON.stringify(sansConfigDrive(fusion.fusionne)) !== JSON.stringify(sansConfigDrive(frais))) {
+          await db.parametres.put(fusion.fusionne);
+        }
+        return fusion;
+      }),
+    );
+    ({ fusionne, collisions } = resultat);
     // Rien n'a bougé de part et d'autre : ne pas réécrire, sinon l'autre
     // appareil verrait à chaque cycle une « modification » qui n'en est pas une.
     const memesReglages = SECTIONS_PARAMETRES.every(
