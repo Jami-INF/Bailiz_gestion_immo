@@ -94,6 +94,18 @@ function lireJetonMemorise(): JetonAcces | null {
 }
 
 /**
+ * Vrai si un jeton utilisable est en main, **sans rien demander à personne**.
+ *
+ * Synchrone à dessein, et c'est tout l'intérêt : sur iOS, l'autorisation Google
+ * doit partir en première instruction du geste utilisateur, avant le moindre
+ * `await`. Un appelant peut donc se poser la question sans dépenser
+ * l'activation du geste - ce qu'une lecture d'IndexedDB, elle, consommerait.
+ */
+export function jetonValide(): boolean {
+  return jeton !== null && Date.now() < jeton.expireA - MARGE_EXPIRATION_MS;
+}
+
+/**
  * Seul point d'écriture du jeton : mémoire **et** session restent alignées.
  * Passer `null` révoque les deux. L'échec du stockage n'est pas une erreur -
  * l'application fonctionne alors comme avant, jusqu'au prochain rechargement.
@@ -154,7 +166,15 @@ export function lancerConnexionParRedirection(clientId = CLIENT_ID_GDRIVE): void
     scope: SCOPE,
     state: etat,
     include_granted_scopes: 'true',
-    prompt: 'consent',
+    /*
+     * **Pas de `prompt`**, et surtout pas `prompt=consent` : il rouvrait
+     * l'écran de consentement à *chaque* reconnexion, alors que l'autorisation
+     * est déjà accordée. Le jeton étant borné à la session (cf. `CLE_JETON`),
+     * la reconnexion est le geste courant sur tablette - elle doit coûter un
+     * aller-retour et non une relecture des autorisations. Omis, Google rend
+     * le jeton directement quand la portée est déjà accordée, ce que
+     * `include_granted_scopes` lui confirme juste au-dessus.
+     */
   });
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
@@ -318,7 +338,10 @@ function chargerGsi(): Promise<void> {
  */
 function obtenirJeton(clientId: string, interactif: boolean): Promise<string | null> {
   clientIdCourant = clientId;
-  if (jeton && Date.now() < jeton.expireA - MARGE_EXPIRATION_MS) return Promise.resolve(jeton.accessToken);
+  // Même question que `jetonValide`, et donc la même réponse : les deux ne
+  // doivent pas pouvoir diverger - un appelant qui s'abstient de rediriger
+  // parce que le jeton est valide compte sur ce court-circuit.
+  if (jetonValide() && jeton) return Promise.resolve(jeton.accessToken);
   // Aucune attente insérée si le script est déjà chargé : sur Safari/iOS, la
   // fenêtre Google n'est autorisée que tant que dure l'activation du geste
   // utilisateur, qu'un simple `await` suffit parfois à faire expirer.

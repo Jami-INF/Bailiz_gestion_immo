@@ -45,6 +45,7 @@ import {
   consommerRetourRedirection,
   demanderAutorisationGoogle,
   estApplicationInstallee,
+  jetonValide,
   lancerConnexionParRedirection,
 } from '@/lib/gdrive';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
@@ -71,7 +72,7 @@ const nav = [
  * sauvegarde vieille de six jours alors qu'un cycle vient de réussir ferait
  * croire à une panne, et pousserait à exporter à la main pour rien.
  */
-function SauvegardeStatut() {
+export function SauvegardeStatut() {
   const toast = useToast();
   const parametres = useLiveQuery(() => lireParametres());
   const configDossier = useLiveQuery(() => getConfigAutosave());
@@ -104,7 +105,16 @@ function SauvegardeStatut() {
      */
     if (synchronise) {
       const idClient = config?.clientId || CLIENT_ID_GDRIVE;
-      if (estApplicationInstallee()) {
+      /*
+       * La redirection quitte l'application : on ne la déclenche que s'il n'y a
+       * plus de jeton. Elle était inconditionnelle, si bien qu'une sauvegarde
+       * manuelle renvoyait vers Google même deux minutes après s'être connecté.
+       *
+       * `jetonValide` ne met pas en péril la règle ci-dessus : c'est la lecture
+       * synchrone d'une variable de module, elle ne dépense pas l'activation du
+       * geste - contrairement au moindre accès à IndexedDB.
+       */
+      if (estApplicationInstallee() && !jetonValide()) {
         lancerConnexionParRedirection(idClient);
         return;
       }
