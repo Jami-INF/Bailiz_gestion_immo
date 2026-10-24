@@ -194,3 +194,63 @@ Les quatre pages rédactionnelles ont été reprises : accueil, `/bail-meuble/`,
 
 Les pages légales n'ont pas été retouchées sur le fond : leur rédaction est juste et leur ton
 n'était pas en cause. Seuls leurs `title` et `description` ont bougé.
+
+---
+
+## 6. Relevé Search Console du 24 octobre 2026
+
+Données arrêtées au 16/10, donc **antérieures** à la mise en ligne des correctifs ci-dessus.
+
+| État | Pages |
+|---|---|
+| Dans l'index | 1 (`https://bailiz.fr/`) |
+| Page avec redirection | 1 |
+| Détectée, actuellement non indexée | 5 (les deux pages outils, `/pourquoi-bailiz/` et les deux pages légales) |
+
+### Ce que ces deux motifs veulent dire
+
+**« Page avec redirection »** n'est pas un défaut. La propriété est une propriété de domaine : elle
+couvre `http://` et `www.`, qui redirigent en 301 vers l'apex en HTTPS comme le §9.1 l'exige.
+Vérifié : les trois variantes répondent bien `301 → https://bailiz.fr/`. Rien à corriger.
+
+**« Détectée, actuellement non indexée »** se lit de travers neuf fois sur dix. Les cinq URL
+portent toutes la mention *Dernière exploration : Sans objet* : **Google ne les a jamais
+chargées**. Il les connaît par le sitemap, et il a remis leur exploration à plus tard. Leur contenu
+n'a donc pas été jugé : ni les titres, ni le texte, ni la structure n'entrent en ligne de compte,
+et aucun correctif de la section 4 ne peut changer cet état.
+
+Ce qui le provoque est ailleurs : un domaine sans historique, sans un seul lien entrant, et six
+pages. Google rationne l'exploration des domaines qu'il ne connaît pas. Le §18 du CDC annonçait
+six à douze mois ; nous sommes à deux.
+
+### Ce qui agit réellement, par ordre d'effet
+
+1. **Demander l'indexation à la main** pour les cinq URL (Inspection de l'URL → Demander une
+   indexation). C'est le seul levier qui force une exploration à court terme, et cinq URL tiennent
+   largement dans le quota quotidien.
+2. **Obtenir des liens entrants**, qui est la vraie cause. Trois sont légitimes et gratuits : le
+   champ *Website* du dépôt GitHub, le profil LinkedIn de l'éditeur, et la page de renvoi sur
+   l'ancienne URL GitHub Pages (§9.5, toujours à faire).
+3. **Ouvrir `/guides/`** (lot L5). Six pages sur un domaine neuf, c'est peu pour justifier des
+   passages réguliers. Dix guides à intention d'outil donnent à la fois des pages d'entrée et une
+   raison de revenir.
+4. Vérifier dans *Sitemaps* que `sitemap-index.xml` est bien lu, et refaire un relevé à quatre
+   semaines (lot L6).
+
+### Vérifications en production, le 24 octobre
+
+Le correctif de cache du §2.3 était raisonné et non testé. Il l'est désormais :
+
+| URL | `Cache-Control` | Attendu |
+|---|---|---|
+| `/app/sw.js` | `no-cache, must-revalidate` | ✅ |
+| `/app/manifest.webmanifest`, `/app/index.html` | `no-cache, must-revalidate` | ✅ |
+| `/app/assets/index-*.js`, `*.css` | `public, max-age=31536000, immutable` | ✅ |
+| `/og.png`, `/icon.svg` | `public, max-age=86400` | ✅ |
+| `/` | `no-cache, must-revalidate` | ✅ |
+
+Un défaut trouvé au passage et corrigé : `https://bailiz.fr/bail-meuble` sans slash final
+répondait `Location: https://bailiz.fr:443/bail-meuble/`. `DirectorySlash` écrit le port
+explicitement. L'effet est mince - un moteur normalise le port par défaut - mais la cible d'une
+301 n'a pas de raison de différer de la canonique déclarée par la page. Remplacé par une règle de
+réécriture explicite.

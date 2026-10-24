@@ -13,6 +13,16 @@ RewriteRule ^(.*)$ https://bailiz.fr/$1 [R=301,L]
 RewriteCond %{HTTP_HOST} ^www\.bailiz\.fr$ [NC]
 RewriteRule ^(.*)$ https://bailiz.fr/$1 [R=301,L]
 
+# Slash final sur les répertoires, écrit à la main plutôt que laissé à
+# `DirectorySlash` : celui-ci répond `Location: https://bailiz.fr:443/...`,
+# avec le port explicite. Le port 443 est la valeur par défaut d'HTTPS, et un
+# moteur le normalise, mais la cible d'une redirection permanente n'a aucune
+# raison de différer d'un caractère de l'URL canonique que la page déclare.
+# `DirectorySlash` reste actif derrière, en filet.
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_URI} !/$
+RewriteRule ^(.*)$ https://bailiz.fr/$1/ [R=301,L]
+
 # ---------------------------------------------------------------------------
 # Page d'erreur
 # ---------------------------------------------------------------------------
