@@ -5,7 +5,9 @@ description: "Un an, neuf mois ou bail mobilité : quelle durée choisir, quel p
 chapeau: "Trois durées possibles en meublé, et des règles de sortie qui n'ont rien à voir entre elles. Voici ce qui se joue au moment de cocher la case."
 misAJour: 2026-10-24
 outil: /bail-meuble/
-outilLibelle: Rédiger un bail meublé
+outilLibelle: Le bail meublé en détail
+app: /app/#/baux/nouveau
+appLibelle: Rédiger un bail meublé
 rang: 1
 ---
 

@@ -66,12 +66,22 @@ const schema = {
     <div class="enveloppe prose article">
       <Content />
 
+      {/*
+        Deux sorties, et la première mène à l'outil lui-même.
+        L'encart ne proposait que `outil`, c'est-à-dire la page qui **décrit**
+        l'outil : on lisait l'article jusqu'au bout pour atterrir sur un
+        argumentaire, puis il fallait un clic de plus - et deviner qu'il en
+        fallait un - pour faire ce que l'article venait d'expliquer.
+      */}
       <div class="encart-outil">
         <p>
-          <strong>L'outil correspondant :</strong>{' '}
-          <a href={d.outil}>{d.outilLibelle}</a>. Gratuit, sans compte, et le document sort en
+          <strong>Passer à la pratique :</strong> gratuit, sans compte, et le document sort en
           PDF.
         </p>
+        <div class="actions">
+          <a class="bouton bouton--principal" href={d.app}>{d.appLibelle}</a>
+          <a class="bouton bouton--secondaire" href={d.outil}>{d.outilLibelle}</a>
+        </div>
       </div>
 
       <div class="avertissement">

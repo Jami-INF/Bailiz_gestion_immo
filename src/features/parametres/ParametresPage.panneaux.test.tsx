@@ -425,8 +425,9 @@ describe('enregistrements antérieurs', () => {
 /**
  * Contrat avec le site vitrine.
  *
- * Les pages outils de `site/` pointent `#/parametres?ouvrir=vetuste` et
- * `?ouvrir=fiche-visite`. Ces deux chaînes sont des `identifiant` de
+ * Les pages outils et les guides de `site/` pointent `?ouvrir=vetuste`,
+ * `?ouvrir=fiche-visite` et `?ouvrir=bailleur`. Ces chaînes sont des
+ * `identifiant` de
  * `CarteRepliable` : les renommer casserait des liens entrants **sans rien
  * casser à la compilation**, et personne ne s'en apercevrait avant de cliquer.
  */
@@ -434,6 +435,7 @@ describe('liens entrants de la vitrine', () => {
   it.each([
     ['vetuste', /Durée de vie/],
     ['fiche-visite', /Blocs imprimés/],
+    ['bailleur', /Qualité du bailleur/],
   ])('ouvre la carte « %s » désignée par l’URL', async (identifiant, contenu) => {
     rendre(<ParametresPage />, { route: `/parametres?ouvrir=${identifiant}` });
     expect(await screen.findByText(contenu)).toBeInTheDocument();

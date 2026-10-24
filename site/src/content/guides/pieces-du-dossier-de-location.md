@@ -5,7 +5,9 @@ description: "La liste des justificatifs exigibles d'un candidat et de son garan
 chapeau: "La liste est limitative : ce qui n'y figure pas ne peut pas être exigé, du candidat comme de son garant."
 misAJour: 2026-10-24
 outil: /fiche-de-visite/
-outilLibelle: Imprimer une fiche de visite
+outilLibelle: La fiche de visite en détail
+app: /app/#/outils
+appLibelle: Produire une fiche de visite
 rang: 3
 ---
 
@@ -85,6 +87,7 @@ concernent le candidat : garant personne physique, garantie Visale, colocation, 
 boursier, travailleur indépendant. Un salarié sans garant ne repart pas avec deux pages de
 pièces qui ne le regardent pas.
 
-Les textes et la liste se modifient dans les paramètres. Si vous ajoutez une pièce absente du
+Les textes et la liste se modifient dans
+[le modèle de fiche de visite](/app/#/parametres?ouvrir=fiche-visite). Si vous ajoutez une pièce absente du
 décret, l'application vous le signale. Elle ne vous bloque pas, mais elle ne vous laisse pas le
 faire sans le savoir.

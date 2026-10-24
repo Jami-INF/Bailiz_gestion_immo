@@ -5,7 +5,9 @@ description: "Le statut de loueur en meublé non professionnel est fiscal. Ce qu
 chapeau: "Le statut est fiscal, le bail est civil. La réponse courte : il ne change presque rien, mais ce presque mérite d'être su."
 misAJour: 2026-10-24
 outil: /bail-meuble/
-outilLibelle: Rédiger un bail meublé
+outilLibelle: Le bail meublé en détail
+app: /app/#/baux/nouveau
+appLibelle: Rédiger un bail meublé
 rang: 7
 ---
 
@@ -21,7 +23,8 @@ soumis au même titre I<sup>er</sup> bis de la loi du 6 juillet 1989.
 
 **Le SIRET.** Louer en meublé est une activité qui se déclare, et la déclaration donne lieu à un
 numéro SIRET. Lorsque vous en avez un, il figure au bail : c'est une mention du bail type, et
-Bailiz l'imprime dès que le champ est renseigné dans les paramètres du bailleur.
+Bailiz l'imprime dès que le champ est renseigné dans
+[les paramètres du bailleur](/app/#/parametres?ouvrir=bailleur).
 
 C'est, pour l'essentiel, tout. Il n'y a pas de clause LMNP, pas de régime de durée particulier,
 pas de préavis différent, pas de dépôt de garantie plafonné autrement.

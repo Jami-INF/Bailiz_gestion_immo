@@ -5,7 +5,9 @@ description: "DPE, plomb, gaz, électricité, risques, bruit, surface : lesquels
 chapeau: "Tous les diagnostics ne sont pas dus pour tous les logements. Voici lesquels vous concernent, et ce que coûte un oubli."
 misAJour: 2026-10-24
 outil: /bail-meuble/
-outilLibelle: Rédiger un bail meublé
+outilLibelle: Le bail meublé en détail
+app: /app/#/baux/nouveau
+appLibelle: Rédiger un bail meublé
 rang: 2
 ---
 

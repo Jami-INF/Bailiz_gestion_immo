@@ -5,7 +5,9 @@ description: "Les mentions imposées par le décret n°2016-382, le délai de di
 chapeau: "Un état des lieux mal formé ne vaut rien le jour où il sert. Voici ce que le décret impose, et les deux délais qu'on oublie."
 misAJour: 2026-10-24
 outil: /etat-des-lieux/
-outilLibelle: Faire un état des lieux
+outilLibelle: L'état des lieux en détail
+app: /app/#/edl/nouveau
+appLibelle: Faire un état des lieux
 rang: 5
 ---
 

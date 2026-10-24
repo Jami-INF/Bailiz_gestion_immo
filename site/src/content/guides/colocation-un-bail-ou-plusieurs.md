@@ -5,7 +5,9 @@ description: "Bail unique avec clause de solidarité ou baux individuels : ce qu
 chapeau: "La question se tranche avant la signature, parce qu'elle décide de ce qui se passe quand l'un des trois s'en va en février."
 misAJour: 2026-10-24
 outil: /bail-meuble/
-outilLibelle: Rédiger un bail meublé
+outilLibelle: Le bail meublé en détail
+app: /app/#/baux/nouveau
+appLibelle: Rédiger un bail meublé
 rang: 4
 ---
 

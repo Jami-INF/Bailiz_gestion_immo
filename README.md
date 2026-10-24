@@ -230,11 +230,13 @@ npm run images --prefix site # régénère og.png et les icônes
 - Rappel des 10 jours pour compléter l'EDL d'entrée, écran « Transmettre une copie ».
 
 ### Documents & sauvegarde
-- **Recherche et tri** sur les biens, les locataires et les baux (nom, adresse, référence,
-  locataire…), insensibles aux accents - « chamalieres » trouve « Chamalières ». La barre
-  n'apparaît qu'à partir de six fiches : à deux biens, elle n'occuperait que de la place.
-- Bibliothèque de tous les PDF générés, filtrable par bien / bail / type, numérotation
-  `TYPE-ANNEE-XXXX` (séquence remise à zéro chaque année).
+- **Recherche et tri** sur les quatre listes - biens, locataires, baux et états des lieux
+  (nom, adresse, référence, locataire, logement…), insensibles aux accents : « chamalieres »
+  trouve « Chamalières », « entree » trouve « Entrée ». La barre n'apparaît qu'à partir de six
+  fiches : à deux biens, elle n'occuperait que de la place. Les états des lieux y ajoutent un
+  filtre **brouillon / signé**, qui sépare ce qui reste à mener de ce qui est clos.
+- Bibliothèque de tous les PDF générés, **recherche** par référence, titre ou type et filtres
+  par bien / bail / type, numérotation `TYPE-ANNEE-XXXX` (séquence remise à zéro chaque année).
 - Export sauvegarde ZIP (data.json + photos + PDF) / import avec détection de conflits
   (« remplacer tout » ou « fusionner par id »). Rappel si la sauvegarde date de plus de 30 jours.
 - **Sauvegarde automatique « push ZIP »**, deux destinations cumulables, zéro serveur :
@@ -283,6 +285,9 @@ npm run images --prefix site # régénère og.png et les icônes
   fermeture manuelle.
 
 ### Tableau de bord
+- **Rédiger un bail** et **faire un état des lieux** en actions d'entête, sur l'écran vide comme
+  sur l'écran garni : les deux actions qui font l'application ne doivent pas disparaître dès la
+  première fiche enregistrée.
 - Biens avec statut loué/vacant, alertes (EDL d'entrée signé sans bail signé, dépôt à restituer
   avant l'échéance légale, stockage saturé, sauvegarde ancienne), échéancier.
 - **Reconduction tacite distinguée de la fin de plein droit** : un meublé d'un an se reconduit

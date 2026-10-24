@@ -5,7 +5,9 @@ description: "Préparer la visite, distinguer l'usure de la dégradation, noter 
 chapeau: "La sortie est le seul rendez-vous du bail où de l'argent change de main. Voici comment la mener pour qu'elle se termine sans bras de fer."
 misAJour: 2026-10-24
 outil: /depot-de-garantie/
-outilLibelle: Calculer le décompte du dépôt
+outilLibelle: Le dépôt de garantie en détail
+app: /app/#/edl/nouveau
+appLibelle: Faire l'état des lieux de sortie
 rang: 8
 ---
 

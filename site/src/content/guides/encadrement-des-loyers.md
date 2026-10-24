@@ -5,7 +5,9 @@ description: "Zone tendue et encadrement des loyers sont deux dispositifs distin
 chapeau: "Deux dispositifs portent des noms voisins et ne font pas la même chose. Celui qui vous concerne dépend de votre commune."
 misAJour: 2026-10-24
 outil: /bail-meuble/
-outilLibelle: Rédiger un bail meublé
+outilLibelle: Le bail meublé en détail
+app: /app/#/baux/nouveau
+appLibelle: Rédiger un bail meublé
 rang: 6
 ---
 

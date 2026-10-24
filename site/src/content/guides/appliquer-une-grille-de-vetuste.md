@@ -5,7 +5,9 @@ description: "Franchise, abattement, durée de vie, part résiduelle : le calcul
 chapeau: "La mécanique se comprend mieux en chiffres qu'en définitions. Trois cas, déroulés ligne à ligne."
 misAJour: 2026-10-24
 outil: /grille-de-vetuste/
-outilLibelle: Générer ma grille de vétusté
+outilLibelle: La grille de vétusté en détail
+app: /app/#/outils
+appLibelle: Imprimer ma grille de vétusté
 rang: 9
 ---
 
@@ -78,7 +80,7 @@ atteinte, donc 0. Le coefficient passe de 20 % à 0 sans jamais croiser 10 %.
 
 Le plancher ne devient utile que si vous **allongez une durée de vie** ou **réduisez un
 abattement** par rapport aux valeurs fournies. Il est là pour ces cas-là, et c'est une raison de
-plus de ne modifier la grille qu'en connaissance de cause.
+plus de [ne modifier la grille](/app/#/parametres?ouvrir=vetuste) qu'en connaissance de cause.
 
 ## Et si l'âge de l'élément est inconnu
 

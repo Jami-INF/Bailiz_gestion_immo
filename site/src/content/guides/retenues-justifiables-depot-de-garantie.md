@@ -5,7 +5,9 @@ description: "Réparations locatives, nettoyage, impayés, charges : ce que vous
 chapeau: "La frontière entre ce qui se retient et ce qui ne se retient pas n'est pas affaire d'appréciation : elle est écrite."
 misAJour: 2026-10-24
 outil: /depot-de-garantie/
-outilLibelle: Rédiger la lettre de restitution
+outilLibelle: Le dépôt de garantie en détail
+app: /app/#/outils
+appLibelle: Écrire la lettre de restitution
 rang: 10
 ---
 

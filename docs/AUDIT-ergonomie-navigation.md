@@ -491,3 +491,51 @@ quatre écrans touchés.
 
 `/baux/rapide` avait été supprimée dès le lot 1. Les trois lots de l'audit sont réalisés ; le
 critère 5 du §10 reste le seul non tenu, pour la raison donnée au §12.
+
+---
+
+## 15. Maillage guides → application (24 octobre 2026)
+
+Annoncé au §13 comme restant à faire. Le diagnostic y était d'ailleurs **trop sévère** : les dix
+guides menaient bien à un outil, par leur encart de fin et le champ obligatoire `outil` du
+schéma. Mais `outil` désigne la **page qui décrit** l'outil, pas l'outil. On lisait donc un
+article jusqu'au bout pour atterrir sur un argumentaire, et il fallait un clic de plus - et
+comprendre qu'il en fallait un - pour faire ce que l'article venait d'expliquer.
+
+### Ce qui a été fait
+
+Deux champs obligatoires de plus au schéma de la collection, `app` et `appLibelle`, le premier
+contraint à commencer par `/app/#/` : comme `outil`, ils sont imposés par le schéma plutôt que
+laissés à la discipline de chaque fichier. L'encart de fin porte désormais deux sorties, l'outil
+en bouton principal et la page de description en second.
+
+| Guide | Écran visé |
+|---|---|
+| Bail meublé, colocation, diagnostics, encadrement, LMNP | `#/baux/nouveau` |
+| État des lieux opposable, sortie sans litige | `#/edl/nouveau` |
+| Grille de vétusté, pièces du dossier, retenues sur le dépôt | `#/outils` |
+
+Trois guides nomment en outre un écran précis dans leur texte : ces mentions sont devenues des
+liens profonds - `?ouvrir=bailleur` pour le SIRET du bailleur (LMNP), `?ouvrir=fiche-visite`
+pour le modèle de fiche (pièces du dossier), `?ouvrir=vetuste` pour la grille (vétusté). Le test
+de garde du lot 2 couvre maintenant les trois identifiants.
+
+### Un effet de bord qu'il a fallu corriger
+
+Placés côte à côte, les deux boutons disaient presque la même chose : « Imprimer ma grille de
+vétusté » et « Générer ma grille de vétusté ». Les dix `outilLibelle` étaient écrits pour une
+phrase à un seul lien et promettaient tous une action. Ils **nomment** désormais la page
+(« La grille de vétusté en détail »), ce qui vaut aussi pour l'index des guides, où le libellé
+suit la date de mise à jour.
+
+### Ce qui n'a pas été touché
+
+Les dates `misAJour`. Ajouter un lien n'est pas réviser un contenu juridique, et c'est cette
+date qu'un lecteur regarde pour décider s'il peut faire confiance à la page ; la remonter pour
+dix liens aurait été un faux signal, repris en `lastmod` dans le sitemap.
+
+### Vérifications
+
+Build Astro : 24 pages. **Les dix guides atteignent l'application**, trois d'entre eux par deux
+chemins (lien profond dans le texte, action en fin d'article). Aucun lien interne cassé.
+Encart et liens en contexte relus à 390 px. Côté application, 662 tests passent.
