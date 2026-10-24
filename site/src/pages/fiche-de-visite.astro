@@ -30,7 +30,7 @@ const FAQ = [
   },
   {
     q: 'Puis-je modifier les textes ?',
-    r: "Tout se modifie dans les paramètres : la présentation, les conditions, les modalités de candidature, les mentions de bas de page et la liste des pièces. Un bouton remet le modèle par défaut si vous allez trop loin.",
+    r: "Tout se modifie dans les paramètres, rubrique « fiche de visite » : la présentation, les conditions, les modalités de candidature, les mentions de bas de page et la liste des pièces. Un bouton remet le modèle par défaut si vous allez trop loin.",
   },
 ];
 
@@ -55,11 +55,14 @@ const schema = {
         justes, pas avec le souvenir de ce que vous avez dit.
       </p>
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/biens">Ouvrir un logement</a>
-        <a class="bouton bouton--secondaire" href="/app/#/parametres">Modifier le modèle</a>
+        <a class="bouton bouton--principal" href="/app/#/outils">Produire une fiche</a>
+        <a class="bouton bouton--secondaire" href="/app/#/parametres?ouvrir=fiche-visite">
+          Modifier le modèle
+        </a>
       </div>
       <p class="mention">
-        Gratuit, sans compte. La fiche se produit depuis la fiche d'un logement enregistré.
+        Gratuit, sans compte. La fiche décrit un logement : l'outil propose ceux que vous avez
+        enregistrés, et vous mène à la saisie s'il n'y en a aucun.
       </p>
     </div>
   </section>
@@ -168,7 +171,7 @@ const schema = {
         il est saisi une fois et resservira à chaque relocation.
       </p>
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/biens">Ouvrir un logement</a>
+        <a class="bouton bouton--principal" href="/app/#/outils">Produire une fiche</a>
         <a class="bouton bouton--secondaire" href="/app/#/baux/nouveau">Rédiger un bail</a>
       </div>
     </div>

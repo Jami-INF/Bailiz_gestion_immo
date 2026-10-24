@@ -15,6 +15,7 @@ import { EdlTerrainPage } from '@/features/edl/EdlTerrainPage';
 import { EdlSignaturePage } from '@/features/edl/EdlSignaturePage';
 import { EdlSynthesePage } from '@/features/edl/EdlSynthesePage';
 import { DocumentsPage } from '@/features/documents/DocumentsPage';
+import { OutilsPage } from '@/features/outils/OutilsPage';
 import { ParametresPage } from '@/features/parametres/ParametresPage';
 import { MentionsLegalesPage } from '@/features/legal/MentionsLegalesPage';
 
@@ -32,7 +33,6 @@ export default function App() {
             <Route path="/locataires" element={<LocatairesPage />} />
             <Route path="/baux" element={<BauxPage />} />
             <Route path="/baux/nouveau" element={<BailRapidePage />} />
-            <Route path="/baux/rapide" element={<BailRapidePage />} />
             <Route path="/baux/:id" element={<BailDetailPage />} />
             <Route path="/baux/:id/modifier" element={<BailRapidePage />} />
             <Route path="/edl" element={<EdlListePage />} />
@@ -40,6 +40,7 @@ export default function App() {
             <Route path="/edl/:id" element={<EdlTerrainPage />} />
             <Route path="/edl/:id/signature" element={<EdlSignaturePage />} />
             <Route path="/edl/:id/synthese" element={<EdlSynthesePage />} />
+            <Route path="/outils" element={<OutilsPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/parametres" element={<ParametresPage />} />
             <Route path="/mentions-legales" element={<MentionsLegalesPage />} />

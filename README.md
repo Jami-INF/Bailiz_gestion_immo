@@ -178,6 +178,10 @@ npm run images --prefix site # régénère og.png et les icônes
   cautionnement** (art. 22-1, rempli avec ce que le bail connaît, le reste à compléter à la
   main), grille de vétusté, courrier de révision IRL, lettre de restitution du dépôt.
 - Calculateurs : prorata du premier loyer, révision IRL avec courrier PDF.
+- Les mêmes documents sont atteignables **sans bail** depuis la page **Outils** : l'acte de
+  cautionnement en modèle vierge, le courrier de révision et la lettre de restitution par choix
+  de la fiche concernée. Un contrat signé en agence ne doit pas obliger à ressaisir un bail
+  entier pour obtenir une lettre d'une page.
 
 ### États des lieux - valant inventaire (cœur de l'app, optimisé iPad)
 - **Aucun bail n'est nécessaire** : l'état des lieux est un acte autonome (art. 3-2 de la loi du
@@ -266,7 +270,7 @@ npm run images --prefix site # régénère og.png et les icônes
   chaque collection. Une archive écrite par une version plus récente est refusée avec la
   marche à suivre, et rien n'est modifié - plutôt que d'échouer à mi-parcours après avoir
   vidé les tables.
-- **Vérificateur d'empreinte** (Paramètres) : déposez un PDF signé, l'application recalcule son
+- **Vérificateur d'empreinte** (Outils) : déposez un PDF signé, l'application recalcule son
   SHA-256 et dit à quel document il correspond - ou signale qu'il a été modifié. Les versions
   rectifiées sont reconnues comme authentiques mais remplacées. Une empreinte lue sur un
   exemplaire papier peut être saisie à la main. Le fichier ne quitte pas l'appareil.
@@ -294,12 +298,13 @@ npm run images --prefix site # régénère og.png et les icônes
 ```
 src/
   components/ui/        design system (Button, Input, Select, Modal, Toast, Badge, Section…)
-  components/           AppLayout (nav repliable, indicateurs hors-ligne), SignatureFlow
+  components/           AppLayout (nav repliable, feuille « Plus », indicateurs hors-ligne), SignatureFlow
   features/
     biens/              fiches, éditeur de pièces, création rapide, photo, fiche de visite
     locataires/         fiches + formulaire partagé (LocataireFormModal)
     baux/               formulaire unifié (+ aperçu), fiche bail, annexes
     edl/                création (avec ou sans bail), mode terrain, signature, synthèse
+    outils/             boîte à outils : sélecteur de fiche, acte de cautionnement
     documents/  dashboard/  parametres/  legal/
   lib/
     db.ts               schéma Dexie + séquences de références

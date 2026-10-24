@@ -17,6 +17,8 @@ import {
   PanelLeftOpen,
   RefreshCw,
   AlertTriangle,
+  Wrench,
+  MoreHorizontal,
 } from 'lucide-react';
 import { useEnLigne, useModeAutonome, usePersistanceStockage } from '@/hooks/useStatuts';
 import { appliquerMiseAJour, miseAJourDisponible, sAbonnerMiseAJour } from '@/lib/majApp';
@@ -49,16 +51,44 @@ import {
   lancerConnexionParRedirection,
 } from '@/lib/gdrive';
 import { LIEN_LINKEDIN, LIEN_REPO } from '@/lib/liens';
-import { Button, Logo, useToast } from '@/components/ui';
+import { Button, Logo, Modal, useToast } from '@/components/ui';
 import { ParcoursAccueil } from '@/features/accueil/ParcoursAccueil';
 import { LimiteErreur } from './LimiteErreur';
 
-const nav = [
-  { to: '/', label: 'Tableau de bord', icon: LayoutDashboard },
+interface Entree {
+  to: string;
+  label: string;
+  /** Libellé de la barre basse, quand le complet n'y tient pas sur une ligne. */
+  court?: string;
+  icon: typeof LayoutDashboard;
+}
+
+/**
+ * Les quatre entrées du travail courant, seules présentes dans la barre basse.
+ *
+ * À sept entrées, cette barre mesurait **390 px d'onglets pour 390 px
+ * disponibles** sur un téléphone : saturée au pixel près, « États des lieux »
+ * replié sur trois lignes de 10 px, et 86 px de hauteur prélevés en permanence
+ * sur un écran de 844. Il n'y avait donc pas de huitième place à prendre pour
+ * les outils - il fallait d'abord en rendre.
+ */
+const NAV_PRINCIPAL: Entree[] = [
+  { to: '/', label: 'Tableau de bord', court: 'Accueil', icon: LayoutDashboard },
   { to: '/biens', label: 'Biens', icon: Building2 },
-  { to: '/locataires', label: 'Locataires', icon: Users },
   { to: '/baux', label: 'Baux', icon: FileText },
-  { to: '/edl', label: 'États des lieux', icon: ClipboardList },
+  { to: '/edl', label: 'États des lieux', court: 'EDL', icon: ClipboardList },
+];
+
+/**
+ * Ce qui se consulte depuis un bureau, et passe par « Plus » sur téléphone.
+ *
+ * Locataires y descend : c'est l'écran dont le formulaire de bail dispense déjà
+ * - il sait créer un locataire en cours de route - et le seul des quatre qu'on
+ * ouvre rarement pour lui-même.
+ */
+const NAV_SECONDAIRE: Entree[] = [
+  { to: '/locataires', label: 'Locataires', icon: Users },
+  { to: '/outils', label: 'Outils', icon: Wrench },
   { to: '/documents', label: 'Documents', icon: FolderOpen },
   { to: '/parametres', label: 'Paramètres', icon: Settings },
 ];
@@ -359,6 +389,113 @@ export function BandeauMiseAJour({ masque }: { masque: boolean }) {
   );
 }
 
+/**
+ * Une entrée de navigation, barre latérale et barre basse confondues.
+ *
+ * `secondaire` ne retire pas le lien du document : il le masque **en CSS** sous
+ * `sm:`. Rendre deux listes selon la largeur aurait demandé de lire le point de
+ * rupture en JavaScript - une mesure qui n'existe ni au premier rendu, ni dans
+ * jsdom, et qui aurait fait dépendre la navigation d'un `matchMedia`.
+ */
+function LienNav({
+  entree: { to, label, court, icon: Icon },
+  navRepliee,
+  secondaire,
+}: {
+  entree: Entree;
+  navRepliee: boolean;
+  secondaire?: boolean;
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      title={navRepliee ? label : undefined}
+      className={({ isActive }) =>
+        `min-h-touch flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium sm:flex-row sm:gap-3 sm:text-sm ${
+          secondaire ? 'hidden sm:flex' : 'flex'
+        } ${navRepliee ? 'px-2 sm:justify-center sm:px-0' : 'px-2 sm:px-3'} ${
+          // L'élément actif porte la couleur de marque : c'est le
+          // seul repère de position sur une barre réduite à des
+          // icônes, et un gris de plus n'y suffisait pas.
+          isActive
+            ? 'text-brand-700 sm:bg-brand-50'
+            : 'text-accent-500 hover:text-accent-800 sm:hover:bg-accent-50'
+        }`
+      }
+    >
+      <Icon size={20} className="shrink-0" />
+      {/* Le libellé court n'existe que dans la barre basse : « Accueil » sur un
+          onglet de 78 px, « Tableau de bord » dès qu'il y a la place. */}
+      <span className="sm:hidden">{court ?? label}</span>
+      {!navRepliee && <span className="hidden sm:block">{label}</span>}
+    </NavLink>
+  );
+}
+
+/**
+ * Feuille « Plus » : le reste de la navigation sur téléphone, et l'état de mise
+ * à l'abri des données.
+ *
+ * Cet état n'était affiché nulle part sur mobile - `SauvegardeStatut` et
+ * l'indicateur de persistance vivaient dans un bloc `hidden sm:flex`. Il
+ * manquait donc précisément sur la tablette de terrain, l'appareil le plus
+ * exposé à la perte et le seul qu'on emporte. Le ranger ici ne coûte pas une
+ * ligne de barre.
+ */
+function FeuillePlus({
+  open,
+  onClose,
+  persiste,
+  enLigne,
+}: {
+  open: boolean;
+  onClose: () => void;
+  persiste: boolean | undefined;
+  enLigne: boolean;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title="Plus">
+      <nav className="space-y-1">
+        {NAV_SECONDAIRE.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex min-h-touch items-center gap-3 rounded-lg px-3 text-sm font-medium ${
+                isActive ? 'bg-brand-50 text-brand-700' : 'text-accent-700 hover:bg-accent-50'
+              }`
+            }
+          >
+            <Icon size={18} className="shrink-0" />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="mt-4 flex flex-col gap-2 border-t border-accent-200 pt-4 text-xs text-accent-500">
+        <SauvegardeStatut />
+        <span className="flex items-center gap-1.5">
+          {persiste ? (
+            <>
+              <ShieldCheck size={14} className="text-green-600" /> Stockage persistant
+            </>
+          ) : (
+            <>
+              <ShieldAlert size={14} className="text-amber-600" /> Stockage non garanti
+            </>
+          )}
+        </span>
+        {!enLigne && (
+          <span className="flex items-center gap-1.5 text-amber-700">
+            <WifiOff size={14} /> Mode hors-ligne
+          </span>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 export function AppLayout() {
   const enLigne = useEnLigne();
   const persiste = usePersistanceStockage();
@@ -449,6 +586,15 @@ export function AppLayout() {
    * Navigation latérale repliée (icônes seules) : choix mémorisé, et replié par
    * défaut sur les largeurs de type tablette, où la place gagnée compte.
    */
+  /*
+   * Feuille « Plus » : état local et non une route, pour qu'un retour arrière
+   * ramène à l'écran précédent et non à la navigation.
+   */
+  const [plusOuvert, setPlusOuvert] = useState(false);
+  const secondaireActif = NAV_SECONDAIRE.some(
+    (e) => location.pathname === e.to || location.pathname.startsWith(`${e.to}/`),
+  );
+
   const [navRepliee, setNavRepliee] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const enr = window.localStorage.getItem('bailiz.navRepliee');
@@ -514,29 +660,27 @@ export function AppLayout() {
             </ElementMarque>
           </div>
           <nav className={`flex justify-around sm:flex-col sm:gap-1 ${navRepliee ? 'sm:px-2' : 'sm:px-3'}`}>
-            {nav.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
-                title={navRepliee ? label : undefined}
-                className={({ isActive }) =>
-                  `flex min-h-touch flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium sm:flex-row sm:gap-3 sm:text-sm ${
-                    navRepliee ? 'px-2 sm:justify-center sm:px-0' : 'px-2 sm:px-3'
-                  } ${
-                    // L'élément actif porte la couleur de marque : c'est le
-                    // seul repère de position sur une barre réduite à des
-                    // icônes, et un gris de plus n'y suffisait pas.
-                    isActive
-                      ? 'text-brand-700 sm:bg-brand-50'
-                      : 'text-accent-500 hover:text-accent-800 sm:hover:bg-accent-50'
-                  }`
-                }
-              >
-                <Icon size={20} className="shrink-0" />
-                <span className={`max-[380px]:hidden ${navRepliee ? 'sm:hidden' : 'sm:block'}`}>{label}</span>
-              </NavLink>
+            {NAV_PRINCIPAL.map((e) => (
+              <LienNav key={e.to} entree={e} navRepliee={navRepliee} />
             ))}
+            {/* Les quatre entrées de bureau : dans la barre latérale seulement,
+                derrière « Plus » sur téléphone. Le filet sépare le travail
+                courant de ce qui l'outille. */}
+            <span className="my-2 hidden border-t border-accent-200 sm:block" aria-hidden />
+            {NAV_SECONDAIRE.map((e) => (
+              <LienNav key={e.to} entree={e} navRepliee={navRepliee} secondaire />
+            ))}
+            <button
+              type="button"
+              onClick={() => setPlusOuvert(true)}
+              aria-haspopup="dialog"
+              className={`flex min-h-touch flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium sm:hidden ${
+                secondaireActif ? 'text-brand-700' : 'text-accent-500'
+              }`}
+            >
+              <MoreHorizontal size={20} className="shrink-0" />
+              <span>Plus</span>
+            </button>
           </nav>
           <div className="hidden grow sm:block" />
           <div className="hidden border-t border-accent-200 sm:block">
@@ -628,6 +772,12 @@ export function AppLayout() {
           )}
         </div>
       </main>
+      <FeuillePlus
+        open={plusOuvert}
+        onClose={() => setPlusOuvert(false)}
+        persiste={persiste}
+        enLigne={enLigne}
+      />
       <ParcoursAccueil />
     </div>
   );

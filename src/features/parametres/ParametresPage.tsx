@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import {
-  FileText,
   HardDriveDownload,
   HardDriveUpload,
   Plus,
@@ -12,9 +12,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ecrireParametres, lireParametres } from '@/lib/db';
-import { genererEtArchiver } from '@/lib/pdf/generer';
-import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
-import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import type { LigneVetuste } from '@/types';
 import {
   detecterConflits,
@@ -30,12 +27,10 @@ import { GRILLE_VETUSTE_DEFAUT } from '@/lib/defauts';
 import { formatOctets } from '@/lib/calculs';
 import { usePersistanceStockage, useQuotaStockage } from '@/hooks/useStatuts';
 import { BailleurPanel } from './BailleurPanel';
-import { EmpreintePanel } from './EmpreintePanel';
 import { SauvegardeAutoPanel, SauvegardeGDrivePanel } from './SauvegardeAutoPanels';
 import { FicheVisitePanel } from './FicheVisitePanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
 import { DISCLAIMER_JURIDIQUE } from '@/lib/juridique';
-import { useActionUnique } from '@/hooks/useActionUnique';
 import { CarteDonnees } from '@/features/accueil/CarteDonnees';
 import {
   Button,
@@ -54,7 +49,6 @@ export function ParametresPage() {
   const parametres = useLiveQuery(() => lireParametres());
   const persiste = usePersistanceStockage();
   const quota = useQuotaStockage();
-  const generation = useActionUnique();
   const fichierRef = useRef<HTMLInputElement>(null);
   const [importEnAttente, setImportEnAttente] = useState<{
     zip: Awaited<ReturnType<typeof lireSauvegarde>>['zip'];
@@ -104,26 +98,6 @@ export function ParametresPage() {
     }
   };
 
-  const genererGrillePdf = async () => {
-    await genererEtArchiver({
-      type: 'grille_vetuste',
-      titre: 'Grille de vétusté (avec mode d’emploi)',
-      element: (reference) => (
-        <GrilleVetustePdf reference={reference} grille={parametres.grilleVetuste} />
-      ),
-    });
-    toast('success', 'Grille de vétusté générée (PDF).');
-  };
-
-  const genererFicheAide = async () => {
-    await genererEtArchiver({
-      type: 'fiche_aide',
-      titre: 'Fiche d’aide juridique du bailleur meublé',
-      element: (reference) => <FicheAidePdf reference={reference} />,
-    });
-    toast('success', "Fiche d'aide juridique générée (PDF).");
-  };
-
   const importer = async (mode: 'remplacer' | 'fusionner') => {
     if (!importEnAttente) return;
     const resume = await importerSauvegarde(importEnAttente.zip, importEnAttente.data, mode);
@@ -154,67 +128,13 @@ export function ParametresPage() {
             ici, c'est où vont les données - pas comment elles y vont. */}
         <CarteDonnees avecLien={false} />
 
+        <h2 className="mt-6 border-b border-accent-200 pb-1 text-xs font-semibold uppercase tracking-wide text-accent-500">
+          Vos documents
+        </h2>
+
         <BailleurPanel />
 
-        <CarteRepliable
-          identifiant="sauvegarde"
-          titre="Archive complète : export et restauration"
-          icone={<HardDriveDownload size={18} />}
-          resume={
-            parametres.derniereSauvegarde
-              ? `Dernier export le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')}`
-              : 'Aucun export manuel effectué'
-          }
-        >
-          <p className="mb-1 text-sm text-accent-600">
-            Toutes les données restent sur cet appareil. Exportez régulièrement une archive
-            complète (fichier ZIP : données + photos + PDF), notamment après chaque état des
-            lieux signé.
-          </p>
-          <p className="mb-3 text-xs text-accent-500">
-            Dernière archive :{' '}
-            {parametres.derniereSauvegarde
-              ? format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')
-              : 'jamais'}{' '}
-            · Stockage persistant :{' '}
-            {persiste === undefined ? '…' : persiste ? 'accordé par le navigateur' : 'non garanti - exportez régulièrement'}
-            {quota && (
-              <>
-                {' '}
-                · Espace occupé : {formatOctets(quota.utilise)} sur {formatOctets(quota.quota)} (
-                {quota.pct} %)
-              </>
-            )}
-          </p>
-          {quota?.critique && (
-            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              Le stockage de ce navigateur est occupé à {quota.pct} %. Au-delà, il peut refuser
-              d'enregistrer une photo ou un PDF - en plein état des lieux. Exportez une archive,
-              puis libérez de la place (états des lieux anciens, documents archivés).
-            </p>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={exporter}>
-              <HardDriveDownload size={16} /> Exporter l'archive (.zip)
-            </Button>
-            <Button variant="secondary" onClick={() => fichierRef.current?.click()}>
-              <HardDriveUpload size={16} /> Importer une archive
-            </Button>
-            <input
-              ref={fichierRef}
-              type="file"
-              accept=".zip"
-              className="hidden"
-              onChange={(e) => void choisirFichier(e.target.files?.[0] ?? null)}
-            />
-          </div>
-        </CarteRepliable>
-
-        <SauvegardeAutoPanel />
-
-        <SauvegardeGDrivePanel />
-
-
+        <ClausesBailPanel />
 
         <CarteRepliable
           identifiant="vetuste"
@@ -301,43 +221,81 @@ export function ParametresPage() {
             <Button variant="ghost" size="sm" onClick={() => majGrille(() => GRILLE_VETUSTE_DEFAUT)}>
               Réinitialiser la grille par défaut
             </Button>
-            <Button
-              size="sm"
-              onClick={() => generation.lancer(genererGrillePdf)}
-              disabled={generation.enCours}
-            >
-              <Scale size={14} /> Télécharger la grille (PDF, avec mode d'emploi)
-            </Button>
           </div>
           <p className="mt-2 text-xs text-accent-500">
-            La grille est aussi générée automatiquement comme annexe à chaque création de bail
-            (art. 4 du décret n°2016-382 : elle doit être convenue dès la signature).
+            La grille est annexée d'office à chaque création de bail (art. 4 du décret
+            n°2016-382 : elle doit être convenue dès la signature). Pour l'imprimer seule, avec
+            son mode d'emploi :{' '}
+            <Link to="/outils" className="font-medium text-brand-700 hover:underline">
+              boîte à outils
+            </Link>
+            .
           </p>
         </CarteRepliable>
-
-        <ClausesBailPanel />
 
         <FicheVisitePanel />
 
+        <h2 className="mt-6 border-b border-accent-200 pb-1 text-xs font-semibold uppercase tracking-wide text-accent-500">
+          Vos données
+        </h2>
+
         <CarteRepliable
-          identifiant="fiche-aide"
-          titre="Fiche d'aide juridique"
-          icone={<FileText size={18} />}
-          resume="Mémo PDF : préavis, congés, impayés, dépôt de garantie"
+          identifiant="sauvegarde"
+          titre="Archive complète : export et restauration"
+          icone={<HardDriveDownload size={18} />}
+          resume={
+            parametres.derniereSauvegarde
+              ? `Dernier export le ${format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')}`
+              : 'Aucun export manuel effectué'
+          }
         >
-          <p className="mb-3 text-sm text-accent-600">
-            Mémo PDF à conserver avec vos dossiers : préavis et congés (1 mois locataire, 3
-            mois bailleur motivé), formes de notification valables (LRAR, commissaire de
-            justice, remise en main propre), marche à suivre en cas d'impayés (commandement de
-            payer, 6 semaines, trêve hivernale), délais du dépôt de garantie, prescription des
-            loyers, interlocuteurs en cas de litige (ADIL, commission de conciliation).
+          <p className="mb-1 text-sm text-accent-600">
+            Toutes les données restent sur cet appareil. Exportez régulièrement une archive
+            complète (fichier ZIP : données + photos + PDF), notamment après chaque état des
+            lieux signé.
           </p>
-          <Button onClick={() => generation.lancer(genererFicheAide)} disabled={generation.enCours}>
-            <FileText size={16} /> Télécharger la fiche d'aide (PDF)
-          </Button>
+          <p className="mb-3 text-xs text-accent-500">
+            Dernière archive :{' '}
+            {parametres.derniereSauvegarde
+              ? format(new Date(parametres.derniereSauvegarde), 'dd/MM/yyyy à HH:mm')
+              : 'jamais'}{' '}
+            · Stockage persistant :{' '}
+            {persiste === undefined ? '…' : persiste ? 'accordé par le navigateur' : 'non garanti - exportez régulièrement'}
+            {quota && (
+              <>
+                {' '}
+                · Espace occupé : {formatOctets(quota.utilise)} sur {formatOctets(quota.quota)} (
+                {quota.pct} %)
+              </>
+            )}
+          </p>
+          {quota?.critique && (
+            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Le stockage de ce navigateur est occupé à {quota.pct} %. Au-delà, il peut refuser
+              d'enregistrer une photo ou un PDF - en plein état des lieux. Exportez une archive,
+              puis libérez de la place (états des lieux anciens, documents archivés).
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={exporter}>
+              <HardDriveDownload size={16} /> Exporter l'archive (.zip)
+            </Button>
+            <Button variant="secondary" onClick={() => fichierRef.current?.click()}>
+              <HardDriveUpload size={16} /> Importer une archive
+            </Button>
+            <input
+              ref={fichierRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={(e) => void choisirFichier(e.target.files?.[0] ?? null)}
+            />
+          </div>
         </CarteRepliable>
 
-        <EmpreintePanel />
+        <SauvegardeAutoPanel />
+
+        <SauvegardeGDrivePanel />
 
         <CarteRepliable
           identifiant="rgpd"
@@ -361,6 +319,10 @@ export function ParametresPage() {
             <Trash2 size={16} /> Supprimer toutes mes données
           </Button>
         </CarteRepliable>
+
+        <h2 className="mt-6 border-b border-accent-200 pb-1 text-xs font-semibold uppercase tracking-wide text-accent-500">
+          L'application
+        </h2>
 
         <CarteRepliable
           identifiant="avertissement"

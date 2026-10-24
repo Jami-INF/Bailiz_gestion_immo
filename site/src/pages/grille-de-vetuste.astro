@@ -36,7 +36,7 @@ const FAQ = [
   },
   {
     q: 'Puis-je modifier les postes et les durées ?',
-    r: "Oui, chaque ligne se modifie dans les paramètres : le poste, sa durée de vie, la franchise et l'abattement annuel. Les douze postes fournis par défaut s'inspirent des grilles conventionnelles usuelles ; ce sont des valeurs de départ, pas une norme.",
+    r: "Oui, chaque ligne se modifie dans les paramètres, rubrique « grille de vétusté » : le poste, sa durée de vie, la franchise et l'abattement annuel. Les douze postes fournis par défaut s'inspirent des grilles conventionnelles usuelles ; ce sont des valeurs de départ, pas une norme.",
   },
   {
     q: 'À quel moment faut-il la remettre au locataire ?',
@@ -69,7 +69,10 @@ const schema = {
         règle du calcul soit connue avant que l'argent soit en jeu.
       </p>
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/parametres">Ouvrir ma grille</a>
+        <a class="bouton bouton--principal" href="/app/#/outils">Imprimer la grille</a>
+        <a class="bouton bouton--secondaire" href="/app/#/parametres?ouvrir=vetuste">
+          Modifier mes postes
+        </a>
       </div>
       <p class="mention">Gratuit, sans compte. Douze postes fournis, tous modifiables.</p>
     </div>
@@ -222,7 +225,7 @@ const schema = {
         document, et c'est ce qui lui donne sa force.
       </p>
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/parametres">Ouvrir ma grille</a>
+        <a class="bouton bouton--principal" href="/app/#/outils">Imprimer la grille</a>
         <a class="bouton bouton--secondaire" href="/app/#/baux/nouveau">Rédiger un bail</a>
       </div>
     </div>

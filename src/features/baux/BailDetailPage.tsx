@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
 import {
@@ -31,9 +31,7 @@ import { BailPdf } from '@/lib/pdf/BailPdf';
 import { CourrierIrlPdf } from '@/lib/pdf/CourrierIrlPdf';
 import { FicheAidePdf } from '@/lib/pdf/FicheAidePdf';
 import { GrilleVetustePdf } from '@/lib/pdf/GrilleVetustePdf';
-import { ActeCautionnementPdf } from '@/lib/pdf/ActeCautionnementPdf';
-import { ouvrirBlob } from '@/lib/backup';
-import { formatAdresse } from '@/lib/adresse';
+import { ouvrirActeCautionnement } from '@/features/outils/acteCautionnement';
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, useToast } from '@/components/ui';
 import { useActionUnique } from '@/hooks/useActionUnique';
 import { STATUT_BAIL_UI } from './BauxPage';
@@ -109,7 +107,17 @@ export function BailDetailPage() {
   );
   const edls = useLiveQuery(() => (id ? db.edls.where('bailId').equals(id).toArray() : []), [id]);
   const parametres = useLiveQuery(() => lireParametres());
-  const [modaleIrl, setModaleIrl] = useState(false);
+  /*
+   * `?outil=irl` ouvre le calculateur d'emblée : c'est ce que vise la boîte à
+   * outils, où l'on a déjà choisi « courrier de révision » puis le bail. Y
+   * arriver sur la fiche complète, à charge de retrouver le bouton dans
+   * « Documents utiles », redemanderait la décision qu'on vient de prendre.
+   *
+   * Lu une seule fois, à l'ouverture : laisser le paramètre piloter la modale
+   * la rendrait infermable.
+   */
+  const [parametresUrl] = useSearchParams();
+  const [modaleIrl, setModaleIrl] = useState(() => parametresUrl.get('outil') === 'irl');
   /*
    * Un seul document à la fois : tous ces boutons tirent une référence et
    * archivent un PDF, et deux générations lancées coup sur coup produisaient
@@ -242,31 +250,12 @@ export function BailDetailPage() {
   };
 
   /**
-   * Acte de cautionnement pré-rempli depuis ce bail (premier locataire pourvu
-   * d'une caution personne physique) ; les données manquantes restent à
-   * compléter à la main. Simplement téléchargé : il n'a pas vocation à être
-   * archivé tant qu'il n'est pas signé.
+   * Acte de cautionnement pré-rempli depuis ce bail. Le pré-remplissage et le
+   * choix de la caution vivent dans `ouvrirActeCautionnement`, partagé avec la
+   * boîte à outils : le même document ne doit pas être fabriqué de deux façons.
    */
-  const telechargerActeCautionnement = async () => {
-    const avecCaution = locataires.find((l) => l.garant && l.garant.type !== 'visale');
-    const cible = avecCaution ?? locataires[0];
-    const adresse = formatAdresse(bien.adresse);
-    const blob = await rendrePdf(
-      <ActeCautionnementPdf
-        bailleur={parametres.bailleur}
-        garant={avecCaution?.garant}
-        locataireNom={cible ? `${cible.prenom} ${cible.nom}`.trim() : undefined}
-        bienAdresse={adresse || undefined}
-        loyerHC={bail.loyerHC}
-        charges={bail.charges.montant}
-        typeBailLabel={TYPE_BAIL_LABELS[bail.typeBail]}
-        dureeMois={bail.dureeMois}
-      />,
-    );
-    const g = avecCaution?.garant;
-    const nomGarant = g ? `${g.prenom ?? ''} ${g.nom ?? ''}`.trim() : '';
-    ouvrirBlob(blob, `Acte de cautionnement${nomGarant ? ` - ${nomGarant}` : ''}.pdf`);
-  };
+  const telechargerActeCautionnement = () =>
+    ouvrirActeCautionnement({ bail, bien, locataires });
 
   /*
    * Depuis la fiche d'un bail, tout le contexte est connu : la création passe

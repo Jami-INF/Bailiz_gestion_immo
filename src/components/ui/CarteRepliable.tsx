@@ -1,4 +1,5 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { Card } from './Layout';
 
@@ -39,7 +40,23 @@ export function CarteRepliable({
   children: ReactNode;
 }) {
   const cle = `bailiz.replie.${identifiant}`;
+  /*
+   * `?ouvrir=<identifiant>` désigne une carte depuis l'extérieur de l'écran.
+   *
+   * Sans cela, la page n'offrait **aucun moyen de pointer un panneau** : les
+   * pages outils du site vitrine renvoyaient en haut d'une liste de cartes
+   * fermées, à charge pour le lecteur de retrouver celle qu'on venait de lui
+   * décrire. Et comme le contenu fermé n'est pas monté, la recherche du
+   * navigateur ne le rattrapait pas non plus.
+   *
+   * La lecture se fait ici plutôt que chez les appelants : la carte connaît
+   * déjà son identifiant, et les onze panneaux vivent dans six fichiers - les
+   * câbler un par un aurait coûté six fois la même ligne.
+   */
+  const [parametresUrl] = useSearchParams();
+  const vise = parametresUrl.get('ouvrir') === identifiant;
   const [ouvert, setOuvert] = useState<boolean>(() => {
+    if (vise) return true;
     try {
       const enregistre = localStorage.getItem(cle);
       return enregistre === null ? defautOuvert : enregistre === '1';
@@ -48,6 +65,7 @@ export function CarteRepliable({
     }
   });
   const idContenu = useId();
+  const carte = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -57,41 +75,52 @@ export function CarteRepliable({
     }
   }, [cle, ouvert]);
 
+  /*
+   * Ouvrir ne suffit pas : la carte visée est souvent sous la ligne de
+   * flottaison, et l'on arrive alors sur une page d'apparence inchangée.
+   * `scrollIntoView` n'existe pas dans jsdom, d'où l'appel optionnel.
+   */
+  useEffect(() => {
+    if (vise) carte.current?.scrollIntoView?.({ block: 'start' });
+  }, [vise]);
+
   return (
-    <Card className={ouvert ? '' : 'py-3'}>
-      <button
-        type="button"
-        onClick={() => setOuvert((v) => !v)}
-        aria-expanded={ouvert}
-        aria-controls={idContenu}
-        className="flex min-h-touch w-full items-center gap-3 text-left"
-      >
-        <ChevronDown
-          size={18}
-          aria-hidden
-          className={`shrink-0 text-accent-500 transition-transform ${ouvert ? '' : '-rotate-90'}`}
-        />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 font-semibold text-accent-900">
-            {icone}
-            {titre}
-          </span>
-          {!ouvert && resume && (
-            <span
-              className={`mt-0.5 block truncate text-sm ${
-                resumeAlerte ? 'text-amber-700' : 'text-accent-500'
-              }`}
-            >
-              {resume}
+    <div ref={carte}>
+      <Card className={ouvert ? '' : 'py-3'}>
+        <button
+          type="button"
+          onClick={() => setOuvert((v) => !v)}
+          aria-expanded={ouvert}
+          aria-controls={idContenu}
+          className="flex min-h-touch w-full items-center gap-3 text-left"
+        >
+          <ChevronDown
+            size={18}
+            aria-hidden
+            className={`shrink-0 text-accent-500 transition-transform ${ouvert ? '' : '-rotate-90'}`}
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 font-semibold text-accent-900">
+              {icone}
+              {titre}
             </span>
-          )}
-        </span>
-      </button>
-      {ouvert && (
-        <div id={idContenu} className="mt-4">
-          {children}
-        </div>
-      )}
-    </Card>
+            {!ouvert && resume && (
+              <span
+                className={`mt-0.5 block truncate text-sm ${
+                  resumeAlerte ? 'text-amber-700' : 'text-accent-500'
+                }`}
+              >
+                {resume}
+              </span>
+            )}
+          </span>
+        </button>
+        {ouvert && (
+          <div id={idContenu} className="mt-4">
+            {children}
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }

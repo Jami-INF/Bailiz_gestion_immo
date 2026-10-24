@@ -1,8 +1,13 @@
 ---
 /*
- * Page outil, gabarit CDC §6. Le document existe déjà dans l'application, émis
- * depuis le formulaire de bail et joint à la fiche de visite quand le candidat
- * se présente avec un garant.
+ * Page outil, gabarit CDC §6. Le document a sa propre entrée dans la boîte à
+ * outils de l'application - en modèle vierge ou pré-rempli depuis un bail - et
+ * se joint aussi à la fiche de visite quand le candidat se présente avec un
+ * garant.
+ *
+ * L'appel à l'action visait le formulaire de bail : on demandait donc de saisir
+ * un contrat entier pour obtenir une page. C'était la promesse la moins bien
+ * tenue de la vitrine.
  *
  * Contenu repris de `src/lib/pdf/ActeCautionnementPdf.tsx`. La mention
  * manuscrite et la clause de résiliation sont les deux points où un acte mal
@@ -57,11 +62,12 @@ const schema = {
         les charges, la durée. Ce qui manque devient une zone pointillée à compléter à la main.
       </p>
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger le bail et son acte</a>
+        <a class="bouton bouton--principal" href="/app/#/outils">Imprimer un acte</a>
+        <a class="bouton bouton--secondaire" href="/app/#/baux/nouveau">Rédiger le bail et son acte</a>
       </div>
       <p class="mention">
-        Gratuit, sans compte. L'acte se produit depuis la section « garant » du formulaire de
-        bail.
+        Gratuit, sans compte. En modèle vierge, ou pré-rempli depuis un bail que vous avez déjà
+        saisi.
       </p>
     </div>
   </section>
@@ -163,12 +169,13 @@ const schema = {
     <div class="enveloppe">
       <h2>L'acte se remplit avec le bail</h2>
       <p>
-        Il n'a pas de formulaire à lui : c'est le <a href="/bail-meuble/">bail meublé</a> qui le
-        pré-remplit, à la section du garant. Il se joint aussi à la{' '}
-        <a href="/fiche-de-visite/">fiche de visite</a>, pour qu'un candidat reparte avec.
+        Il s'imprime seul, depuis la boîte à outils : votre identité de bailleur y figure, le
+        reste reste en pointillés. Le <a href="/bail-meuble/">bail meublé</a> le pré-remplit
+        quand il existe, à la section du garant, et il se joint à la{' '}
+        <a href="/fiche-de-visite/">fiche de visite</a> pour qu'un candidat reparte avec.
       </p>
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger le bail et son acte</a>
+        <a class="bouton bouton--principal" href="/app/#/outils">Imprimer un acte</a>
         <a class="bouton bouton--secondaire" href="/bail-meuble/">Voir le bail meublé</a>
       </div>
     </div>

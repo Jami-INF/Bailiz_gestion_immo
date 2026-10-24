@@ -7,10 +7,9 @@ import { desParametres, rendre, utilisateur, viderBase } from '@/test/utils';
 import { ParametresPage } from './ParametresPage';
 
 /** Le rendu réel des PDF n'a rien à voir avec ce qui est vérifié ici. */
-const archivage = vi.hoisted(() => vi.fn(() => new Promise((r) => setTimeout(r, 80))));
 vi.mock('@/lib/pdf/generer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/pdf/generer')>()),
-  genererEtArchiver: archivage,
+  rendrePdf: vi.fn(async () => new Blob()),
 }));
 import { BailleurPanel } from './BailleurPanel';
 import { ClausesBailPanel } from './ClausesBailPanel';
@@ -423,32 +422,20 @@ describe('enregistrements antérieurs', () => {
   });
 });
 
-describe('double-clic sur les boutons de document', () => {
-  it('n’archive qu’une seule grille de vétusté', async () => {
-    const u = utilisateur();
-    archivage.mockClear();
-    rendre(<ParametresPage />);
-    await deplier(/vétusté/);
-
-    const bouton = await screen.findByRole('button', { name: /Télécharger la grille/ });
-    await u.click(bouton);
-    await u.click(bouton);
-
-    await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
-    expect(archivage).toHaveBeenCalledTimes(1);
-  });
-
-  it('n’archive qu’une seule fiche d’aide juridique', async () => {
-    const u = utilisateur();
-    archivage.mockClear();
-    rendre(<ParametresPage />);
-    await deplier(/Fiche d'aide juridique/);
-
-    const bouton = await screen.findByRole('button', { name: /Télécharger la fiche d'aide/ });
-    await u.click(bouton);
-    await u.click(bouton);
-
-    await vi.waitFor(() => expect(archivage).toHaveBeenCalled());
-    expect(archivage).toHaveBeenCalledTimes(1);
+/**
+ * Contrat avec le site vitrine.
+ *
+ * Les pages outils de `site/` pointent `#/parametres?ouvrir=vetuste` et
+ * `?ouvrir=fiche-visite`. Ces deux chaînes sont des `identifiant` de
+ * `CarteRepliable` : les renommer casserait des liens entrants **sans rien
+ * casser à la compilation**, et personne ne s'en apercevrait avant de cliquer.
+ */
+describe('liens entrants de la vitrine', () => {
+  it.each([
+    ['vetuste', /Durée de vie/],
+    ['fiche-visite', /Blocs imprimés/],
+  ])('ouvre la carte « %s » désignée par l’URL', async (identifiant, contenu) => {
+    rendre(<ParametresPage />, { route: `/parametres?ouvrir=${identifiant}` });
+    expect(await screen.findByText(contenu)).toBeInTheDocument();
   });
 });
