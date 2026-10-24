@@ -538,3 +538,50 @@ describe('ajout de pièce et d’élément', () => {
     expect(screen.getByRole('button', { name: 'Cuisine' })).toBeInTheDocument();
   });
 });
+
+describe('fiche du logement enrichie depuis le terrain', () => {
+  /*
+   * La trame du logement (`piecesModele`) n'était pas couverte : c'est elle que
+   * les états des lieux suivants reprennent, et elle s'enrichit depuis le
+   * terrain.
+   *
+   * Ce test vérifie l'accumulation, pas la concurrence. Les deux ajouts
+   * empilent bien dans la liste relue depuis `ecrireBien`, mais la course qui
+   * motivait ce passage - deux écritures parties du même instantané - ne se
+   * reproduit pas ici : entre deux gestes séparés, `useLiveQuery` a le temps de
+   * rafraîchir. Mesuré : ce test passe aussi sur la version d'avant le
+   * correctif. Les deux cas réellement discriminants sont ailleurs, là où une
+   * opération longue s'intercale (fiche du bail, page de signature).
+   */
+  it('accumule deux éléments ajoutés de suite dans la trame du logement', async () => {
+    const u = utilisateur();
+    // La trame du logement connaît déjà la pièce : `ajouterElement` complète
+    // une entrée existante, il n'en crée pas.
+    await semer({
+      edl: {},
+      bien: { piecesModele: [{ id: 'pm-sejour', nom: 'Séjour', ordre: 0, elements: [] }] },
+    });
+    rendreTerrain();
+    await ouvrirPiece('Séjour');
+
+    // Deux ajouts enchaînés, sans attendre l'aller-retour IndexedDB entre les
+    // deux : c'est la cadence réelle d'une visite.
+    for (const nom of ['Radiateur', 'Volet roulant']) {
+      await u.type(await screen.findByLabelText(/Nom du nouvel élément/), nom);
+      await u.click(screen.getByRole('button', { name: /^Ajouter$/ }));
+    }
+
+    await vi.waitFor(async () => {
+      const edl = await db.edls.get('edl-1');
+      const sejour = edl!.pieces.find((p) => p.nom === 'Séjour')!;
+      expect(sejour.elements.map((e) => e.nom)).toEqual(
+        expect.arrayContaining(['Radiateur', 'Volet roulant']),
+      );
+    });
+    const bien = await db.biens.get('bien-1');
+    const trame = bien!.piecesModele.find((pm) => pm.nom === 'Séjour');
+    expect(trame?.elements.map((e) => e.nom)).toEqual(
+      expect.arrayContaining(['Radiateur', 'Volet roulant']),
+    );
+  });
+});

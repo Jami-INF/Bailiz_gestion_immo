@@ -147,6 +147,32 @@ describe('révision IRL', () => {
   });
 });
 
+describe('écriture concurrente pendant la génération d’un document', () => {
+  /*
+   * Régression : `majBail` écrivait la ligne entière depuis l'instantané de
+   * `useLiveQuery`. Le courrier de révision rend un PDF avant d'écrire -
+   * plusieurs secondes sur tablette - et tout ce qui touchait au bail pendant
+   * ce temps était annulé par l'enregistrement de la révision.
+   */
+  it('n’annule pas une bascule de statut arrivée pendant le rendu', async () => {
+    await semer();
+    archivage.mockImplementationOnce(async () => {
+      // Pendant le rendu : synchronisation reçue, ou second écran ouvert.
+      await db.baux.update('bail-1', { statut: 'actif' });
+      return undefined;
+    });
+    rendreBail();
+
+    await reviser('2e trimestre 2026', '149.03');
+
+    await vi.waitFor(async () => {
+      expect((await db.baux.get('bail-1'))?.revisionsLoyer).toHaveLength(1);
+    });
+    // La révision est bien écrite, et le statut survenu entre-temps a survécu.
+    expect((await db.baux.get('bail-1'))?.statut).toBe('actif');
+  });
+});
+
 describe('fiche de bail - robustesse', () => {
   it('reste consultable et supprimable quand le bien a disparu', async () => {
     await semer();

@@ -5,7 +5,7 @@ import { differenceInDays, format } from 'date-fns';
 import { ArrowLeft, ArrowRight, Lock, Pencil, Plus, Scale } from 'lucide-react';
 import { db } from '@/lib/db';
 import { nowISO, uid } from '@/lib/ids';
-import type { CategorieElement, Compteur, ElementEDL, EtatDesLieux, EtatNote, PieceEDL } from '@/types';
+import type { Bien, CategorieElement, Compteur, ElementEDL, EtatDesLieux, EtatNote, PieceEDL } from '@/types';
 import { CATEGORIE_LABELS, ETAT_LABELS } from '@/types';
 import { elementsNonRenseignes, estDegradation, progressionEDL } from '@/lib/etat';
 import { Button, DateInput, Field, Input, Select, Textarea, useToast } from '@/components/ui';
@@ -126,6 +126,29 @@ export function EdlTerrainPage() {
       return apres;
     });
 
+  /*
+   * Même lecture-modification-écriture pour la fiche du logement. Trois
+   * endroits de cette page l'écrivent - les numéros de compteurs, l'ajout d'un
+   * élément, l'ajout d'une pièce - et les deux derniers **empilent** dans
+   * `piecesModele`. Partir de l'instantané de rendu faisait repartir le second
+   * ajout d'une liste qui ne portait pas encore le premier, et le `put` de la
+   * ligne entière annulait au passage tout autre champ écrit entre-temps.
+   *
+   * Un modificateur qui renvoie `null` n'écrit rien : c'est la garde contre une
+   * réécriture inutile, et elle doit se lire sur la base, pas sur le rendu.
+   */
+  const ecrireBien = (m: (actuel: Bien) => Partial<Bien> | null) =>
+    db.transaction('rw', db.biens, async () => {
+      if (!bien) return undefined;
+      const actuel = await db.biens.get(bien.id);
+      if (!actuel) return undefined;
+      const champs = m(actuel);
+      if (!champs) return actuel;
+      const apres = { ...actuel, ...champs, updatedAt: nowISO() };
+      await db.biens.put(apres);
+      return apres;
+    });
+
   /** Autosauvegarde : chaque changement écrit immédiatement en IndexedDB. */
   const maj = (m: MajEdl) => void ecrireEdl(m);
 
@@ -156,11 +179,14 @@ export function EdlTerrainPage() {
       const apres = await ecrireEdl((e) => ({ compteurs: transformer(e.compteurs) }));
       if (!apres || !bien) return;
       const reference = apres.compteurs.map((c) => ({ type: c.type, numero: c.numero }));
-      const inchange =
-        bien.compteurs?.length === reference.length &&
-        bien.compteurs.every((c, i) => c.type === reference[i].type && c.numero === reference[i].numero);
-      if (inchange) return;
-      await db.biens.put({ ...bien, compteurs: reference, updatedAt: nowISO() });
+      await ecrireBien((actuel) => {
+        const inchange =
+          actuel.compteurs?.length === reference.length &&
+          actuel.compteurs.every(
+            (c, i) => c.type === reference[i].type && c.numero === reference[i].numero,
+          );
+        return inchange ? null : { compteurs: reference };
+      });
     })();
   };
 
@@ -238,15 +264,11 @@ export function EdlTerrainPage() {
     await ecrireEdl((e) => ({
       pieces: pieceModifiee(e, piece.id, (p) => ({ ...p, elements: [...p.elements, nouvel] })),
     }));
-    if (bien) {
-      await db.biens.put({
-        ...bien,
-        piecesModele: bien.piecesModele.map((pm) =>
-          pm.nom === piece.nom ? { ...pm, elements: [...pm.elements, { id: uid(), nom, categorie, quantite }] } : pm,
-        ),
-        updatedAt: nowISO(),
-      });
-    }
+    await ecrireBien((actuel) => ({
+      piecesModele: actuel.piecesModele.map((pm) =>
+        pm.nom === piece.nom ? { ...pm, elements: [...pm.elements, { id: uid(), nom, categorie, quantite }] } : pm,
+      ),
+    }));
     setNouvelElement('');
     toast('success', `« ${nom} » ajouté à ${piece.nom} et à la fiche du logement.`);
   };
@@ -275,13 +297,11 @@ export function EdlTerrainPage() {
     if (!nom || signe) return;
     const ordre = edl.pieces.length ? Math.max(...edl.pieces.map((p) => p.ordre)) + 1 : 0;
     await ecrireEdl((e) => ({ pieces: [...e.pieces, { id: uid(), nom, ordre, elements: [] }] }));
-    if (bien && !bien.piecesModele.some((pm) => pm.nom === nom)) {
-      await db.biens.put({
-        ...bien,
-        piecesModele: [...bien.piecesModele, { id: uid(), nom, ordre, elements: [] }],
-        updatedAt: nowISO(),
-      });
-    }
+    await ecrireBien((actuel) =>
+      actuel.piecesModele.some((pm) => pm.nom === nom)
+        ? null
+        : { piecesModele: [...actuel.piecesModele, { id: uid(), nom, ordre, elements: [] }] },
+    );
     setNomNouvellePiece('');
     setModalePiece(false);
     // Positionne l'onglet sur la nouvelle pièce (avant l'onglet « Infos »).

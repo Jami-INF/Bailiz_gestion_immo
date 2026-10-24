@@ -219,6 +219,29 @@ describe('signature d’un état des lieux', () => {
     expect(bail?.dateFinEffective).toBeTruthy();
   });
 
+  it('ne rejoue pas le bail par-dessus une écriture concurrente', async () => {
+    /*
+     * Cette page reste ouverte toute la visite, et le rendu du PDF signé prend
+     * plusieurs secondes : le bail pris dans le contexte chargé au montage est
+     * périmé au moment d'écrire. La bascule de statut doit donc se calculer sur
+     * le bail relu, sans réécrire la ligne telle qu'elle était au montage.
+     */
+    await semer({ edl: {}, bail: { statut: 'genere', depotGarantie: 1200 } });
+    const { rendrePdfAvecHash } = await import('@/lib/pdf/generer');
+    vi.mocked(rendrePdfAvecHash).mockImplementationOnce(async () => {
+      await db.baux.update('bail-1', { depotGarantie: 1500 });
+      return { blob: new Blob(['%PDF-factice'], { type: 'application/pdf' }), hash: 'a'.repeat(64) };
+    });
+    monter();
+    await signerJusquAuBout();
+
+    await waitFor(async () => {
+      expect((await db.baux.get('bail-1'))?.statut).toBe('actif');
+    });
+    // La correction arrivée pendant le rendu n'a pas été annulée.
+    expect((await db.baux.get('bail-1'))?.depotGarantie).toBe(1500);
+  });
+
   it('refuse de re-signer un état des lieux déjà signé', async () => {
     await semer({
       edl: {

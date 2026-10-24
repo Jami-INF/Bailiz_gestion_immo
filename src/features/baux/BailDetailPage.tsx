@@ -93,6 +93,9 @@ function BailOrphelin({ bail }: { bail: Bail }) {
   );
 }
 
+/** Voir `majBail` : champs posés tels quels, ou calculés depuis la base relue. */
+type MajBail = Partial<Bail> | ((actuel: Bail) => Partial<Bail>);
+
 export function BailDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -133,7 +136,32 @@ export function BailDetailPage() {
   const edlSortie = edls?.find((e) => e.type === 'sortie');
   const prorata = prorataPremierLoyer(new Date(bail.dateEffet), bail.loyerHC, bail.charges.montant);
 
-  const majBail = (m: Partial<Bail>) => db.baux.put({ ...bail, ...m, updatedAt: nowISO() });
+  /*
+   * Mise à jour du bail : soit des champs posés tels quels, soit une fonction
+   * qui les calcule depuis l'enregistrement **relu en base** - même forme que
+   * `ecrireEdl` en mode terrain, et pour la même raison.
+   *
+   * `bail` vient de `useLiveQuery`, qui ne le rafraîchit qu'après un
+   * aller-retour IndexedDB. Un `put` construit sur cet instantané réécrit la
+   * ligne entière : cinq boutons de cette page écrivent le bail, et le plus
+   * lent d'entre eux (la révision IRL, qui rend un PDF d'abord) laissait tout
+   * le temps à une autre écriture de se glisser avant lui pour être ensuite
+   * annulée - la bascule de statut, ou la liste des révisions elle-même.
+   */
+  const majBail = (m: MajBail) =>
+    db.transaction('rw', db.baux, async () => {
+      const actuel = await db.baux.get(bail.id);
+      // Le bail a pu disparaître pendant l'opération (suppression reçue par
+      // synchronisation) : on ne le ressuscite pas.
+      if (!actuel) return undefined;
+      const apres = {
+        ...actuel,
+        ...(typeof m === 'function' ? m(actuel) : m),
+        updatedAt: nowISO(),
+      };
+      await db.baux.put(apres);
+      return apres;
+    });
 
   // Le PDF est toujours reconstruit à partir des données courantes : aucun
   // écart possible entre le bail affiché et le document téléchargé/imprimé.
@@ -304,9 +332,9 @@ export function BailDetailPage() {
      * restait éternellement au loyer d'origine et chaque révision suivante
      * repartait de zéro.
      */
-    await majBail({
+    await majBail((actuel) => ({
       revisionsLoyer: [
-        ...(bail.revisionsLoyer ?? []),
+        ...(actuel.revisionsLoyer ?? []),
         {
           date: nowISO(),
           dateApplication: dateApplication.toISOString(),
@@ -318,7 +346,7 @@ export function BailDetailPage() {
           nouveauLoyer: calc.nouveauLoyer,
         },
       ],
-    });
+    }));
     setModaleIrl(false);
     setNouvelIndice(0);
     setNouveauTrimestre('');

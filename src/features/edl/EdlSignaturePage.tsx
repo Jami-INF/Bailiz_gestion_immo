@@ -105,17 +105,29 @@ export function EdlSignaturePage() {
          * Les bascules de statut ci-dessous n'ont de sens que s'il existe un bail.
          * Un constat établi sans contrat rédigé ici n'en invente aucun :
          * l'application ne sait pas si le logement est loué, elle ne l'affirme pas.
+         *
+         * Le bail est **relu ici**, et non pris dans le contexte chargé au
+         * montage : cette page reste ouverte toute la visite, et le rendu du PDF
+         * qui précède prend plusieurs secondes sur tablette. Le statut se décide
+         * donc sur l'état du moment, et le `put` ne rejoue pas par-dessus un
+         * bail modifié entre-temps.
          */
-        if (bail && edl.type === 'sortie') {
-          await db.baux.put({ ...bail, statut: 'termine', dateFinEffective: bloc.dateSignature, updatedAt: nowISO() });
-        } else if (bail && bail.statut !== 'actif' && bail.statut !== 'termine') {
+        const bailActuel = bail ? await db.baux.get(bail.id) : undefined;
+        if (bailActuel && edl.type === 'sortie') {
+          await db.baux.put({
+            ...bailActuel,
+            statut: 'termine',
+            dateFinEffective: bloc.dateSignature,
+            updatedAt: nowISO(),
+          });
+        } else if (bailActuel && bailActuel.statut !== 'actif' && bailActuel.statut !== 'termine') {
           /*
            * Un EDL d'entrée signé, c'est la remise des clés : le logement est
            * loué. Le bail restait sinon « généré » jusqu'à ce que l'utilisateur
            * pense à cliquer « Marquer le logement loué » - et le tableau de bord
            * annonçait le logement vacant, sans fin de bail ni révision à venir.
            */
-          await db.baux.put({ ...bail, statut: 'actif', updatedAt: nowISO() });
+          await db.baux.put({ ...bailActuel, statut: 'actif', updatedAt: nowISO() });
         }
       });
       setResultat({ hash, blob });
