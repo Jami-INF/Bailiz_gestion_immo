@@ -431,3 +431,63 @@ les paires de boutons s'empilent sans débordement. Tests de l'application : **6
 Lot 3 entier. Les dix guides ne pointent toujours vers aucun outil de l'application - le trajet
 inverse existe depuis le lot 1 (section « Comprendre » d'`/outils`), mais pas celui-ci ; c'est un
 sujet de maillage à lui seul, hors des sept appels à l'action visés ici.
+
+---
+
+## 14. Réalisation - lot 3 (24 octobre 2026)
+
+### La liste des états des lieux rejoint les trois autres
+
+`BarreListe` y est posée au-delà de six fiches, comme ailleurs, avec quatre tris (modification,
+date du constat, logement, statut) et une recherche sur la référence, le nom du logement et le
+sens du constat - « entree » trouve « Entrée », la recherche ignorant les accents.
+
+Le filtre **brouillon / signé** est passé dans la barre plutôt qu'au-dessus : trois façons de
+réduire une liste rangées à trois endroits auraient fait trois choses à chercher. `BarreListe`
+accepte pour cela un emplacement `filtres`, à côté du tri. Deux conséquences :
+
+- son compte-rendu suit désormais **tous** les filtres, pas seulement le mot-clé : une liste
+  réduite par le seul filtre de statut ne passe plus pour la liste entière ;
+- les deux listes déroulantes passent l'une sous l'autre en dessous de `sm:`, où elles ne
+  tenaient pas côte à côte - « Modifié récemment » s'y affichait tronqué.
+
+**Un état des lieux signé ouvre sa synthèse**, plus l'écran terrain. Celui-ci est verrouillé et
+n'y proposait qu'un bandeau renvoyant vers la synthèse : un clic de plus sur l'écran dont il n'y
+a plus rien à tirer, alors que le comparatif, les retenues et la lettre de restitution sont dans
+l'autre.
+
+### Documents : chercher, et ne plus mentir quand la liste est vide
+
+Un champ texte sur la référence, le titre et le libellé de type, combinable avec les trois
+listes déroulantes existantes.
+
+Au passage, un défaut qui n'était pas dans l'audit : quand les filtres masquaient tout, la page
+affichait « Aucun document - les PDF générés apparaîtront ici ». Elle promettait un écran qui ne
+viendrait jamais, puisque les documents étaient là. Les deux cas sont maintenant distincts, et
+celui du filtre propose de revenir à la liste entière.
+
+### Tableau de bord
+
+« Rédiger un bail » et « Faire un état des lieux » sont en entête dès qu'il existe un bien ;
+« Nouveau bien » passe en `ghost`. Les trois s'empilent proprement à 390 px, dans cet ordre
+d'importance. Jusqu'ici les deux actions qui font l'application n'étaient proposées que sur
+l'écran **vide**.
+
+### Le pli de la barre latérale ne se décide plus depuis un téléphone
+
+`bailiz.navRepliee` se déduisait de `innerWidth < 1280` **et s'écrivait aussitôt**. Ouvrir Bailiz
+une première fois sur le téléphone - 390 px, donc « plus étroit que 1280 » - figeait la barre en
+icônes seules pour l'ordinateur, sans que rien ne l'explique. La valeur n'est plus ni calculée
+ni écrite en dessous de 640 px, largeur en deçà de laquelle cette barre n'existe pas.
+
+### Vérifications
+
+**661 tests** (641 au lot 2), dont trois fichiers neufs : `EdlListePage.test.tsx` (9),
+`DocumentsPage.test.tsx` (6), plus les raccourcis du tableau de bord et la mémorisation du pli.
+0 erreur ESLint, build de l'application et du site. Rendu relu à 390 px et 1280 px sur les
+quatre écrans touchés.
+
+### Le lot 3 est clos
+
+`/baux/rapide` avait été supprimée dès le lot 1. Les trois lots de l'audit sont réalisés ; le
+critère 5 du §10 reste le seul non tenu, pour la raison donnée au §12.

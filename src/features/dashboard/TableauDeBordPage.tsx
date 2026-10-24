@@ -151,14 +151,34 @@ export function TableauDeBordPage() {
 
   return (
     <div>
+      {/*
+       * Les deux actions qui font l'application n'étaient proposées que sur
+       * l'écran **vide**. Dès qu'il existait un bien, la seule action de
+       * premier niveau devenait « Nouveau bien » - la moins importante des
+       * trois, et celle dont le formulaire de bail dispense de toute façon.
+       */}
       <PageHeader
         titre="Tableau de bord"
         actions={
-          <Link to="/biens/nouveau">
-            <Button variant="secondary">
-              <Plus size={16} /> Nouveau bien
-            </Button>
-          </Link>
+          biens.length === 0 ? undefined : (
+            <>
+              <Link to="/baux/nouveau">
+                <Button>
+                  <FileText size={16} /> Rédiger un bail
+                </Button>
+              </Link>
+              <Link to="/edl/nouveau">
+                <Button variant="secondary">
+                  <ClipboardList size={16} /> Faire un état des lieux
+                </Button>
+              </Link>
+              <Link to="/biens/nouveau">
+                <Button variant="ghost">
+                  <Plus size={16} /> Nouveau bien
+                </Button>
+              </Link>
+            </>
+          )
         }
       />
 

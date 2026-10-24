@@ -115,3 +115,42 @@ describe('feuille « Plus »', () => {
     expect(within(feuille).getByText(/archive/i)).toBeInTheDocument();
   });
 });
+
+/**
+ * Le pli de la barre latérale ne se mémorise que là où cette barre existe.
+ *
+ * La valeur par défaut se déduisait de `innerWidth < 1280` **et s'écrivait
+ * aussitôt**. Ouvrir Bailiz une première fois sur le téléphone - 390 px, donc
+ * « plus étroit que 1280 » - figeait donc la barre en icônes seules pour
+ * l'ordinateur, sans que rien ne l'explique ni ne permette de le deviner.
+ */
+describe('mémorisation du pli de la barre latérale', () => {
+  const largeur = (l: number) =>
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: l });
+
+  it('n’écrit rien depuis un téléphone, où la barre latérale n’existe pas', async () => {
+    largeur(390);
+    rendre(<AppLayout />);
+    await screen.findByRole('navigation');
+
+    expect(localStorage.getItem('bailiz.navRepliee')).toBeNull();
+  });
+
+  it('mémorise le choix dès que la barre latérale est affichée', async () => {
+    largeur(1024);
+    rendre(<AppLayout />);
+    await screen.findByRole('navigation');
+
+    // 1024 px : assez large pour la barre, trop étroit pour les libellés.
+    expect(localStorage.getItem('bailiz.navRepliee')).toBe('1');
+  });
+
+  it('respecte un choix déjà enregistré, quelle que soit la largeur', async () => {
+    localStorage.setItem('bailiz.navRepliee', '0');
+    largeur(390);
+    rendre(<AppLayout />);
+    await screen.findByRole('navigation');
+
+    expect(localStorage.getItem('bailiz.navRepliee')).toBe('0');
+  });
+});

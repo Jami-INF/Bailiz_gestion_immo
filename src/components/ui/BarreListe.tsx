@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input, Select } from './Input';
 
@@ -27,6 +27,13 @@ interface Props<T extends string> {
   /** Nom de l'entité au singulier (« bien », « locataire », « bail »). */
   nom: string;
   nomPluriel: string;
+  /**
+   * Filtre propre à la liste, posé à côté du tri (états des lieux : brouillon
+   * ou signé). Il reste dans la barre plutôt qu'au-dessus : trois façons de
+   * réduire une liste rangées à trois endroits différents, c'est trois choses
+   * à chercher.
+   */
+  filtres?: ReactNode;
 }
 
 /**
@@ -45,6 +52,7 @@ export function BarreListe<T extends string>({
   total,
   nom,
   nomPluriel,
+  filtres,
 }: Props<T>) {
   const idRecherche = useId();
   const idTri = useId();
@@ -79,7 +87,10 @@ export function BarreListe<T extends string>({
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        {/* `flex-wrap` : avec un filtre annexe, les deux listes déroulantes ne
+            tiennent pas côte à côte sur un téléphone - « Modifié récemment » s'y
+            affichait tronqué. Elles passent alors l'une sous l'autre. */}
+        <div className="flex flex-wrap items-center gap-2">
           <label htmlFor={idTri} className="shrink-0 text-sm text-accent-500">
             Trier par
           </label>
@@ -87,7 +98,7 @@ export function BarreListe<T extends string>({
             id={idTri}
             value={tri}
             onChange={(e) => onTri(e.target.value as T)}
-            className="sm:w-56"
+            className="min-w-[12rem] flex-1 sm:w-56 sm:flex-none"
           >
             {optionsTri.map((o) => (
               <option key={o.valeur} value={o.valeur}>
@@ -95,11 +106,14 @@ export function BarreListe<T extends string>({
               </option>
             ))}
           </Select>
+          {filtres}
         </div>
       </div>
-      {filtre && (
+      {/* Le compte-rendu suit aussi les filtres annexes : une liste réduite par
+          un filtre sans mot-clé ne doit pas passer pour la liste entière. */}
+      {(filtre || affiches !== total) && (
         <p className="text-sm text-accent-500" role="status">
-          {affiches === 0
+          {affiches === 0 && filtre
             ? `Aucun ${nom} ne correspond à « ${recherche.trim()} ».`
             : `${affiches} ${affiches > 1 ? nomPluriel : nom} sur ${total}.`}
         </p>

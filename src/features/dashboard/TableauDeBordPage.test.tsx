@@ -151,3 +151,42 @@ describe('tableau de bord - alerte de stockage saturé', () => {
     expect(screen.queryByText(/Stockage du navigateur occupé/)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Les deux actions qui font l'application n'étaient proposées que sur l'écran
+ * **vide**. Dès qu'un bien existait, la seule action de premier niveau devenait
+ * « Nouveau bien » - la moins importante des trois, et celle dont le formulaire
+ * de bail dispense de toute façon.
+ */
+describe('raccourcis du tableau de bord', () => {
+  it('propose les deux documents sur un écran vide', async () => {
+    rendre(<TableauDeBordPage />);
+
+    expect(await screen.findByRole('link', { name: /Rédiger un bail/ })).toHaveAttribute(
+      'href',
+      '/baux/nouveau',
+    );
+    expect(screen.getByRole('link', { name: /Faire un état des lieux/ })).toHaveAttribute(
+      'href',
+      '/edl/nouveau',
+    );
+  });
+
+  it('les propose encore une fois la base garnie, « Nouveau bien » en retrait', async () => {
+    await semer({ bail: { statut: 'actif' } });
+    rendre(<TableauDeBordPage />);
+
+    expect(await screen.findByRole('link', { name: /Rédiger un bail/ })).toHaveAttribute(
+      'href',
+      '/baux/nouveau',
+    );
+    expect(screen.getByRole('link', { name: /Faire un état des lieux/ })).toHaveAttribute(
+      'href',
+      '/edl/nouveau',
+    );
+    expect(screen.getByRole('link', { name: /Nouveau bien/ })).toHaveAttribute(
+      'href',
+      '/biens/nouveau',
+    );
+  });
+});

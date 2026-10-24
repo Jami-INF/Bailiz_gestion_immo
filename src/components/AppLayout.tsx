@@ -86,6 +86,11 @@ const NAV_PRINCIPAL: Entree[] = [
  * - il sait créer un locataire en cours de route - et le seul des quatre qu'on
  * ouvre rarement pour lui-même.
  */
+/** Point de rupture `sm:` de Tailwind : en deçà, pas de barre latérale du tout. */
+const LARGEUR_BARRE_LATERALE = 640;
+/** Au-delà, l'écran est assez large pour afficher les libellés sans les payer. */
+const LARGEUR_NAV_DEPLIEE = 1280;
+
 const NAV_SECONDAIRE: Entree[] = [
   { to: '/locataires', label: 'Locataires', icon: Users },
   { to: '/outils', label: 'Outils', icon: Wrench },
@@ -595,13 +600,23 @@ export function AppLayout() {
     (e) => location.pathname === e.to || location.pathname.startsWith(`${e.to}/`),
   );
 
+  /*
+   * Le pli ne se mémorise que là où la barre latérale existe, c'est-à-dire au
+   * moins `sm:`. En deçà, la navigation est la barre basse et la valeur n'a
+   * aucun effet - mais elle était tout de même écrite : ouvrir Bailiz une
+   * première fois sur le téléphone (390 px, donc « plus étroit que 1280 »)
+   * figeait la barre en icônes seules pour l'ordinateur, sans que rien ne
+   * l'explique.
+   */
   const [navRepliee, setNavRepliee] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const enr = window.localStorage.getItem('bailiz.navRepliee');
     if (enr !== null) return enr === '1';
-    return window.innerWidth < 1280;
+    const l = window.innerWidth;
+    return l >= LARGEUR_BARRE_LATERALE && l < LARGEUR_NAV_DEPLIEE;
   });
   useEffect(() => {
+    if (window.innerWidth < LARGEUR_BARRE_LATERALE) return;
     window.localStorage.setItem('bailiz.navRepliee', navRepliee ? '1' : '0');
   }, [navRepliee]);
 

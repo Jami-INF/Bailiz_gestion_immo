@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { format } from 'date-fns';
-import { Download, FolderOpen, ShieldCheck } from 'lucide-react';
+import { Download, FolderOpen, Search, SearchX, ShieldCheck } from 'lucide-react';
 import { db } from '@/lib/db';
 import type { TypeDocument } from '@/types';
 import { TYPE_DOCUMENT_LABELS } from '@/types';
 import { telechargerDocument } from '@/lib/pdf/generer';
-import { Badge, Card, EmptyState, Field, PageHeader, Select } from '@/components/ui';
+import { correspond } from '@/lib/recherche';
+import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from '@/components/ui';
 
 export function DocumentsPage() {
   const documents = useLiveQuery(() => db.documents.orderBy('createdAt').reverse().toArray());
@@ -15,15 +16,36 @@ export function DocumentsPage() {
   const [filtreBien, setFiltreBien] = useState('');
   const [filtreType, setFiltreType] = useState('');
   const [filtreBail, setFiltreBail] = useState('');
+  const [recherche, setRecherche] = useState('');
+
+  /*
+   * Trois listes déroulantes et aucun champ texte : on pouvait restreindre par
+   * logement, par bail et par type, mais pas chercher la référence qu'on a sous
+   * les yeux sur un papier - alors que c'est elle qui identifie le document.
+   */
+  const filtres = useMemo(
+    () =>
+      (documents ?? []).filter(
+        (d) =>
+          (!filtreBien || d.bienId === filtreBien) &&
+          (!filtreType || d.type === filtreType) &&
+          (!filtreBail || d.bailId === filtreBail) &&
+          correspond(recherche, d.reference, d.titre, TYPE_DOCUMENT_LABELS[d.type]),
+      ),
+    [documents, filtreBien, filtreType, filtreBail, recherche],
+  );
 
   if (!documents) return null;
 
-  const filtres = documents.filter(
-    (d) =>
-      (!filtreBien || d.bienId === filtreBien) &&
-      (!filtreType || d.type === filtreType) &&
-      (!filtreBail || d.bailId === filtreBail),
-  );
+  const filtreActif =
+    Boolean(filtreBien || filtreType || filtreBail) || recherche.trim().length > 0;
+
+  const toutAfficher = () => {
+    setFiltreBien('');
+    setFiltreType('');
+    setFiltreBail('');
+    setRecherche('');
+  };
 
   return (
     <div>
@@ -31,7 +53,22 @@ export function DocumentsPage() {
         titre="Documents"
         sousTitre="Tous les PDF générés. Les documents signés portent leur empreinte SHA-256 ; les autres restent régénérables depuis leur fiche."
       />
-      <Card className="mb-4">
+      <Card className="mb-4 space-y-3">
+        <div className="relative">
+          <Search
+            size={16}
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-accent-400"
+          />
+          <Input
+            type="search"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Rechercher un document (référence, titre, type…)"
+            aria-label="Rechercher un document"
+            className="pl-9"
+          />
+        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Bien">
             <Select value={filtreBien} onChange={(e) => setFiltreBien(e.target.value)}>
@@ -67,11 +104,24 @@ export function DocumentsPage() {
       </Card>
 
       {filtres.length === 0 ? (
-        <EmptyState
-          icon={FolderOpen}
-          titre="Aucun document"
-          message="Les PDF générés (baux, inventaires, états des lieux, courriers) apparaîtront ici."
-        />
+        filtreActif ? (
+          <EmptyState
+            icon={SearchX}
+            titre="Aucun document ne correspond"
+            message="Aucun résultat pour cette recherche ou ces filtres."
+            action={
+              <Button variant="secondary" onClick={toutAfficher}>
+                Afficher tous les documents
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={FolderOpen}
+            titre="Aucun document"
+            message="Les PDF générés (baux, inventaires, états des lieux, courriers) apparaîtront ici."
+          />
+        )
       ) : (
         <div className="space-y-2">
           {filtres.map((d) => (
