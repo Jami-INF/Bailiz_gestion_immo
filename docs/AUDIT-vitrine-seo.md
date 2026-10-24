@@ -399,3 +399,74 @@ Du §7, et à écrire dans cet ordre : état des lieux opposable, encadrement de
 bail, état des lieux de sortie sans se disputer, puis les deux qui recoupent le plus les pages
 outils - grille de vétusté et dépôt de garantie - qu'il faudra écrire sous un angle franchement
 différent, ou renoncer à écrire.
+
+---
+
+## 9. Lot L5 terminé : les six derniers guides - 24 octobre 2026
+
+Les dix articles du §7 sont écrits. Six ont été ajoutés aux quatre de la section 8.
+
+| Guide | Mots | Outil lié |
+|---|---|---|
+| Que doit contenir un état des lieux pour être opposable ? | 697 | `/etat-des-lieux/` |
+| Encadrement des loyers : suis-je concerné ? | 647 | `/bail-meuble/` |
+| LMNP : ce que le statut change pour le bail | 697 | `/bail-meuble/` |
+| État des lieux de sortie : comparer sans se disputer | 664 | `/depot-de-garantie/` |
+| Appliquer une grille de vétusté : trois cas chiffrés | 691 | `/grille-de-vetuste/` |
+| Quelles retenues sur le dépôt de garantie sont justifiables ? | 683 | `/depot-de-garantie/` |
+
+### Les deux titres du §7 qui recoupaient une page outil
+
+Le cahier des charges prévoyait « Grille de vétusté : à quoi elle sert » et « Dépôt de garantie :
+délais et retenues ». Les deux sujets ont désormais leur page outil (section 7), et reprendre le
+même angle aurait fabriqué deux pages se faisant concurrence sur la même requête. Angle déplacé,
+titre compris :
+
+- la page outil **explique le mécanisme** de la vétusté ; le guide **le fait tourner** sur trois
+  cas chiffrés, avec les valeurs de `GRILLE_VETUSTE_DEFAUT` ;
+- la page outil traite **les délais et la forme de la lettre** ; le guide traite **la frontière
+  entre ce qui se retient et ce qui ne se retient pas**, décret n°87-712 à l'appui.
+
+### Une vérification que seule la lecture du code permettait
+
+Avec les douze postes de la grille par défaut, **la part résiduelle de 10 % n'est jamais
+atteinte** : pour chaque poste, la durée de vie arrive avant que le coefficient descende sous
+10 %, et il saute donc de 15-28 % à zéro. Vérifié sur les douze lignes. Le guide le dit, et en
+tire la conséquence utile : le plancher ne sert que si l'utilisateur allonge une durée de vie ou
+réduit un abattement.
+
+### Deux sujets traités en disant ce que l'application ne fait pas
+
+- **Encadrement des loyers** : les deux dispositifs sont distingués (zone tendue, qui encadre
+  l'évolution à la relocation, et l'encadrement issu de la loi ELAN, qui encadre le montant). Le
+  guide ne fige **aucune liste de communes** - elle évolue, et un guide daté ne peut pas en tenir
+  lieu. Il dit aussi explicitement que Bailiz ne vérifie aucun plafond.
+- **LMNP** : la réponse honnête est que le statut, étant fiscal, ne change presque rien au bail.
+  Aucun seuil chiffré n'est donné : ils bougent à chaque loi de finances, et le §16 place la
+  fiscalité hors périmètre. Le guide renvoie à un comptable et traite à la place la confusion qui
+  coûte vraiment cher, celle du meublé de tourisme.
+
+### État final de la vitrine
+
+| | Avant le 24 octobre | Après |
+|---|---|---|
+| Pages indexables | 6 | **23** |
+| dont pages outils | 2 | 7 (+ un index) |
+| dont guides | 0 | 10 (+ un index) |
+| Pages orphelines | 0 | 0 |
+| Liens internes morts | 0 | 0 |
+| `title` / `description` dans les bornes du §8 | 6/6 | **23/23** |
+| `lastmod` au sitemap | aucun | les 10 guides |
+| JavaScript | 0 octet | 0 octet |
+
+Les dix guides portent chacun au moins un lien contextuel vers son outil **dans le corps du
+texte**, comme le §7 l'exige - vérifié par extraction du corps seul, l'encart de fin et la
+navigation exclus.
+
+### Ce qui reste du CDC
+
+- **Captures d'écran réelles** de l'application et aperçu du PDF produit (§5.3). Toujours absents,
+  et c'est maintenant le dernier manque de contenu de la landing.
+- **Lot L6** : premier relevé Search Console à quatre semaines, puis mensuel.
+- La fiche d'aide juridique (préavis, congés) reste le seul document de l'application sans page ni
+  guide. Elle ferait un onzième guide.
