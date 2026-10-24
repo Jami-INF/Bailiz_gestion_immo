@@ -421,6 +421,11 @@ public.
 
 ### 9.5 Migration des utilisateurs existants
 
+> **Caduc depuis le 24 octobre 2026.** L'éditeur confirme avoir été le seul utilisateur de la
+> version GitHub Pages ; cette adresse répond aujourd'hui 404 et il n'y a aucune donnée à y
+> récupérer. Le raisonnement ci-dessous reste la marche à suivre si l'application changeait un
+> jour d'origine, ce que le §3.5 vise précisément à éviter.
+
 `dist` de l'app est construit avec `base: '/app/'` (remplace `base: './'`), manifeste PWA en
 `start_url: '/app/'`, `scope: '/app/'`.
 
@@ -645,7 +650,7 @@ Aucune formule du type « le seul à… » n'est employée : invérifiable, donc
 | ~~**L0 - Vérification OVH**~~ | ✅ **Fait.** Offre incluse : 100 Mo. Besoin mesuré : 2,5 Mo (app) + 180 Ko (vitrine). OVH est retenu | Marge suffisante ; le repli Cloudflare n'est plus d'actualité |
 | **L1 - Socle & déploiement** | DNS, SSL, `.htaccess` (§9.3), projet Astro `site/`, `base: '/app/'`, service worker cantonné (§10), workflow SFTP avec bascule par renommage (§9.4) | `bailiz.fr` sert une page, `bailiz.fr/app/` sert l'application intacte, hors-ligne compris ; un `git push` déploie les deux |
 | **L2 - Landing** | Page `/` complète (§5), charte, captures, `og:image`, favicons, 404 | Lighthouse ≥ 95 en Performance / SEO / Accessibilité / Bonnes pratiques, mobile |
-| **L3 - Socle SEO & légal** | `robots.txt`, `sitemap.xml`, canoniques, JSON-LD, `noindex` sur l'app, `/mentions-legales/` (hébergeur OVH), `/confidentialite/` (§11), Search Console, page de renvoi sur l'ancienne URL (§9.5) | Sitemap soumis, données structurées validées, `curl` sur `/` renvoie le contenu |
+| **L3 - Socle SEO & légal** | `robots.txt`, `sitemap.xml`, canoniques, JSON-LD, `noindex` sur l'app, `/mentions-legales/` (hébergeur OVH), `/confidentialite/` (§11), Search Console | Sitemap soumis, données structurées validées, `curl` sur `/` renvoie le contenu |
 | **L4 - Pages outils** | `/bail-meuble/`, `/etat-des-lieux/`, `/pourquoi-bailiz/` | 3 pages au gabarit §6, chacune avec son CTA profond et sa FAQ |
 | **L5 - Éditorial** | `/guides/` + 10 articles (§7), collection de contenu Astro, maillage interne | 10 pages indexables, chacune liée à au moins un outil |
 | **L6 - Suivi** | Relevé des logs OVH + Search Console : pages d'entrée, requêtes, passage vers `/app/` ; itérations sur les titres et descriptions | Premier relevé à 4 semaines, puis mensuel |
@@ -670,7 +675,7 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 | Mode sombre de l'application | ❌ Reporté (§13.1) |
 | **`base: '/app/'` dans `vite.config.ts`** | ❌ À faire **au même commit que la bascule CI**, sinon le déploiement GitHub Pages actuel casse |
 | **Workflow de déploiement SFTP vers OVH** (§9.4) | ❌ En cours côté éditeur |
-| **Page de renvoi sur l'ancienne URL GitHub Pages** (§9.5) | ❌ À faire à la mise en ligne |
+| ~~Page de renvoi sur l'ancienne URL GitHub Pages (§9.5)~~ | ⬜ **Sans objet** - l'éditeur était le seul utilisateur de la version GitHub Pages, il n'y a aucune donnée à récupérer sur cette origine (constaté le 24/10/2026) |
 | `/guides/` et les 10 articles (L5) | ❌ Non commencé |
 
 ---
@@ -690,8 +695,8 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
    bon écran.
 10. Les mentions légales et la politique de confidentialité sont accessibles **sans entrer dans
     l'application**, et exactes au regard du §11.
-11. Un utilisateur de l'ancienne URL est informé du déménagement et de la marche à suivre pour ses
-    données.
+11. ~~Un utilisateur de l'ancienne URL est informé du déménagement et de la marche à suivre pour
+    ses données.~~ **Sans objet** : aucun utilisateur sur l'ancienne origine (24/10/2026).
 12. Un `git push` sur `main` déploie vitrine **et** application, sans intervention manuelle, et sans
     qu'aucun identifiant SFTP n'apparaisse ailleurs que dans les secrets du dépôt.
 13. Les en-têtes de cache sont vérifiés en production : le HTML de la vitrine n'est pas mis en
@@ -741,7 +746,7 @@ L0 à L3 forment le **minimum publiable** : sans eux, mettre le site en ligne n'
 | Risque | Portée | Parade |
 |---|---|---|
 | Attentes SEO irréalistes | Élevée | Un domaine neuf met **6 à 12 mois** à peser. Les premiers résultats viendront de la traîne longue, pas de « bail meublé ». Le juger sur la Search Console, pas sur des positions isolées |
-| Les utilisateurs installés perdent leur PWA et croient perdre leurs données | Élevée - c'est le seul risque qui touche des utilisateurs réels et existants | Page de renvoi sur l'ancienne URL + procédure d'export/import expliquée (§9.5) |
+| ~~Les utilisateurs installés perdent leur PWA et croient perdre leurs données~~ | **Éteint** - il n'y avait pas d'utilisateur installé autre que l'éditeur (24/10/2026) | Sans objet. Le raisonnement reste valable si l'application change un jour d'origine : les données suivent l'origine, jamais le domaine |
 | Déploiement SFTP non atomique, ou identifiants exposés | Moyenne - le dépôt est **public** | Secrets GitHub uniquement, envoi dans un dossier temporaire puis bascule par renommage (§9.4) |
 | Quota OVH atteint après quelques captures d'écran | Moyenne | L0 le tranche avant tout développement ; images en AVIF/WebP (§8) |
 | La vitrine promet plus que l'app ne tient | Moyenne - c'est le pire des risques pour un produit qui vend la franchise | Chaque page outil dit aussi ce que l'outil **ne fait pas** (§6) ; pas de « bientôt disponible » (§3.6) |

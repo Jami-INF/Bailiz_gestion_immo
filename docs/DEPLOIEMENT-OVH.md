@@ -595,42 +595,25 @@ Puis **Sitemaps** → soumettre `sitemap-index.xml`.
 C'est la seule mesure de référencement qui compte les premiers mois. N'attendez pas de résultats
 avant 6 à 12 mois, et jugez sur les impressions et les requêtes, pas sur des positions isolées.
 
-### L'ancienne URL - et le réglage GitHub Pages
+### L'ancienne URL GitHub Pages - sujet clos le 24 octobre 2026
 
-`jami-inf.github.io/Bailiz_gestion_immo/` **doit rester en ligne, et doit continuer à servir
-l'application**, pas une page de renvoi statique.
+`jami-inf.github.io/Bailiz_gestion_immo/` répond **404 - Site not found**. Le dépôt n'a plus de
+branche `gh-pages`, et le workflow ne publie plus rien sur Pages depuis la bascule FTP.
 
-La raison est technique et décisive : les données des utilisateurs sont dans l'IndexedDB de
-**cette origine-là**. Pour les récupérer, il leur faut l'**application** qui tourne sur cette
-origine - c'est elle qui contient la fonction d'export. La remplacer par une page de renvoi leur
-retirerait le seul moyen d'accéder à leurs baux et à leurs états des lieux.
+Ce document prescrivait de maintenir cette adresse en ligne, et l'argument reste juste : IndexedDB
+est cloisonné par origine, les données saisies sous `github.io` ne sont lisibles que par du code
+servi depuis `github.io`, et c'est l'application elle-même qui porte la fonction d'export. Aucune
+configuration OVH ne peut y donner accès, puisque `bailiz.fr` est une autre origine (cf.
+`CDC-site-vitrine-seo.md` §3.5, qui retient le sous-répertoire pour cette raison exacte).
 
-> **Constaté le 24 octobre 2026 : ce n'est plus le cas.**
-> `https://jami-inf.github.io/Bailiz_gestion_immo/` répond **404 - Site not found**. Le dépôt n'a
-> plus de branche `gh-pages`, et le workflow ne publie plus rien sur Pages depuis la bascule FTP.
-> Le chemin d'export décrit ci-dessous n'existe donc plus pour un utilisateur qui arriverait par
-> cette adresse.
->
-> Ce qui subsiste : une PWA **déjà installée** garde son précache et ses données, et devrait
-> continuer à s'ouvrir hors ligne, export compris - à vérifier sur un appareil réel avant de s'en
-> satisfaire. Un utilisateur qui avait seulement un signet, lui, n'a plus de porte d'entrée.
->
-> Pour rétablir le chemin d'export, il faut republier une fois l'application sur Pages
-> (build avec `base: '/Bailiz_gestion_immo/'`, déploiement ponctuel), puis seulement y poser le
-> bandeau de déménagement. Décision à prendre en connaissance du nombre d'utilisateurs concernés,
-> qui n'est pas mesurable - l'application n'ayant jamais rien envoyé.
+**La prescription est néanmoins sans objet** : l'éditeur confirme avoir été le seul utilisateur de
+la version GitHub Pages. Il n'y a aucune donnée à récupérer sur cette origine, donc aucun chemin
+d'export à rouvrir et aucun bandeau de déménagement à poser.
 
-**Réglage à appliquer** : Settings → Pages → Source → **GitHub Actions**.
-
-- Cela **désactive** le workflow Jekyll automatique, qui échoue sur les fichiers `.astro` du
-  dossier `site/` (cf. §10).
-- Le nouveau workflow ne publie plus rien sur Pages : la **dernière version déployée reste
-  servie**, donc l'ancienne application reste accessible.
-- **Ne pas mettre « None »** : cela supprimerait le site et, avec lui, le chemin d'export.
-
-Le message de déménagement viendra plus tard, sous forme d'un bandeau **dans** l'ancienne
-application (un déploiement ponctuel), jamais d'une redirection sèche - qui ferait croire à une
-perte de données.
+Si le besoin réapparaissait - une sauvegarde oubliée sur un ancien appareil -, la marche à suivre
+tient en trois étapes : construire l'application avec `base: '/Bailiz_gestion_immo/'`, la déployer
+une fois sur Pages, exporter l'archive ZIP depuis l'écran de sauvegarde, puis la réimporter sur
+`bailiz.fr/app/`. Mettre cette version en `noindex`, pour qu'elle ne concurrence pas la vitrine.
 
 ### Liens à mettre à jour
 
@@ -662,7 +645,7 @@ Si le problème vient d'un commit déjà poussé, `git revert` puis push reste p
 
 | Symptôme | Cause probable | Correction |
 |---|---|---|
-| Un job **Jekyll** échoue sur les fichiers `.astro` | GitHub Pages est réglé sur « Deploy from a branch » : le workflow automatique `pages-build-deployment` lance Jekyll sur la racine du dépôt, et lit les `---` des fichiers `.astro` comme du front matter YAML | **Aucun correctif dans le code.** Settings → Pages → Source → **GitHub Actions**. Ne pas mettre « None » : cf. §8 |
+| Un job **Jekyll** échoue sur les fichiers `.astro` | GitHub Pages est réglé sur « Deploy from a branch » : le workflow automatique `pages-build-deployment` lance Jekyll sur la racine du dépôt, et lit les `---` des fichiers `.astro` comme du front matter YAML | **Aucun correctif dans le code.** Settings → Pages → Source → **GitHub Actions**, ou **None** : le chemin d'export n'est plus à protéger (cf. §8) |
 | `npm ci --prefix site` ou le build vitrine échoue en CI, mais passe en local | Version de Node du runner inférieure à celle exigée par Astro (`>=22.12.0`) | `node-version: 22` dans le workflow. Le vérifier après chaque montée de version majeure d'Astro : `node -p "require('./site/node_modules/astro/package.json').engines"` |
 | `403 Forbidden` à la racine | Fichiers déposés à côté de `www/` et non dedans | Vérifier la cible du miroir : `www/` relatif, jamais `/www/` |
 | `Le dossier 'www' est absent du point d'arrivée` | Le répertoire cible du compte SFTP a changé - la connexion aboutit déjà dans le docroot | Remettre le répertoire cible à `.` dans le Manager, ou basculer la cible du miroir sur `.` dans le workflow |
@@ -755,7 +738,7 @@ et trois issues :
    `site/` et les deux documents. C'est une bascule : elle se relit avant d'être poussée.
 2. **Dérouler la vérification du §7** - le workflow en automatise une partie, mais pas
    **le parcours PDF complet sous la CSP**, qui ne peut se tester qu'à la main.
-3. Search Console, page de renvoi sur l'ancienne URL, liens sortants (§8).
+3. Search Console et liens sortants (§8).
 
 Le premier déploiement remplacera la page « site en construction » actuellement servie. Si un
 fichier résiduel d'OVH subsistait à la racine, la troisième passe du miroir (`--delete`) s'en
