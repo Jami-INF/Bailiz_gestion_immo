@@ -136,7 +136,8 @@ const schemas = [schema, filSchema].flat().filter(Boolean);
         <nav aria-label="Navigation principale">
           <a href="/bail-meuble/">Bail meublé</a>
           <a href="/etat-des-lieux/">État des lieux</a>
-          <a href="/pourquoi-bailiz/">Pourquoi Bailiz</a>
+          <a href="/outils/">Outils</a>
+          <a href="/pourquoi-bailiz/">Pourquoi</a>
         </nav>
       </div>
     </header>
@@ -147,9 +148,21 @@ const schemas = [schema, filSchema].flat().filter(Boolean);
 
     <footer class="pied">
       <div class="enveloppe">
-        <nav aria-label="Pied de page">
+        {/*
+          Deux rangs plutôt qu'une file unique : sept outils et quatre liens de
+          service mélangés donnaient une bouillie de treize libellés où plus
+          rien ne se repérait.
+        */}
+        <nav aria-label="Outils">
           <a href="/bail-meuble/">Bail meublé</a>
           <a href="/etat-des-lieux/">État des lieux</a>
+          <a href="/depot-de-garantie/">Dépôt de garantie</a>
+          <a href="/grille-de-vetuste/">Grille de vétusté</a>
+          <a href="/revision-de-loyer-irl/">Révision de loyer</a>
+          <a href="/acte-de-cautionnement/">Acte de cautionnement</a>
+          <a href="/fiche-de-visite/">Fiche de visite</a>
+        </nav>
+        <nav aria-label="Pied de page">
           <a href="/pourquoi-bailiz/">Pourquoi Bailiz</a>
           <a href="/mentions-legales/">Mentions légales</a>
           <a href="/confidentialite/">Confidentialité</a>

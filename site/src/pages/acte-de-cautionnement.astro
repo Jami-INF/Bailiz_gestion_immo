@@ -1,0 +1,176 @@
+---
+/*
+ * Page outil, gabarit CDC §6. Le document existe déjà dans l'application, émis
+ * depuis le formulaire de bail et joint à la fiche de visite quand le candidat
+ * se présente avec un garant.
+ *
+ * Contenu repris de `src/lib/pdf/ActeCautionnementPdf.tsx`. La mention
+ * manuscrite et la clause de résiliation sont les deux points où un acte mal
+ * rédigé se retourne contre le bailleur : ils ont leur section.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Acte de cautionnement solidaire : modèle gratuit | Bailiz';
+const description =
+  "Imprimez un acte de cautionnement solidaire pré-rempli depuis votre bail : étendue, montant garanti, durée, mention à recopier. Article 22-1 de la loi de 1989.";
+
+const FAQ = [
+  {
+    q: 'La mention manuscrite est-elle encore obligatoire ?',
+    r: "La réforme du droit des sûretés de 2021 a assoupli le formalisme, mais une mention écrite de la main de la caution reste la preuve la plus solide qu'elle a mesuré son engagement. Le document l'imprime, la caution la recopie : c'est trente secondes contre un moyen de nullité.",
+  },
+  {
+    q: 'Caution simple ou caution solidaire ?',
+    r: "L'acte produit est solidaire. La caution renonce alors au bénéfice de discussion et de division : vous pouvez la poursuivre sans avoir agi d'abord contre le locataire, et pour la totalité. C'est l'usage en location, et c'est ce qui donne sa valeur à la garantie.",
+  },
+  {
+    q: 'Combien de temps la caution est-elle engagée ?',
+    r: "Pour la durée initiale du bail et ses reconductions. Si l'engagement est à durée indéterminée, l'article 22-1 permet à la caution de le résilier à tout moment ; la résiliation prend effet au terme du bail en cours lorsque vous en recevez notification. Le document rappelle cette faculté.",
+  },
+  {
+    q: 'Et si mon locataire a la garantie Visale ?',
+    r: "Alors il ne vous faut pas cet acte. Visale est une garantie d'Action Logement, dont le contrat de cautionnement est émis par eux. Bailiz le signale au lieu de produire un document inutile, et le bail enregistre la garantie sous sa forme réelle.",
+  },
+  {
+    q: 'Puis-je imprimer un acte incomplet ?',
+    r: "Oui. Ce qui est connu du bail est repris, le reste devient une zone pointillée. Vous pouvez donc remettre l'acte à un garant qui se présente à une visite, avant même qu'un bail existe.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Acte de cautionnement">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Acte de cautionnement solidaire à imprimer</h1>
+      <p class="accroche">
+        Le document reprend du bail ce qu'il connaît déjà : le bailleur, le logement, le loyer et
+        les charges, la durée. Ce qui manque devient une zone pointillée à compléter à la main.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger le bail et son acte</a>
+      </div>
+      <p class="mention">
+        Gratuit, sans compte. L'acte se produit depuis la section « garant » du formulaire de
+        bail.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que contient l'acte</h2>
+      <ul>
+        <li>l'identité de la caution, celle du locataire garanti et celle du bailleur</li>
+        <li>la désignation du logement</li>
+        <li>
+          <strong>l'étendue de l'engagement</strong> : loyers, charges et leurs révisions,
+          réparations locatives, indemnités d'occupation, intérêts, frais et accessoires
+        </li>
+        <li>
+          la renonciation au bénéfice de discussion et de division, qui est ce que « solidaire »
+          veut dire concrètement
+        </li>
+        <li>
+          <strong>le montant garanti</strong> : loyer hors charges en chiffres et en toutes
+          lettres, charges, total mensuel, et la mention que le cautionnement suit les révisions
+          IRL
+        </li>
+        <li>
+          la durée : durée initiale du bail et ses reconductions, avec le rappel de la faculté de
+          résiliation de l'article 22-1
+        </li>
+        <li>
+          la reconnaissance par la caution d'avoir été informée, et la remise d'un exemplaire du
+          bail
+        </li>
+        <li>la mention à recopier de la main de la caution, puis date et signature.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Les deux points où un acte se retourne</h2>
+      <p>
+        <strong>Le montant en toutes lettres.</strong> Un acte qui ne chiffre pas l'obligation,
+        ou qui la chiffre en seuls chiffres, se conteste. Bailiz écrit le loyer dans les deux
+        formes, et calcule le total mensuel.
+      </p>
+      <p>
+        <strong>L'information de la caution.</strong> Elle doit avoir compris l'étendue de ce
+        qu'elle signe, y compris que le loyer sera révisé et qu'elle peut résilier un engagement
+        à durée indéterminée. Ces deux phrases figurent dans l'acte, au-dessus de la signature,
+        et non en petits caractères au verso.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Pas de signature électronique.</strong> L'acte s'imprime et se signe à la main,
+          avec la mention recopiée. C'est le seul cas de l'application où l'écriture manuscrite
+          n'est pas une survivance.
+        </li>
+        <li>
+          <strong>Pas de cautionnement bancaire ni de Visale.</strong> Pour Visale, le contrat
+          vient d'Action Logement ; Bailiz enregistre la garantie au bail sans produire d'acte.
+        </li>
+        <li>
+          <strong>Pas de vérification de solvabilité.</strong> Les justificatifs du garant
+          relèvent de votre examen du dossier, et la liste des pièces exigibles est limitative
+          (décret n°2015-1437). Voir la <a href="/fiche-de-visite/">fiche de visite</a>.
+        </li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur :
+          un cautionnement engage lourdement celui qui le signe, faites-le relire au moindre
+          doute.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>L'acte se remplit avec le bail</h2>
+      <p>
+        Il n'a pas de formulaire à lui : c'est le <a href="/bail-meuble/">bail meublé</a> qui le
+        pré-remplit, à la section du garant. Il se joint aussi à la{' '}
+        <a href="/fiche-de-visite/">fiche de visite</a>, pour qu'un candidat reparte avec.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger le bail et son acte</a>
+        <a class="bouton bouton--secondaire" href="/bail-meuble/">Voir le bail meublé</a>
+      </div>
+    </div>
+  </section>
+</Base>

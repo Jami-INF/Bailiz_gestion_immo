@@ -254,3 +254,72 @@ répondait `Location: https://bailiz.fr:443/bail-meuble/`. `DirectorySlash` écr
 explicitement. L'effet est mince - un moteur normalise le port par défaut - mais la cible d'une
 301 n'a pas de raison de différer de la canonique déclarée par la page. Remplacé par une règle de
 réécriture explicite.
+
+---
+
+## 7. Ouverture de cinq pages outils - 24 octobre 2026
+
+### Le constat
+
+`src/lib/pdf/` contient **neuf générateurs de documents**. La vitrine n'en vendait **deux**.
+
+| Document | Produit depuis | Page |
+|---|---|---|
+| Bail meublé | `/app/#/baux/nouveau` | `/bail-meuble/` |
+| État des lieux | `/app/#/edl/nouveau` | `/etat-des-lieux/` |
+| Lettre de restitution du dépôt | synthèse d'un EDL de sortie | **`/depot-de-garantie/`** |
+| Grille de vétusté | `/app/#/parametres` | **`/grille-de-vetuste/`** |
+| Courrier de révision IRL | fiche d'un bail | **`/revision-de-loyer-irl/`** |
+| Acte de cautionnement | formulaire de bail | **`/acte-de-cautionnement/`** |
+| Fiche de visite | fiche d'un logement | **`/fiche-de-visite/`** |
+| Fiche d'aide juridique | `/app/#/parametres` | - |
+| *(communs de mise en page)* | - | - |
+
+Chacun de ces documents correspond à une intention de recherche propre, et **moins disputée** que
+« bail meublé », tenue par service-public.fr et les portails. C'est exactement la traîne longue à
+intention d'outil du §7 du CDC - avec un avantage sur les guides : il y a un document au bout.
+
+La fiche d'aide juridique reste sans page : c'est un mémo de référence, pas un document produit
+pour un locataire. Elle trouvera mieux sa place dans `/guides/`.
+
+### Ce qui a été fait
+
+- **Cinq pages outils** au gabarit §6 : intention en `<h1>`, CTA au-dessus de la ligne de
+  flottaison, ce que le document contient, ce que l'outil fait, **ce qu'il ne fait pas**, cadre
+  légal avec ses références, FAQ balisée `FAQPage`, liens vers deux autres outils.
+  De 791 à 1331 mots, dans les bornes du §6.
+- **`/outils/`**, l'index que le §4 réservait « à partir de trois ou quatre entrées ». Sans lui,
+  les cinq nouvelles pages n'auraient été atteignables que par le pied de page. Balisé `ItemList`.
+- **Navigation** : « Outils » ajouté, « Pourquoi Bailiz » raccourci en « Pourquoi » pour que les
+  quatre entrées tiennent sur une ligne à 375 px (vérifié : une seule rangée, aucun débordement).
+- **Pied de page** sur deux rangs, les sept outils puis les liens de service : treize libellés en
+  file unique ne se lisaient plus.
+- **Accueil** : les deux cartes du §3.6 restent le fer de lance, suivies d'un renvoi vers
+  `/outils/`.
+
+### Règles du CDC tenues
+
+- **§3.6, on ne vend que ce qui existe.** Les cinq documents fonctionnent aujourd'hui. Aucune
+  entrée « bientôt disponible », et `/outils/` le dit explicitement.
+- **Liens profonds honnêtes.** La lettre de restitution et le courrier IRL supposent un état des
+  lieux ou un bail enregistré : leur CTA vise la liste correspondante, pas un formulaire vide qui
+  promettrait une porte inexistante.
+- **Aucune affirmation non vérifiée.** Chaque chiffre et chaque référence vient du générateur
+  concerné : article 22 et majoration de 10 % par mois commencé, plafond de deux mois de l'article
+  25-6, décret n°2016-382 pour la vétusté, décret n°87-712 pour les réparations locatives, article
+  17-1 pour l'IRL, article 22-1 pour le cautionnement, décret n°2015-1437 pour les pièces du
+  dossier.
+- **§12, avertissement juridique** repris sur les cinq pages.
+
+### Mesures
+
+| | Avant | Après |
+|---|---|---|
+| Pages indexables | 6 | **12** |
+| Pages orphelines | 0 | 0 |
+| `title` et `description` dans les bornes du §8 | 6/6 | **12/12** |
+| Accueil compressé | 7,9 ko | 8,1 ko |
+| JavaScript | 0 | 0 |
+
+Liens internes vérifiés : aucun lien mort, aucune page orpheline, chaque page reçoit au moins
+treize liens entrants.

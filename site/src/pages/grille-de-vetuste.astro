@@ -1,0 +1,230 @@
+---
+/*
+ * Page outil, gabarit CDC §6. « Grille de vétusté » est une requête courte,
+ * précise et peu disputée : celui qui la tape sait déjà ce qu'il cherche.
+ *
+ * Les douze postes cités sont ceux de `GRILLE_VETUSTE_DEFAUT`
+ * (`src/lib/defauts.ts`), et la mécanique du coefficient celle de
+ * `coefficientVetuste` (`src/lib/calculs.ts`). Toute retouche là-bas se
+ * répercute ici.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Grille de vétusté : modèle à annexer au bail | Bailiz';
+const description =
+  "Générez une grille de vétusté à annexer au bail : durée de vie, franchise et abattement par poste, avec son mode d'emploi. Décret n°2016-382. Gratuit.";
+
+/* Repris de `GRILLE_VETUSTE_DEFAUT`. Un extrait, pas la grille entière : la
+   page n'a pas à devenir la copie d'un fichier source. */
+const POSTES = [
+  { poste: 'Peintures', duree: 10, franchise: 1, abattement: 10 },
+  { poste: 'Moquette', duree: 7, franchise: 1, abattement: 15 },
+  { poste: 'Parquet / stratifié', duree: 15, franchise: 2, abattement: 7 },
+  { poste: 'Électroménager', duree: 8, franchise: 1, abattement: 12 },
+  { poste: 'Literie (matelas, sommier)', duree: 8, franchise: 1, abattement: 12 },
+  { poste: 'Chaudière / chauffe-eau', duree: 15, franchise: 2, abattement: 7 },
+];
+
+const FAQ = [
+  {
+    q: "Qu'est-ce que la vétusté, exactement ?",
+    r: "Le décret n°2016-382 la définit comme l'état d'usure ou de détérioration résultant du temps ou de l'usage normal des matériaux et équipements du logement. Elle est à la charge du bailleur. Seule la dégradation anormale est imputable au locataire.",
+  },
+  {
+    q: 'La grille de vétusté est-elle obligatoire ?',
+    r: "Non. L'article 4 du décret n°2016-382 permet aux parties de convenir d'en appliquer une, dès la signature du bail. Elle n'est pas imposée, mais sans elle le chiffrage des retenues repose sur votre seule appréciation, ce qui est exactement ce qu'un locataire conteste.",
+  },
+  {
+    q: 'Puis-je modifier les postes et les durées ?',
+    r: "Oui, chaque ligne se modifie dans les paramètres : le poste, sa durée de vie, la franchise et l'abattement annuel. Les douze postes fournis par défaut s'inspirent des grilles conventionnelles usuelles ; ce sont des valeurs de départ, pas une norme.",
+  },
+  {
+    q: 'À quel moment faut-il la remettre au locataire ?',
+    r: "À la signature du bail, en annexe. Une grille produite le jour de la sortie, quand les montants sont déjà en jeu, n'a plus grand poids : son intérêt est d'avoir été acceptée quand personne n'avait d'intérêt à la discuter.",
+  },
+  {
+    q: 'Couvre-t-elle les dégradations volontaires ?',
+    r: "Non, et le document le dit. Les dégradations volontaires et les défauts d'entretien courant à la charge du locataire (décret n°87-712 sur les réparations locatives) restent dus en totalité, sans abattement.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Grille de vétusté">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Grille de vétusté à annexer au bail</h1>
+      <p class="accroche">
+        Un document d'une page, avec les postes, leur durée de vie et leur abattement annuel,
+        suivi de son mode d'emploi et d'un exemple chiffré. À signer avec le bail, pour que la
+        règle du calcul soit connue avant que l'argent soit en jeu.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/parametres">Ouvrir ma grille</a>
+      </div>
+      <p class="mention">Gratuit, sans compte. Douze postes fournis, tous modifiables.</p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Pourquoi l'annexer dès la signature</h2>
+      <p>
+        La vétusté est à la charge du bailleur ; la dégradation anormale est à celle du
+        locataire. Entre les deux, la frontière est une affaire d'appréciation, et c'est là que
+        naissent la plupart des litiges de fin de bail.
+      </p>
+      <p>
+        Une grille convenue à l'avance déplace la discussion. Elle ne tranche pas à votre
+        avantage : elle protège aussi le locataire d'une facturation à neuf d'un équipement de
+        neuf ans. C'est précisément ce qui la rend acceptable à la signature, et difficile à
+        écarter à la sortie.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Comment se lit un coefficient</h2>
+      <p>
+        Chaque poste porte trois valeurs : une <strong>durée de vie</strong> théorique, une{' '}
+        <strong>franchise</strong> pendant laquelle aucun abattement ne s'applique, et un{' '}
+        <strong>abattement annuel</strong> au-delà.
+      </p>
+      <ul>
+        <li>pendant la franchise, le locataire supporte 100 % du coût de remise en état ;</li>
+        <li>
+          ensuite, le coefficient diminue chaque année du pourcentage d'abattement, sans jamais
+          descendre sous une part résiduelle de 10 % ;
+        </li>
+        <li>
+          au-delà de la durée de vie, le coefficient tombe à 0 % : plus rien n'est facturable au
+          locataire, quel que soit l'état du poste.
+        </li>
+      </ul>
+      <p>
+        Le document imprimé contient un exemple chiffré, calculé sur votre propre grille. Avec
+        les valeurs par défaut des peintures, une remise en état de 500 € sur un élément de
+        quatre ans donne un coefficient de 70 % et une retenue de 350 €.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Les postes fournis par défaut</h2>
+      <p class="sous-titre">
+        Six des douze lignes de la grille livrée avec l'application. Elles s'inspirent des
+        grilles conventionnelles usuelles et se modifient toutes.
+      </p>
+      <div class="tableau-comparatif">
+        <table role="table">
+          <caption class="sr-only">
+            Extrait de la grille de vétusté par défaut : durée de vie, franchise et abattement
+            annuel par poste
+          </caption>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Poste</th>
+              <th scope="col" role="columnheader">Durée de vie</th>
+              <th scope="col" role="columnheader">Franchise</th>
+              <th scope="col" role="columnheader">Abattement par an</th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            {
+              POSTES.map((p) => (
+                <tr role="row">
+                  <th scope="row" role="rowheader">{p.poste}</th>
+                  <td role="cell" data-colonne="Durée de vie">{p.duree} ans</td>
+                  <td role="cell" data-colonne="Franchise">
+                    {p.franchise} an{p.franchise > 1 ? 's' : ''}
+                  </td>
+                  <td role="cell" data-colonne="Abattement par an">{p.abattement} %</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="mention">
+        Les six autres : papiers peints, carrelage, sols plastiques, mobilier, robinetterie,
+        sanitaires.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Ce que le document contient</h2>
+      <ul>
+        <li>la définition légale de la vétusté, avec sa source</li>
+        <li>le mode d'emploi en quatre étapes, de la comparaison des états des lieux au calcul</li>
+        <li>un exemple chiffré repris de votre propre grille</li>
+        <li>le tableau des postes : durée de vie, franchise, abattement, part résiduelle</li>
+        <li>
+          les limites : la grille ne couvre ni les dégradations volontaires, ni l'entretien
+          courant dû par le locataire
+        </li>
+        <li>la référence du bail auquel elle est annexée, quand elle l'est.</li>
+      </ul>
+
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Il ne fournit pas de grille officielle.</strong> Il n'en existe pas. Les valeurs
+          par défaut s'inspirent des grilles conventionnelles en usage, et vous en répondez.
+        </li>
+        <li>
+          <strong>Il ne la fait pas signer.</strong> La grille s'imprime avec le bail et se signe
+          sur papier, comme lui.
+        </li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe">
+      <h2>La grille sert deux fois</h2>
+      <p>
+        À la signature, annexée au <a href="/bail-meuble/">bail meublé</a>. À la sortie, pour
+        chiffrer les retenues de la{' '}
+        <a href="/depot-de-garantie/">restitution du dépôt de garantie</a>. C'est le même
+        document, et c'est ce qui lui donne sa force.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/parametres">Ouvrir ma grille</a>
+        <a class="bouton bouton--secondaire" href="/app/#/baux/nouveau">Rédiger un bail</a>
+      </div>
+    </div>
+  </section>
+</Base>

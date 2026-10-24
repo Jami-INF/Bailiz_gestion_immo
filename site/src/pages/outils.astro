@@ -1,0 +1,130 @@
+---
+/*
+ * Index des outils. Le CDC §4 le réservait pour « à partir de trois ou quatre
+ * entrées » : avec sept documents, il devient nécessaire, sans quoi les cinq
+ * pages ouvertes aujourd'hui ne seraient atteignables que par le pied de page.
+ *
+ * Règle du §3.6 maintenue : on ne liste que ce qui fonctionne. Aucune entrée
+ * « bientôt disponible », aucune grille à trous.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Les outils Bailiz : sept documents du bailleur meublé';
+const description =
+  "Bail meublé, état des lieux, décompte du dépôt de garantie, grille de vétusté, révision IRL, cautionnement, fiche de visite. Tous gratuits et sans inscription.";
+
+const OUTILS = [
+  {
+    href: '/bail-meuble/',
+    nom: 'Bail meublé',
+    produit: 'Le contrat de location',
+    texte:
+      "Trame du bail type, mentions obligatoires, loyer, charges, dépôt, clauses. Les champs laissés vides ressortent en pointillés.",
+  },
+  {
+    href: '/etat-des-lieux/',
+    nom: 'État des lieux',
+    produit: "L'état des lieux d'entrée ou de sortie",
+    texte:
+      "Pièce par pièce sur tablette, photos rattachées, signature horodatée. La sortie reprend l'entrée et en liste les écarts.",
+  },
+  {
+    href: '/depot-de-garantie/',
+    nom: 'Dépôt de garantie',
+    produit: 'La lettre de restitution et son décompte',
+    texte:
+      "Retenues poste par poste, vétusté appliquée, solde calculé. Avec les délais de l'article 22 et la majoration de retard.",
+  },
+  {
+    href: '/grille-de-vetuste/',
+    nom: 'Grille de vétusté',
+    produit: 'La grille à annexer au bail',
+    texte:
+      "Douze postes modifiables, avec durée de vie, franchise et abattement annuel, suivis du mode d'emploi et d'un exemple chiffré.",
+  },
+  {
+    href: '/revision-de-loyer-irl/',
+    nom: 'Révision de loyer',
+    produit: 'Le courrier de révision IRL',
+    texte:
+      "Le calcul écrit en clair, le bon trimestre de référence repris d'une année sur l'autre, la date d'application.",
+  },
+  {
+    href: '/acte-de-cautionnement/',
+    nom: 'Acte de cautionnement',
+    produit: "L'engagement de caution solidaire",
+    texte:
+      "Étendue, montant garanti en toutes lettres, durée, faculté de résiliation, mention à recopier de la main de la caution.",
+  },
+  {
+    href: '/fiche-de-visite/',
+    nom: 'Fiche de visite',
+    produit: 'La fiche remise au candidat',
+    texte:
+      "Logement, conditions, pièces du dossier selon le décret n°2015-1437, adaptées à la situation du candidat.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Outils Bailiz',
+  itemListElement: OUTILS.map((o, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: o.nom,
+    url: `https://bailiz.fr${o.href}`,
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Outils">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Sept documents, un seul logement à décrire</h1>
+      <p class="accroche">
+        Chaque outil produit un document précis, et tous partagent les mêmes données : le
+        logement saisi pour le bail sert à l'état des lieux, qui sert au décompte du dépôt. C'est
+        la seule chose que Bailiz fait et qu'un modèle à télécharger ne fera pas.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe">
+      <div class="cartes">
+        {
+          OUTILS.map((o) => (
+            <article class="carte">
+              <h2>{o.nom}</h2>
+              <p class="carte__produit">{o.produit}</p>
+              <p>{o.texte}</p>
+              <a class="bouton bouton--secondaire" href={o.href}>
+                En savoir plus
+              </a>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce qui n'est pas dans la liste</h2>
+      <p>
+        Il n'y a pas de case grisée, pas de « bientôt disponible », pas d'outil annoncé qui
+        n'existe pas. Ce que vous lisez ici fonctionne aujourd'hui et sort en PDF.
+      </p>
+      <p>
+        Il n'y a pas non plus de comptabilité, de déclaration fiscale, de quittance automatique
+        ni de gestion des impayés. Bailiz produit les documents du bail et de sa fin, et s'arrête
+        là. <a href="/pourquoi-bailiz/">Pourquoi</a> est expliqué ailleurs.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
+        <a class="bouton bouton--secondaire" href="/app/#/edl/nouveau">Faire un état des lieux</a>
+      </div>
+    </div>
+  </section>
+</Base>

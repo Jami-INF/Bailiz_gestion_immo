@@ -1,0 +1,165 @@
+---
+/*
+ * Page outil, gabarit CDC §6. L'intention est saisonnière et récurrente : la
+ * révision tombe à la date anniversaire du bail, tous les ans, et le bailleur
+ * qui la cherche veut écrire une lettre aujourd'hui.
+ *
+ * Le calcul et les mentions sont ceux de `revisionIRL` (`src/lib/calculs.ts`)
+ * et de `src/lib/pdf/CourrierIrlPdf.tsx`.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Révision de loyer IRL : calcul et courrier | Bailiz';
+const description =
+  "Calculez la révision annuelle du loyer selon l'IRL et imprimez le courrier au locataire, calcul détaillé. Article 17-1 de la loi de 1989. Gratuit, sans compte.";
+
+const FAQ = [
+  {
+    q: 'Comment se calcule la révision ?',
+    r: "Nouveau loyer = loyer actuel × nouvel indice / indice de référence. Les indices sont ceux de l'IRL publiés chaque trimestre par l'INSEE. Le calcul figure en toutes lettres dans le courrier, chiffres compris, pour que le locataire puisse le refaire.",
+  },
+  {
+    q: 'Quel trimestre faut-il prendre comme référence ?',
+    r: "Celui inscrit au contrat pour la première révision, puis celui de la révision précédente. C'est une erreur fréquente : citer indéfiniment le trimestre d'origine fausse le calcul dès la deuxième année. Bailiz reprend le bon trimestre tout seul.",
+  },
+  {
+    q: 'Puis-je réviser rétroactivement si j’ai oublié une année ?',
+    r: "Non. La révision ne joue pas rétroactivement : elle s'applique à compter de sa demande, et le bailleur dispose d'un an à partir de la date anniversaire pour la réclamer. Passé ce délai, l'augmentation de l'année est perdue.",
+  },
+  {
+    q: 'Les charges sont-elles révisées aussi ?',
+    r: "Non. L'IRL ne porte que sur le loyer hors charges, et le courrier le précise : les charges restent inchangées. Leur ajustement relève de la régularisation annuelle ou de la révision du forfait, qui obéissent à d'autres règles.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Révision de loyer (IRL)">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Révision annuelle du loyer selon l'IRL</h1>
+      <p class="accroche">
+        Vous entrez le nouvel indice, Bailiz calcule le loyer révisé et écrit le courrier au
+        locataire avec le détail de l'opération. Une page, à imprimer et à envoyer.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux">Ouvrir un bail</a>
+      </div>
+      <p class="mention">
+        Le courrier se produit depuis la fiche d'un bail enregistré, qui porte le loyer et le
+        trimestre de référence.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Le piège du trimestre de référence</h2>
+      <p>
+        La formule est simple : <strong>nouveau loyer = loyer actuel × nouvel indice / indice de
+        référence</strong>. L'erreur ne porte presque jamais sur la multiplication, elle porte
+        sur le choix de l'indice de référence.
+      </p>
+      <p>
+        Pour la première révision, c'est le trimestre inscrit au contrat. Pour les suivantes,
+        c'est celui de la révision précédente. Reprendre indéfiniment le trimestre d'origine
+        donne un résultat faux dès la deuxième année, et faux dans le sens qui vous expose :
+        l'augmentation cumulée appliquée d'un coup est exactement ce qu'un locataire conteste
+        avec succès.
+      </p>
+      <p>
+        L'application garde la trace de la dernière révision et propose le bon trimestre. Vous
+        n'avez à retrouver qu'une valeur, celle du nouvel indice.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Ce que contient le courrier</h2>
+      <ul>
+        <li>les coordonnées du bailleur et du locataire, l'adresse du logement</li>
+        <li>l'objet et la référence du bail</li>
+        <li>
+          le fondement : article 17-1 de la loi n°89-462 du 6 juillet 1989, et la clause de
+          révision de votre contrat
+        </li>
+        <li>
+          l'ancien indice avec son trimestre, le nouvel indice avec le sien
+        </li>
+        <li>
+          <strong>le calcul écrit en clair</strong>, avec les trois nombres et le résultat, pour
+          que le locataire puisse le refaire
+        </li>
+        <li>le nouveau loyer hors charges et sa date d'application</li>
+        <li>la mention que les charges restent inchangées, et la signature du bailleur.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Il ne va pas chercher l'indice.</strong> L'IRL se relève sur le site de
+          l'INSEE, et vous le saisissez. L'application ne fait aucune requête vers un service
+          tiers : c'est le prix de son fonctionnement hors ligne et de l'absence de serveur.
+        </li>
+        <li>
+          <strong>Il ne vérifie pas l'encadrement des loyers.</strong> Dans les zones concernées,
+          la révision reste soumise aux plafonds locaux, qui ne sont pas dans l'application.
+        </li>
+        <li>
+          <strong>Il ne surveille pas la date anniversaire.</strong> Aucun rappel, aucune
+          notification. Bailiz ne tourne que lorsque vous l'ouvrez.
+        </li>
+        <li><strong>Il n'envoie pas le courrier.</strong> Vous l'imprimez et vous l'expédiez.</li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Il faut un bail enregistré</h2>
+      <p>
+        Le courrier reprend le loyer, le trimestre de référence et la clause de révision du
+        contrat. Si votre bail a été signé sur papier ou rédigé ailleurs, commencez par le
+        saisir : le <a href="/bail-meuble/">formulaire de bail</a> sert aussi à cela.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/baux">Ouvrir un bail</a>
+        <a class="bouton bouton--secondaire" href="/app/#/baux/nouveau">Saisir un bail</a>
+      </div>
+    </div>
+  </section>
+</Base>

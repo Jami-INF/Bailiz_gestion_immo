@@ -292,6 +292,22 @@ section {
 
 /* --- Cartes ------------------------------------------------------------- */
 
+/*
+ * Le document que produit l'outil, annoncé avant sa description : sur l'index,
+ * c'est l'information que le visiteur cherche, et elle tient en cinq mots.
+ */
+.carte__produit {
+  margin: -0.25rem 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--m-700);
+}
+
+.carte h2 {
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
 .cartes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));

@@ -1,0 +1,176 @@
+---
+/*
+ * Page outil, gabarit CDC §6. Le §3.6 du CDC réservait cette URL « à ouvrir
+ * outil par outil et jamais en bientôt disponible » : elle s'ouvre parce que
+ * `FicheVisitePdf` existe et fonctionne, pas parce qu'elle est prévue.
+ *
+ * Contenu repris de `src/lib/pdf/FicheVisitePdf.tsx` et de
+ * `src/features/parametres/FicheVisitePanel.tsx`. La liste des pièces est
+ * limitative (décret n°2015-1437) : ne jamais suggérer ici qu'on peut
+ * l'allonger.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Fiche de visite location : modèle à remettre | Bailiz';
+const description =
+  "Imprimez la fiche que le candidat emporte après la visite : logement, conditions, pièces du dossier selon le décret n°2015-1437. Gratuit et modifiable.";
+
+const FAQ = [
+  {
+    q: 'À quoi sert une fiche de visite ?',
+    r: "À ce que le candidat reparte avec les informations exactes plutôt qu'avec ses notes. Loyer, charges, dépôt, date de disponibilité, pièces à fournir : ce sont les points sur lesquels naissent les malentendus, et les répéter oralement à six visites de suite en fabrique.",
+  },
+  {
+    q: 'Quelles pièces ai-je le droit de demander ?',
+    r: "La liste du décret n°2015-1437 est limitative : ce qui n'y figure pas ne peut pas être exigé, ni du candidat ni de son garant. Sont notamment interdits le relevé de compte bancaire, l'attestation de bonne tenue de compte, le dossier médical et le chèque de réservation.",
+  },
+  {
+    q: 'La fiche s’adapte-t-elle au profil du candidat ?',
+    r: "Oui. Les sections du dossier dépendent de la situation retenue : garant personne physique, Visale, colocation, étudiant, indépendant. Un candidat salarié sans garant ne repart pas avec deux pages de pièces qui ne le concernent pas.",
+  },
+  {
+    q: 'Puis-je modifier les textes ?',
+    r: "Tout se modifie dans les paramètres : la présentation, les conditions, les modalités de candidature, les mentions de bas de page et la liste des pièces. Un bouton remet le modèle par défaut si vous allez trop loin.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Fiche de visite">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Fiche de visite à remettre au candidat</h1>
+      <p class="accroche">
+        Une page qui reprend le logement, les conditions de location et les pièces du dossier, à
+        imprimer avant la visite et à laisser en partant. Le candidat repart avec des chiffres
+        justes, pas avec le souvenir de ce que vous avez dit.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/biens">Ouvrir un logement</a>
+        <a class="bouton bouton--secondaire" href="/app/#/parametres">Modifier le modèle</a>
+      </div>
+      <p class="mention">
+        Gratuit, sans compte. La fiche se produit depuis la fiche d'un logement enregistré.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que contient la fiche</h2>
+      <ul>
+        <li>
+          <strong>Le logement</strong> : adresse, type, surface, nombre de pièces, équipements,
+          annexes, classe DPE, tels qu'ils sont enregistrés
+        </li>
+        <li>
+          <strong>Les conditions de location</strong> : loyer hors charges, charges, dépôt de
+          garantie, date de disponibilité, durée du bail
+        </li>
+        <li>
+          <strong>Votre visite</strong> : date et heure, ou des zones à compléter à la main si
+          vous imprimez à l'avance
+        </li>
+        <li>
+          <strong>Comment candidater</strong> : vos modalités, suivies de la liste des pièces du
+          dossier en cases à cocher
+        </li>
+        <li>les mentions que vous avez choisi d'ajouter en bas de page</li>
+        <li>
+          et, si le candidat se présente avec un garant personne physique,{' '}
+          <strong>l'<a href="/acte-de-cautionnement/">acte de cautionnement</a> en page jointe</strong>,
+          déjà pré-rempli avec le bailleur, l'adresse, le loyer et les charges.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>La liste des pièces est limitative</h2>
+      <p>
+        Le décret n°2015-1437 fixe <strong>limitativement</strong> ce qu'un bailleur peut exiger
+        d'un candidat et de son garant. Ce qui n'y figure pas est interdit, et la demande expose
+        à une amende administrative.
+      </p>
+      <p>
+        Le modèle fourni suit le décret à la lettre. Les paramètres vous laissent retirer des
+        lignes et reformuler les textes ; ils vous avertissent si vous ajoutez une pièce qui n'y
+        figure pas. L'application ne vous en empêche pas — elle ne bloque jamais — mais elle ne
+        vous laisse pas le faire sans le savoir.
+      </p>
+      <p>
+        Les sections affichées suivent la situation du candidat : garant personne physique,
+        garantie Visale, colocation, étudiant, travailleur indépendant. C'est ce qui évite de
+        remettre à tout le monde la même liste, dont les trois quarts ne les concernent pas.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Il ne reçoit pas les dossiers.</strong> Pas de formulaire en ligne, pas de
+          dépôt de pièces : la fiche est un document papier, et les candidatures vous arrivent
+          comme elles vous arrivaient.
+        </li>
+        <li>
+          <strong>Il ne diffuse pas l'annonce.</strong> La fiche n'est pas une annonce et n'est
+          publiée nulle part. Elle se remet en main propre.
+        </li>
+        <li>
+          <strong>Il ne trie pas les candidats.</strong> Aucun score, aucun classement. Le choix
+          vous revient, et les critères de sélection sont encadrés par la loi.
+        </li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur.
+          Exiger une pièce hors de la liste du décret n°2015-1437, ou écarter un candidat sur un
+          motif discriminatoire, engage la vôtre.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Après la visite</h2>
+      <p>
+        Le logement décrit dans la fiche est le même que celui du{' '}
+        <a href="/bail-meuble/">bail</a> et de l'<a href="/etat-des-lieux/">état des lieux</a> :
+        il est saisi une fois et resservira à chaque relocation.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/biens">Ouvrir un logement</a>
+        <a class="bouton bouton--secondaire" href="/app/#/baux/nouveau">Rédiger un bail</a>
+      </div>
+    </div>
+  </section>
+</Base>

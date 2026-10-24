@@ -1,0 +1,248 @@
+---
+/*
+ * Page outil, gabarit CDC §6. Elle couvre le document que l'application produit
+ * en fin de parcours - la lettre de restitution avec son décompte - et qui
+ * n'était vendu nulle part, alors que c'est le différenciateur du §13 bis : la
+ * sortie du locataire est le moment que les sites de modèles ne savent pas
+ * traiter.
+ *
+ * Tous les chiffres et toutes les références citées ici sont repris de
+ * `src/lib/pdf/LettreRestitutionPdf.tsx` et `src/lib/calculs.ts`. Ne rien
+ * écrire ici que le document ne produise réellement.
+ */
+import Base from '../layouts/Base.astro';
+
+const titre = 'Restitution du dépôt de garantie : lettre et calcul | Bailiz';
+const description =
+  "Rédigez la lettre de restitution du dépôt de garantie et son décompte poste par poste, vétusté appliquée. Délais de l'article 22 et majoration de retard.";
+
+const FAQ = [
+  {
+    q: 'Quel est le délai pour restituer le dépôt de garantie ?',
+    r: "Un mois si l'état des lieux de sortie est conforme à celui d'entrée, deux mois s'il y a des retenues (article 22 de la loi du 6 juillet 1989). Le délai court à compter de la remise des clés, pas de la date de l'état des lieux ni de la fin du bail.",
+  },
+  {
+    q: 'Que se passe-t-il si je dépasse le délai ?',
+    r: "Le solde dû est majoré de 10 % du loyer mensuel hors charges par mois de retard commencé. « Commencé » est le mot important : un jour de retard déclenche le mois entier. C'est pourquoi Bailiz calcule la date limite à partir de la remise des clés et l'affiche.",
+  },
+  {
+    q: 'Puis-je retenir le coût de remise en état à neuf ?',
+    r: "Non. La vétusté est à la charge du bailleur : seule la dégradation anormale est imputable au locataire, et son coût se réduit de l'usure déjà acquise. C'est tout l'objet de la grille de vétusté, qui donne un coefficient par poste et par âge.",
+  },
+  {
+    q: 'Faut-il joindre les devis ?',
+    r: "Oui, et la lettre le mentionne explicitement. Une retenue pour dégradation sans justificatif chiffré est la première chose qu'un locataire conteste, et la première qu'une commission de conciliation écarte.",
+  },
+  {
+    q: 'Et si les réparations coûtent plus cher que le dépôt ?',
+    r: "La lettre le dit et le chiffre : le montant restitué tombe à zéro, et le solde restant dû par le locataire est indiqué séparément. Vous n'avez pas à faire le calcul vous-même ni à bricoler un montant négatif.",
+  },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((e) => ({
+    '@type': 'Question',
+    name: e.q,
+    acceptedAnswer: { '@type': 'Answer', text: e.r },
+  })),
+};
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Dépôt de garantie">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Restitution du dépôt de garantie : la lettre et le décompte</h1>
+      <p class="accroche">
+        À la sortie du locataire, Bailiz compare l'état des lieux de sortie à celui d'entrée,
+        applique la vétusté poste par poste et écrit la lettre de restitution avec son décompte
+        chiffré. Vous relisez, vous imprimez.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/edl/nouveau">Faire l'état des lieux de sortie</a>
+        <a class="bouton bouton--secondaire" href="/app/#/edl">Reprendre un état des lieux</a>
+      </div>
+      <p class="mention">
+        Gratuit, sans compte. La lettre se produit depuis la synthèse d'un état des lieux de
+        sortie.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Le délai, et ce que coûte un jour de retard</h2>
+      <p>
+        L'article 22 de la loi du 6 juillet 1989 fixe deux délais, comptés depuis la{' '}
+        <strong>remise des clés</strong> : un mois quand l'état des lieux de sortie est conforme
+        à celui d'entrée, deux mois quand il ne l'est pas. Ni la date de fin du bail, ni celle de
+        l'état des lieux ne servent de point de départ.
+      </p>
+      <p>
+        Passé ce terme, le solde dû est majoré de <strong>10 % du loyer mensuel hors charges par
+        mois de retard commencé</strong>. Un seul jour de dépassement déclenche le premier mois
+        entier. Sur un loyer de 700 €, cela fait 70 € pour vingt-quatre heures.
+      </p>
+      <p>
+        C'est une des rares règles du droit locatif qui se chiffre immédiatement, et c'est
+        pourquoi l'application calcule la date limite dès que la remise des clés est saisie.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Ce que contient la lettre</h2>
+      <ul>
+        <li>l'objet, l'adresse du logement et la référence du bail quand il en existe une</li>
+        <li>la date de l'état des lieux de sortie et le montant du dépôt versé à la signature</li>
+        <li>
+          le rappel des délais de l'article 22 et de la majoration de 10 % par mois de retard
+          commencé
+        </li>
+        <li>
+          <strong>le décompte des retenues en tableau</strong> : élément et pièce concernés,
+          description du dommage, coût de remise en état, coefficient de vétusté appliqué,
+          retenue finale
+        </li>
+        <li>
+          les autres retenues hors dégradations, chacune avec son libellé et son montant (loyers
+          impayés, régularisation de charges)
+        </li>
+        <li>
+          la mention que les devis et factures sont joints, parce qu'une retenue non justifiée
+          ne tient pas
+        </li>
+        <li>
+          le solde : dépôt versé, total des retenues, <strong>montant restitué</strong>, et le
+          cas échéant le solde restant dû par le locataire
+        </li>
+        <li>la nouvelle adresse du locataire, si vous la connaissez, et la signature du bailleur.</li>
+      </ul>
+      <p>
+        Lorsque la sortie est conforme à l'entrée, le tableau disparaît et la lettre le dit en
+        une phrase : aucune retenue n'est appliquée. C'est le cas le plus fréquent, et il mérite
+        une lettre d'une page, pas un formulaire vide.
+      </p>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil calcule</h2>
+      <ul>
+        <li>
+          <strong>L'écart entre les deux états des lieux.</strong> Chaque pièce et chaque élément
+          de la sortie sont rappelés avec l'état constaté à l'entrée. Vous ne rouvrez pas deux
+          documents pour les comparer de mémoire.
+        </li>
+        <li>
+          <strong>Le coefficient de vétusté, par poste et par âge.</strong> Pendant la franchise,
+          le locataire supporte la totalité du coût. Ensuite le coefficient baisse chaque année
+          de l'abattement prévu, sans descendre sous 10 % tant que la durée de vie théorique
+          n'est pas atteinte. Au-delà, il tombe à zéro et plus rien n'est facturable.
+        </li>
+        <li>
+          <strong>La retenue</strong> = coût de remise en état × coefficient. Le détail du calcul
+          figure dans le tableau, colonne par colonne, ce qui vous évite d'avoir à l'expliquer de
+          vive voix.
+        </li>
+        <li>
+          <strong>Le solde.</strong> Si le total des retenues dépasse le dépôt, le montant
+          restitué est ramené à zéro et la différence est présentée comme un solde dû.
+        </li>
+      </ul>
+      <p>
+        La grille de vétusté utilisée est la vôtre : douze postes sont fournis par défaut, et
+        chacun se modifie. Elle a sa propre page, puisqu'elle s'annexe aussi au bail :{' '}
+        <a href="/grille-de-vetuste/">la grille de vétusté</a>.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose">
+      <h2>Ce que l'outil ne fait pas</h2>
+      <ul>
+        <li>
+          <strong>Il n'arbitre pas.</strong> Le décompte est une aide au chiffrage, pas une
+          décision opposable. Le locataire peut le contester, et c'est son droit.
+        </li>
+        <li>
+          <strong>Il ne produit pas les devis.</strong> Les coûts de remise en état viennent de
+          vos artisans. Bailiz les reprend, les pondère et les met en forme.
+        </li>
+        <li>
+          <strong>Il n'envoie rien.</strong> La lettre sort en PDF. L'envoi en recommandé avec
+          accusé de réception, vivement conseillé, reste à votre charge.
+        </li>
+        <li>
+          <strong>Il ne relance pas.</strong> Aucun rappel, aucune notification : l'application
+          ne tourne que lorsque vous l'ouvrez.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Cadre légal</h2>
+      <ul>
+        <li>
+          Délais de restitution et majoration de retard : article 22 de la loi n°89-462 du 6
+          juillet 1989.
+        </li>
+        <li>
+          Plafond du dépôt en meublé : deux mois de loyer hors charges (article 25-6 de la même
+          loi). Il est interdit pour un bail mobilité.
+        </li>
+        <li>
+          Réparations à la charge du locataire, vétusté à celle du bailleur : article 7 c) et d)
+          de la loi de 1989, et décret n°87-712 pour la liste des réparations locatives.
+        </li>
+        <li>
+          Grille de vétusté convenue entre les parties : article 4 du décret n°2016-382 du 30
+          mars 2016.
+        </li>
+      </ul>
+      <div class="avertissement">
+        <p>
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur. Il ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur :
+          relisez votre décompte et, en cas de litige, rapprochez-vous de la commission
+          départementale de conciliation.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe faq">
+      <h2>Questions fréquentes</h2>
+      {
+        FAQ.map((e) => (
+          <details>
+            <summary>{e.q}</summary>
+            <p>{e.r}</p>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe">
+      <h2>Le décompte part de l'état des lieux</h2>
+      <p>
+        Il n'y a pas de formulaire de restitution isolé : la lettre se construit à partir de la
+        sortie, c'est ce qui lui permet de citer chaque dommage avec son coût. Commencez donc par
+        l'<a href="/etat-des-lieux/">état des lieux</a>.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/app/#/edl/nouveau">Faire l'état des lieux de sortie</a>
+        <a class="bouton bouton--secondaire" href="/grille-de-vetuste/">Voir la grille de vétusté</a>
+      </div>
+    </div>
+  </section>
+</Base>
