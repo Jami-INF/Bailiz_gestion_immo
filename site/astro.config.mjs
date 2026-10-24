@@ -1,6 +1,33 @@
 // @ts-check
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+
+/*
+ * Dates de mise à jour des guides, relues depuis leur frontmatter pour servir
+ * de `lastmod` dans le sitemap.
+ *
+ * Pourquoi seulement les guides : la seule date disponible au build pour les
+ * autres pages serait celle du build, identique partout et fausse presque
+ * partout. Google écarte les `lastmod` qu'il juge peu fiables, et en déclarer
+ * un faux sur un site qui vend l'exactitude serait le pire des deux mondes.
+ * Les guides, eux, portent une vraie date - le §7 impose de l'afficher - et
+ * c'est exactement celle-là qui est reprise ici. Une seule source, celle que
+ * le lecteur voit en haut de l'article.
+ */
+const DOSSIER_GUIDES = fileURLToPath(new URL('./src/content/guides/', import.meta.url));
+
+const datesGuides = Object.fromEntries(
+  readdirSync(DOSSIER_GUIDES)
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => {
+      const brut = readFileSync(DOSSIER_GUIDES + f, 'utf8');
+      const date = brut.match(/^misAJour:\s*(\d{4}-\d{2}-\d{2})/m);
+      if (!date) throw new Error(`Guide sans date de mise à jour : ${f} (cf. CDC §7)`);
+      return [`https://bailiz.fr/guides/${f.replace(/\.md$/, '')}/`, new Date(date[1])];
+    }),
+);
 
 /*
  * Site vitrine de Bailiz - cf. `docs/CDC-site-vitrine-seo.md`.
@@ -37,6 +64,11 @@ export default defineConfig({
       // déploiement - mais le filtre documente l'intention et protège d'un
       // ajout futur.
       filter: (page) => !page.includes('/app/'),
+
+      serialize: (entree) => ({
+        ...entree,
+        lastmod: datesGuides[entree.url] ?? entree.lastmod,
+      }),
     }),
   ],
 });

@@ -20,11 +20,16 @@ interface Props {
    * la racine du fil, et sur la 404, qui n'est pas un contenu.
    */
   filAriane?: string;
+  /**
+   * Échelon intermédiaire, pour les pages de troisième niveau (un guide, qui
+   * dépend de `/guides/`). Omis, le fil ne compte que deux échelons.
+   */
+  filParent?: { nom: string; href: string };
   /** Pages sans valeur d'indexation (404). `follow` reste : les liens comptent. */
   noindex?: boolean;
 }
 
-const { titre, description, schema, filAriane, noindex = false } = Astro.props;
+const { titre, description, schema, filAriane, filParent, noindex = false } = Astro.props;
 
 const canonique = new URL(Astro.url.pathname, Astro.site).href;
 const imagePartage = new URL('/og.png', Astro.site).href;
@@ -34,13 +39,21 @@ const imagePartage = new URL('/og.png', Astro.site).href;
  * acceptent un tableau, et cela évite qu'une page oublie le fil d'Ariane en
  * fournissant son propre schéma.
  */
+const echelons = [
+  { nom: 'Accueil', href: '/' },
+  ...(filParent ? [filParent] : []),
+  ...(filAriane ? [{ nom: filAriane, href: Astro.url.pathname }] : []),
+];
+
 const filSchema = filAriane && {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Accueil', item: new URL('/', Astro.site).href },
-    { '@type': 'ListItem', position: 2, name: filAriane, item: canonique },
-  ],
+  itemListElement: echelons.map((e, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: e.nom,
+    item: new URL(e.href, Astro.site).href,
+  })),
 };
 
 const schemas = [schema, filSchema].flat().filter(Boolean);
@@ -137,12 +150,28 @@ const schemas = [schema, filSchema].flat().filter(Boolean);
           <a href="/bail-meuble/">Bail meublé</a>
           <a href="/etat-des-lieux/">État des lieux</a>
           <a href="/outils/">Outils</a>
+          <a href="/guides/">Guides</a>
           <a href="/pourquoi-bailiz/">Pourquoi</a>
         </nav>
       </div>
     </header>
 
     <main>
+      {
+        filParent && (
+          <nav class="fil" aria-label="Fil d'Ariane">
+            <div class="enveloppe">
+              {echelons.slice(0, -1).map((e) => (
+                <>
+                  <a href={e.href}>{e.nom}</a>
+                  <span aria-hidden="true">›</span>
+                </>
+              ))}
+              <span>{filAriane}</span>
+            </div>
+          </nav>
+        )
+      }
       <slot />
     </main>
 
@@ -163,6 +192,7 @@ const schemas = [schema, filSchema].flat().filter(Boolean);
           <a href="/fiche-de-visite/">Fiche de visite</a>
         </nav>
         <nav aria-label="Pied de page">
+          <a href="/guides/">Guides</a>
           <a href="/pourquoi-bailiz/">Pourquoi Bailiz</a>
           <a href="/mentions-legales/">Mentions légales</a>
           <a href="/confidentialite/">Confidentialité</a>

@@ -1,0 +1,86 @@
+---
+/*
+ * Index éditorial, CDC §7. Il liste les guides par rang, du plus utile au plus
+ * accessoire, et affiche pour chacun la date de mise à jour et l'outil vers
+ * lequel il mène - la règle du §7 étant qu'un guide sans outil n'a pas sa place.
+ */
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+const titre = 'Guides du bailleur meublé : les règles en clair | Bailiz';
+const description =
+  "Durée et préavis, diagnostics à annexer, colocation, statut LMNP : ce qu'un bailleur en meublé doit savoir, avec les textes et l'outil qui produit le document.";
+
+const guides = (await getCollection('guides')).sort((a, b) => a.data.rang - b.data.rang);
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Guides Bailiz',
+  itemListElement: guides.map((g, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: g.data.titre,
+    url: `https://bailiz.fr/guides/${g.id}/`,
+  })),
+};
+
+const dateFr = (d: Date) =>
+  d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+
+<Base titre={titre} description={description} schema={schema} filAriane="Guides">
+  <section class="heros">
+    <div class="enveloppe">
+      <h1>Les règles du meublé, expliquées une fois</h1>
+      <p class="accroche">
+        Des points précis, ceux sur lesquels on se trompe : la durée du bail et le préavis, les
+        diagnostics qu'il faut annexer, la solidarité en colocation. Chaque guide cite ses textes
+        et mène à l'outil qui produit le document.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe">
+      <ul class="liste-guides">
+        {
+          guides.map((g) => (
+            <li>
+              <h2>
+                <a href={`/guides/${g.id}/`}>{g.data.titre}</a>
+              </h2>
+              <p>{g.data.chapeau}</p>
+              <p class="mention">
+                Mis à jour le{' '}
+                <time datetime={g.data.misAJour.toISOString().slice(0, 10)}>
+                  {dateFr(g.data.misAJour)}
+                </time>{' '}
+                · <a href={g.data.outil}>{g.data.outilLibelle}</a>
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="section--grise">
+    <div class="enveloppe prose">
+      <h2>Pourquoi ces guides existent</h2>
+      <p>
+        Parce que la plupart des questions d'un bailleur se règlent en un paragraphe, à condition
+        que ce paragraphe soit juste et daté. Les textes changent, et un article sans date ne
+        vaut rien sur un sujet juridique : chacun porte la sienne, en haut de page.
+      </p>
+      <p>
+        Vous n'y trouverez pas de recopie de service-public.fr, qui fait très bien son travail et
+        qu'il vaut mieux consulter directement pour les textes eux-mêmes. Ce qui est ici, c'est ce
+        qu'un bailleur particulier doit en retenir au moment de remplir un document.
+      </p>
+      <div class="actions">
+        <a class="bouton bouton--principal" href="/outils/">Voir les outils</a>
+      </div>
+    </div>
+  </section>
+</Base>

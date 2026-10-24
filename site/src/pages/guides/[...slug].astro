@@ -1,0 +1,88 @@
+---
+/*
+ * Gabarit d'article, CDC §7 et §8.
+ *
+ * Trois obligations du cahier des charges sont tenues ici plutôt que dans
+ * chaque fichier Markdown, pour qu'aucun guide ne puisse les oublier : la date
+ * de mise à jour affichée, le renvoi vers l'outil concerné, et l'avertissement
+ * juridique du §12.
+ */
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const guides = await getCollection('guides');
+  return guides.map((guide) => ({ params: { slug: guide.id }, props: { guide } }));
+}
+
+const { guide } = Astro.props;
+const { Content } = await render(guide);
+const d = guide.data;
+
+const canonique = new URL(Astro.url.pathname, Astro.site).href;
+const dateIso = d.misAJour.toISOString().slice(0, 10);
+const dateFr = d.misAJour.toLocaleDateString('fr-FR', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: d.titre,
+  description: d.description,
+  inLanguage: 'fr-FR',
+  dateModified: dateIso,
+  author: { '@type': 'Person', name: 'Jami Infante' },
+  publisher: { '@type': 'Organization', name: 'Bailiz', url: 'https://bailiz.fr/' },
+  mainEntityOfPage: canonique,
+};
+---
+
+<Base
+  titre={d.titreSeo}
+  description={d.description}
+  schema={schema}
+  filAriane={d.titre}
+  filParent={{ nom: 'Guides', href: '/guides/' }}
+>
+  <section class="heros heros--article">
+    <div class="enveloppe prose">
+      <h1>{d.titre}</h1>
+      <p class="accroche">{d.chapeau}</p>
+      {/*
+        Date de mise à jour, exigée au §7 : sur un contenu juridique, elle est
+        la première chose qu'un lecteur cherche, et son absence est la première
+        raison de ne pas faire confiance à la page.
+      */}
+      <p class="mention">
+        Mis à jour le <time datetime={dateIso}>{dateFr}</time>.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="enveloppe prose article">
+      <Content />
+
+      <div class="encart-outil">
+        <p>
+          <strong>L'outil correspondant :</strong>{' '}
+          <a href={d.outil}>{d.outilLibelle}</a>. Gratuit, sans compte, et le document sort en
+          PDF.
+        </p>
+      </div>
+
+      <div class="avertissement">
+        <p>
+          Ce guide explique un texte, il ne remplace pas son application à votre situation.
+          Bailiz produit des documents à partir de modèles conformes aux textes en vigueur, ne
+          constitue pas un conseil juridique et n'engage pas la responsabilité de son éditeur.
+        </p>
+      </div>
+
+      <p class="mention"><a href="/guides/">Retour aux guides</a></p>
+    </div>
+  </section>
+</Base>

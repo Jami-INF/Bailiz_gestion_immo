@@ -323,3 +323,79 @@ pour un locataire. Elle trouvera mieux sa place dans `/guides/`.
 
 Liens internes vérifiés : aucun lien mort, aucune page orpheline, chaque page reçoit au moins
 treize liens entrants.
+
+---
+
+## 8. Lot L5 : `/guides/` et les quatre premiers articles - 24 octobre 2026
+
+### Ce qui a été monté
+
+- **Collection de contenu Astro** (`site/src/content.config.ts`), chargée par `glob` depuis
+  `src/content/guides/`. Le schéma est une barrière, pas une formalité : `misAJour` et `outil`
+  sont **obligatoires**, parce que le §7 impose une date affichée et qu'un guide qui ne mène à
+  aucun outil n'a pas sa place.
+- **Gabarit d'article** (`site/src/pages/guides/[...slug].astro`). Il porte lui-même les trois
+  obligations du cahier des charges, pour qu'aucun fichier Markdown ne puisse les oublier : date
+  de mise à jour, renvoi vers l'outil, avertissement juridique du §12. Balisage `Article`.
+- **Index `/guides/`**, trié par rang, chaque entrée avec sa date et son outil. Balisage
+  `ItemList`.
+- **Fil d'Ariane à trois échelons**, nouveau dans `Base.astro` (prop `filParent`). Il est aussi
+  **visible** : un `BreadcrumbList` annoncé au moteur et absent de l'écran est une promesse faite
+  à moitié, et sur une page de troisième niveau c'est le seul repère de position.
+- **`lastmod` dans le sitemap, pour les guides seulement.** La réserve du §2.7 est levée là où
+  elle pouvait l'être : les guides portent une vraie date, relue depuis leur frontmatter par
+  `astro.config.mjs`. Les autres pages n'en ont toujours pas, et c'est délibéré - la date du
+  build serait fausse six fois sur sept.
+
+### Les quatre premiers articles
+
+| Guide | Mots | Outil lié |
+|---|---|---|
+| Bail meublé : durée, préavis et reconduction | 724 | `/bail-meuble/` |
+| Les diagnostics à annexer au bail meublé | 619 | `/bail-meuble/` |
+| Les pièces qu'un bailleur a le droit de demander | 673 | `/fiche-de-visite/` |
+| Colocation : un bail ou plusieurs ? | 628 | `/bail-meuble/` |
+
+Choisis parmi les dix du §7 pour **ne pas recouper** les pages outils ouvertes à la section 7 :
+la grille de vétusté, le dépôt de garantie et l'état des lieux de sortie ont désormais leur page
+outil, et un guide qui redirait la même chose se ferait concurrence à lui-même.
+
+Tout ce qui est affirmé vient des sources de l'application : clauses de durée de `BailPdf.tsx`,
+liste des diagnostics et leurs conditions de `features/baux/annexes.ts`, seuils de décence
+énergétique de `calculs.ts`, liste limitative des pièces de `lib/defauts.ts`, clause de
+solidarité et article 8-1 de `BailPdf.tsx`.
+
+### Deux problèmes trouvés en vérifiant
+
+**La navigation débordait à 375 px.** Cinq entrées en libellés insécables sur une seule rangée
+élargissaient le document à 408 px : c'est la page entière qui défilait latéralement. `flex-wrap`
+ajouté, la navigation passe sur deux rangs pour 23 px de hauteur.
+
+**Les tableaux Markdown faisaient la même chose.** La table du premier guide poussait le document
+à 431 px. Astro 7 rend le Markdown avec Sätteri, où les plugins rehype exigeraient d'installer
+`@astrojs/markdown-remark` - une dépendance de plus pour envelopper des tables, ce que le budget
+du §8 ne justifie pas. Les guides écrivent donc leurs tableaux en HTML avec leur conteneur
+défilant, convention notée dans `content.config.ts`, et une règle CSS de repli évite au moins le
+défilement de la page si l'un l'oublie.
+
+**Et une règle du §7 ratée au premier jet** : les quatre guides ne liaient l'outil que par
+l'encart de fin, pas « dans le corps du texte ». Corrigé, chacun porte maintenant un à deux liens
+contextuels.
+
+### Mesures
+
+| | Avant la journée | Après |
+|---|---|---|
+| Pages indexables | 6 | **17** |
+| Pages orphelines | 0 | 0 |
+| Liens internes morts | 0 | 0 |
+| `title` / `description` dans les bornes | 6/6 | **17/17** |
+| `lastmod` au sitemap | aucun | les 4 guides |
+| JavaScript | 0 | 0 |
+
+### Les six guides restants
+
+Du §7, et à écrire dans cet ordre : état des lieux opposable, encadrement des loyers, LMNP et le
+bail, état des lieux de sortie sans se disputer, puis les deux qui recoupent le plus les pages
+outils - grille de vétusté et dépôt de garantie - qu'il faudra écrire sous un angle franchement
+différent, ou renoncer à écrire.
