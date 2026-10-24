@@ -12,32 +12,32 @@ import Base from '../layouts/Base.astro';
 
 const titre = 'Bailiz : bail meublé et état des lieux gratuits, sans compte';
 const description =
-  "Rédigez un bail meublé conforme et réalisez vos états des lieux avec photos. PDF prêt à imprimer, gratuit, sans inscription. Vos données restent sur votre appareil.";
+  "Rédigez un bail meublé conforme, faites vos états des lieux photo, imprimez le PDF. Gratuit, sans compte. Ce que vous saisissez reste sur votre appareil.";
 
 const FAQ = [
   {
     q: 'Bailiz est-il vraiment gratuit ?',
-    r: "Oui, entièrement et sans limite d'usage. Il n'y a ni offre payante, ni version d'essai, ni fonctionnalité réservée. Le code source est public.",
+    r: "Oui. Il n'existe pas de version payante dont celle-ci serait l'avant-goût : rien n'est réservé, rien ne se débloque. Bailiz tient sur un hébergement statique à quelques euros par an, et ce qu'il coûte à faire tourner n'a pas besoin d'être financé.",
   },
   {
     q: 'Faut-il créer un compte ?',
-    r: "Non. Il n'y a pas de compte, pas de mot de passe, pas d'adresse e-mail à donner. Vous ouvrez le site et vous commencez.",
+    r: "Non, et il n'y a nulle part où en créer un. Vous ouvrez la page, le formulaire est là.",
   },
   {
     q: 'Où sont enregistrées mes données ?',
-    r: "Dans votre navigateur, sur votre appareil. Bailiz n'a pas de serveur de base de données : rien de ce que vous saisissez n'est envoyé ni stocké ailleurs.",
+    r: "Dans le navigateur de votre appareil, via IndexedDB. Il n'y a pas de base de données à l'autre bout : ce que vous tapez ne part sur aucun serveur, y compris celui qui vous a servi la page.",
   },
   {
     q: "Que se passe-t-il si je change d'ordinateur ?",
-    r: "Vos données ne suivent pas toutes seules, puisqu'elles sont sur votre appareil. Bailiz permet d'exporter une sauvegarde complète (archive ZIP) et de la réimporter sur un autre appareil. Une sauvegarde vers votre propre Google Drive est également disponible, si vous l'activez.",
+    r: "Elles ne suivent pas toutes seules : c'est la contrepartie directe de la réponse précédente. Vous exportez une archive ZIP depuis les paramètres et vous la réimportez sur l'autre machine. Pour l'automatiser, la sauvegarde vers votre propre Google Drive existe ; elle est éteinte tant que vous ne l'allumez pas.",
   },
   {
     q: 'Le bail produit est-il valable ?',
-    r: "Il suit la trame du bail type imposée par le décret n°2015-587 et rappelle les mentions obligatoires. C'est un modèle solide, à relire et à adapter à votre situation : Bailiz ne remplace pas un conseil juridique.",
+    r: "Il reprend la trame du bail type du décret n°2015-587 et les mentions que la loi impose d'y faire figurer. C'est un modèle sérieux, pas un contrat relu pour votre cas : relisez-le et adaptez-le. Bailiz ne remplace pas un conseil juridique.",
   },
   {
     q: 'Peut-on signer en ligne ?',
-    r: "L'état des lieux se signe sur écran, sur place, avec horodatage, car la signature électronique y est admise. Le bail, lui, s'imprime et se signe sur papier. C'est un choix assumé, qui vous laisse le modifier et le régénérer autant de fois que nécessaire.",
+    r: "L'état des lieux, oui : il se signe sur l'écran, sur place, avec horodatage, et le décret n°2016-382 l'admet. Le bail, non. Il s'imprime et se signe sur papier, ce qui le laisse modifiable : vous pouvez le corriger et le régénérer sans qu'une version signée périmée traîne quelque part.",
   },
   {
     q: 'Pourquoi ne pas simplement télécharger un modèle gratuit ?',
@@ -45,7 +45,7 @@ const FAQ = [
   },
   {
     q: 'Faut-il une connexion Internet ?',
-    r: "Seulement au premier chargement. Ensuite Bailiz fonctionne hors ligne, y compris installé sur tablette. Pratique pour un état des lieux en cave, au parking ou dans un immeuble mal couvert.",
+    r: "Au premier chargement, oui. Après, non. L'application s'installe sur la tablette et continue de fonctionner sans réseau, ce qui compte le jour où l'état des lieux se termine au sous-sol.",
   },
 ];
 
@@ -79,14 +79,18 @@ const schema = [
     <div class="enveloppe">
       <h1>Bail meublé et état des lieux, gratuits et sans compte</h1>
       <p class="accroche">
-        Remplissez, générez, imprimez. Un PDF conforme en quelques minutes, et vos données
-        restent sur votre appareil.
+        Vous remplissez un formulaire, vous récupérez un PDF prêt à imprimer. Ce que vous
+        saisissez ne part sur aucun serveur : tout est écrit dans le navigateur de votre
+        appareil.
       </p>
       <div class="actions">
         <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
         <a class="bouton bouton--secondaire" href="/app/#/edl/nouveau">Faire un état des lieux</a>
       </div>
-      <p class="mention">Aucune inscription, aucune carte bancaire, aucune limite.</p>
+      <p class="mention">
+        Pas d'inscription. On ne vous demandera pas de carte bancaire, ni maintenant ni plus
+        tard.
+      </p>
     </div>
   </section>
 
@@ -95,19 +99,19 @@ const schema = [
       <ul class="reassurance">
         <li>
           <strong>Sans compte</strong>
-          <span>Pas d'inscription, pas de mot de passe, pas d'e-mail à donner.</span>
+          <span>Ni e-mail ni mot de passe : il n'y a nulle part où s'inscrire.</span>
         </li>
         <li>
           <strong>Hors ligne</strong>
-          <span>Fonctionne sans connexion, une fois la page chargée.</span>
+          <span>Une fois la page chargée, le réseau ne sert plus.</span>
         </li>
         <li>
           <strong>Vos données restent chez vous</strong>
-          <span>Tout est enregistré dans votre navigateur, jamais sur un serveur.</span>
+          <span>Écrites dans le navigateur de votre appareil, et nulle part ailleurs.</span>
         </li>
         <li>
           <strong>Code source public</strong>
-          <span>Vérifiable par n'importe qui, à tout moment.</span>
+          <span>Tout est sur GitHub, y compris de quoi vérifier ce qui est écrit ici.</span>
         </li>
       </ul>
     </div>
@@ -119,26 +123,25 @@ const schema = [
       <div class="deux-colonnes">
         <div class="prose">
           <p>
-            Rédiger un bail, tout le monde sait le faire avec un modèle. Le problème arrive{' '}
-            <strong>dix-huit mois plus tard</strong>, quand le locataire rend les clés : il faut
-            comparer l'état du logement à celui de l'entrée, chiffrer ce qui relève de l'usure
-            normale et ce qui relève de la dégradation, et justifier chaque euro retenu sur le
-            dépôt de garantie.
+            Rédiger un bail, un modèle suffit. L'ennui arrive{' '}
+            <strong>dix-huit mois plus tard</strong>, quand le locataire rend les clés. Il faut
+            alors retrouver dans quel état le logement était entré, trancher ce qui tient de
+            l'usure normale et ce qui tient de la dégradation, puis justifier chaque euro retenu
+            sur le dépôt de garantie. Dans un délai d'un mois, deux s'il y a des retenues.
           </p>
           <p>
-            C'est là que les litiges naissent, et c'est précisément ce qu'un document à remplir ne
-            peut pas faire pour vous. Bailiz garde le lien entre les deux états des lieux,
-            <strong>affiche les écarts ligne à ligne</strong> et applique une grille de vétusté au
-            chiffrage. Vous arrivez au rendez-vous de sortie avec un décompte justifié, pas avec
-            deux feuilles à comparer de mémoire.
+            C'est là que naissent les litiges. Bailiz garde le lien entre les deux états des
+            lieux, <strong>affiche les écarts ligne à ligne</strong> et applique au chiffrage une
+            grille de vétusté que vous avez réglée à l'avance. Vous arrivez au rendez-vous avec
+            un décompte poste par poste, pas avec deux feuilles à comparer de mémoire.
           </p>
         </div>
-        <!--
+        {/*
           Schéma, et non capture d'écran : il montre l'enchaînement, ce qu'une
           capture d'un seul écran ne saurait faire. Inline et sans texte en
           image, donc lisible par un moteur, net à toute résolution, et nul en
           poids. Les captures réelles restent à produire.
-        -->
+        */}
         <svg
           class="schema"
           viewBox="0 0 420 260"
@@ -187,69 +190,69 @@ const schema = [
     <div class="enveloppe">
       <h2>Ce qu'un modèle à remplir ne fera pas</h2>
       <p class="sous-titre">
-        Les modèles de bail et d'état des lieux gratuits ne manquent pas, et ils rendent service.
-        Voici ce qui change quand le document devient un outil.
+        Les modèles gratuits ne manquent pas, et ils font le travail tant que personne ne
+        conteste rien. Voici où ils s'arrêtent.
       </p>
       <div class="tableau-comparatif">
-        <table>
+        <table role="table">
           <caption class="sr-only">
             Comparaison entre un modèle de document à remplir et Bailiz
           </caption>
-          <thead>
-            <tr>
-              <th scope="col">Ce que vous devez faire</th>
-              <th scope="col">Avec un modèle à remplir</th>
-              <th scope="col">Avec Bailiz</th>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">Ce que vous devez faire</th>
+              <th scope="col" role="columnheader">Avec un modèle à remplir</th>
+              <th scope="col" role="columnheader">Avec Bailiz</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Rédiger le bail</th>
-              <td>Retrouver les mentions obligatoires par vous-même</td>
-              <td>Trame du bail type, mentions rappelées à la saisie</td>
+          <tbody role="rowgroup">
+            <tr role="row">
+              <th scope="row" role="rowheader">Rédiger le bail</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">Retrouver les mentions obligatoires par vous-même</td>
+              <td role="cell" data-colonne="Avec Bailiz">Trame du bail type, mentions rappelées à la saisie</td>
             </tr>
-            <tr>
-              <th scope="row">Corriger une erreur après impression</th>
-              <td>Tout retaper</td>
-              <td>Rouvrir, modifier, régénérer</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Corriger une erreur après impression</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">Tout retaper</td>
+              <td role="cell" data-colonne="Avec Bailiz">Rouvrir, modifier, régénérer</td>
             </tr>
-            <tr>
-              <th scope="row">Relouer l'an prochain</th>
-              <td>Repartir d'une page blanche</td>
-              <td>Le logement est déjà décrit, pièce par pièce</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Relouer l'an prochain</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">Repartir d'une page blanche</td>
+              <td role="cell" data-colonne="Avec Bailiz">Le logement est déjà décrit, pièce par pièce</td>
             </tr>
-            <tr>
-              <th scope="row">Faire l'état des lieux sur place</th>
-              <td>Papier, stylo, photos à recoller ensuite</td>
-              <td>Tablette, photos rattachées, signature horodatée</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Faire l'état des lieux sur place</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">Papier, stylo, photos à recoller ensuite</td>
+              <td role="cell" data-colonne="Avec Bailiz">Tablette, photos rattachées, signature horodatée</td>
             </tr>
-            <tr>
-              <th scope="row">Comparer l'entrée et la sortie</th>
-              <td>Deux documents, à l'œil</td>
-              <td>Les écarts sont listés automatiquement</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Comparer l'entrée et la sortie</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">Deux documents, à l'œil</td>
+              <td role="cell" data-colonne="Avec Bailiz">Les écarts sont listés automatiquement</td>
             </tr>
-            <tr>
-              <th scope="row">Chiffrer les retenues sur le dépôt</th>
-              <td>À votre appréciation</td>
-              <td>Grille de vétusté appliquée, décompte détaillé</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Chiffrer les retenues sur le dépôt</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">À votre appréciation</td>
+              <td role="cell" data-colonne="Avec Bailiz">Grille de vétusté appliquée, décompte détaillé</td>
             </tr>
-            <tr>
-              <th scope="row">Prouver que rien n'a bougé après signature</th>
-              <td>Rien à opposer</td>
-              <td>Empreinte SHA-256 du document signé</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Prouver que rien n'a bougé après signature</th>
+              <td role="cell" data-colonne="Avec un modèle à remplir">Rien à opposer</td>
+              <td role="cell" data-colonne="Avec Bailiz">Empreinte SHA-256 du document signé</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p class="mention">
-        Et ce qui ne change pas : c'est gratuit, sans compte, et vos données restent chez vous.
+        Dans les deux colonnes, vous ne payez rien et vous ne créez aucun compte.
       </p>
     </div>
   </section>
 
   <section>
     <div class="enveloppe">
-      <h2>Deux outils, deux documents</h2>
+      <h2>Ce que Bailiz produit aujourd'hui</h2>
       <div class="cartes">
         <article class="carte">
           <h3>Bail meublé</h3>
@@ -284,15 +287,21 @@ const schema = [
       <ol class="etapes">
         <li>
           <h3>Choisissez l'outil</h3>
-          <p>Pas de configuration préalable, pas de tableau de bord à remplir avant de commencer.</p>
+          <p>
+            Le formulaire s'ouvre directement. Rien à déclarer avant : le logement se crée en
+            cours de route, à partir de ce que vous tapez.
+          </p>
         </li>
         <li>
-          <h3>Saisissez les informations</h3>
-          <p>Un seul écran, avec l'aperçu du document qui se construit à mesure.</p>
+          <h3>Remplissez</h3>
+          <p>Un seul écran, avec l'aperçu du document qui se compose à côté, à mesure.</p>
         </li>
         <li>
-          <h3>Générez le PDF</h3>
-          <p>Prêt à imprimer ou à envoyer. Modifiable et regénérable autant de fois que nécessaire.</p>
+          <h3>Imprimez</h3>
+          <p>
+            Le PDF est fabriqué dans votre navigateur. Si une information change la semaine
+            suivante, vous rouvrez le document et vous le refaites.
+          </p>
         </li>
       </ol>
     </div>
@@ -302,23 +311,28 @@ const schema = [
     <div class="enveloppe prose">
       <h2>Où vont mes données ?</h2>
       <p>
-        Nulle part. Bailiz n'a pas de serveur de base de données. Tout ce que vous saisissez
-        (logements, locataires, baux, états des lieux, photos, PDF) est{' '}
-        <strong>enregistré dans votre navigateur</strong>, sur votre appareil.
+        Nulle part. Il n'y a pas de base de données à l'autre bout : logements, locataires, baux,
+        états des lieux, photos et PDF sont{' '}
+        <strong>écrits dans votre navigateur</strong> (IndexedDB), sur l'appareil que vous avez
+        sous la main. Le serveur qui vous a servi cette page ne reçoit rien d'autre que la demande
+        de la page.
       </p>
       <ul>
-        <li>Aucun compte, aucun cookie, aucun traceur, aucune publicité.</li>
-        <li>Aucune requête vers un service tiers : ni police de caractères distante, ni analytique.</li>
-        <li>Vous exportez vos données quand vous voulez, en une archive que vous conservez.</li>
+        <li>Ni cookie, ni traceur, ni publicité, et donc pas de bandeau à refuser.</li>
         <li>
-          Une sauvegarde vers <em>votre</em> Google Drive existe, désactivée par défaut et
-          révocable à tout moment.
+          Aucune requête vers un tiers : la police de caractères est hébergée ici, il n'y a ni
+          CDN ni script de mesure.
+        </li>
+        <li>L'export produit une archive que vous rangez où vous voulez, quand vous voulez.</li>
+        <li>
+          La sauvegarde vers <em>votre</em> Google Drive existe. Elle reste éteinte tant que vous
+          ne l'allumez pas, et se révoque depuis votre compte Google.
         </li>
       </ul>
       <p>
-        Ce n'est pas une promesse à croire sur parole :
-        <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">le code source est public</a>,
-        et le détail figure sur la <a href="/confidentialite/">page confidentialité</a>.
+        Rien de tout cela ne demande à être cru sur parole :
+        <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">le code est public</a>,
+        et le détail est sur la <a href="/confidentialite/">page confidentialité</a>.
       </p>
     </div>
   </section>
@@ -357,8 +371,11 @@ const schema = [
 
   <section class="section--grise">
     <div class="enveloppe">
-      <h2>Votre document, dans cinq minutes</h2>
-      <p>Sans inscription. Sans installation. Sans engagement.</p>
+      <h2>Par lequel des deux commencez-vous ?</h2>
+      <p>
+        Les deux formulaires s'ouvrent sur le champ. Vous n'aurez rien à créer ni à configurer
+        avant d'y arriver.
+      </p>
       <div class="actions">
         <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
         <a class="bouton bouton--secondaire" href="/app/#/edl/nouveau">Faire un état des lieux</a>

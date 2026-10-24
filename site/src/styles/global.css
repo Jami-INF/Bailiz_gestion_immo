@@ -403,6 +403,102 @@ section {
   background: var(--m-50);
 }
 
+/*
+ * Sous 48 rem, le tableau se met en pile.
+ *
+ * À trois colonnes, sa largeur minimale est de 44 rem : sur un téléphone de
+ * 375 px, on voyait la première colonne et le début de la deuxième. La colonne
+ * « Avec Bailiz » - c'est-à-dire tout l'argument de la section - restait hors
+ * écran, derrière un défilement latéral que personne ne fait.
+ *
+ * Chaque ligne devient donc une carte : l'intitulé en titre, les deux réponses
+ * en dessous, chacune précédée du libellé de sa colonne (attribut
+ * `data-colonne`). Les rôles ARIA sont redéclarés dans le HTML parce que
+ * `display: block` retire les rôles implicites des éléments de tableau ; le
+ * `thead`, devenu redondant, passe hors écran sans disparaître de l'arbre.
+ */
+@media (max-width: 47.99rem) {
+  .tableau-comparatif {
+    border: 0;
+    border-radius: 0;
+    background: none;
+    overflow-x: visible;
+  }
+
+  .tableau-comparatif table,
+  .tableau-comparatif tbody,
+  .tableau-comparatif tr,
+  .tableau-comparatif th,
+  .tableau-comparatif td {
+    display: block;
+    min-width: 0;
+    width: auto;
+  }
+
+  .tableau-comparatif thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .tableau-comparatif tbody tr {
+    border: 1px solid var(--c-200);
+    border-radius: var(--rayon);
+    background: #fff;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tableau-comparatif tbody th,
+  .tableau-comparatif tbody td {
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  /*
+   * `width` est redéclaré ici : la règle de bureau `.tableau-comparatif tbody
+   * th { width: 26% }` est plus spécifique que la remise à plat ci-dessus, et
+   * réduisait l'intitulé à 87 px - un mot par ligne.
+   */
+  .tableau-comparatif tbody th {
+    width: auto;
+    font-size: 1rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .tableau-comparatif tbody td::before {
+    content: attr(data-colonne);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--c-500);
+    margin-bottom: 0.125rem;
+  }
+
+  .tableau-comparatif tbody td + td {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--c-200);
+  }
+
+  /*
+   * Le fond teinté de la colonne Bailiz devient une pastille de couleur sur le
+   * libellé : en pile, un aplat sur toute la largeur de la carte ferait un
+   * second encadré dans l'encadré.
+   */
+  .tableau-comparatif tbody td:last-child {
+    background: none;
+  }
+
+  .tableau-comparatif tbody td:last-child::before {
+    color: var(--m-700);
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

@@ -8,9 +8,9 @@
  */
 import Base from '../layouts/Base.astro';
 
-const titre = 'Modèle de bail meublé à remplir et imprimer, gratuit et sans inscription';
+const titre = 'Bail meublé : modèle gratuit à remplir et imprimer | Bailiz';
 const description =
-  "Rédigez un bail meublé conforme au bail type (décret n°2015-587) et imprimez-le. Gratuit, sans compte, sans limite. Vos données restent sur votre appareil.";
+  "Remplissez un bail meublé bâti sur la trame du bail type (décret n°2015-587) et imprimez-le. Sans compte, sans frais. Le PDF se fabrique dans votre navigateur.";
 
 const FAQ = [
   {
@@ -19,11 +19,11 @@ const FAQ = [
   },
   {
     q: 'Puis-je signer le bail en ligne ?',
-    r: "Non, et c'est un choix. Le bail s'imprime et se signe sur papier. En contrepartie il reste modifiable et regénérable à volonté : aucune version figée, aucun document périmé qui traîne.",
+    r: "Non, et c'est délibéré. Le bail s'imprime et se signe sur papier. Ce qu'on y gagne : il reste modifiable jusqu'au dernier moment, et aucune version signée périmée ne circule en parallèle de la bonne.",
   },
   {
     q: 'Et si je ne connais pas encore toutes les informations ?',
-    r: "Les champs laissés vides deviennent des zones pointillées. Vous pouvez imprimer un bail partiellement rempli et finir à la main sur place.",
+    r: "Laissez le champ vide : il devient une zone pointillée sur le PDF. Vous imprimez le bail tel quel et vous finissez au stylo, le jour de la signature.",
   },
   {
     q: 'La colocation est-elle prise en charge ?',
@@ -46,13 +46,13 @@ const schema = {
 };
 ---
 
-<Base titre={titre} description={description} schema={schema}>
+<Base titre={titre} description={description} schema={schema} filAriane="Bail meublé">
   <section class="heros">
     <div class="enveloppe">
       <h1>Modèle de bail meublé à remplir et imprimer</h1>
       <p class="accroche">
-        Un bail conforme au bail type, rempli en quelques minutes et prêt à imprimer. Gratuit,
-        sans inscription.
+        Un bail bâti sur la trame du bail type, rempli en un écran et sorti en PDF. Gratuit, et
+        rien à créer avant d'y arriver.
       </p>
       <div class="actions">
         <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger mon bail</a>
@@ -66,7 +66,7 @@ const schema = {
       <h2>Ce que contient le bail généré</h2>
       <p>
         Le document suit la trame du bail type meublé (décret n°2015-587 modifié, parties I à
-        XI) et intègre les mentions que la loi impose depuis :
+        XI), augmentée des mentions que les textes ultérieurs y ont ajoutées :
       </p>
       <ul>
         <li>désignation des parties : bailleur particulier, indivision ou personne morale</li>
@@ -108,12 +108,13 @@ const schema = {
           empêche de produire le document.
         </li>
         <li>
-          <strong>Les montants en toutes lettres</strong> et les calculs de charges sont écrits
-          pour vous.
+          <strong>Les montants en toutes lettres</strong> sont écrits pour vous, de même que la
+          ventilation des charges.
         </li>
         <li>
-          <strong>Modifiable à l'infini</strong> : rouvrir le bail le pré-remplit, et
-          l'enregistrement régénère le PDF sous la même référence, sans créer de doublon.
+          <strong>Rouvrir plutôt que retaper</strong> : le bail se rouvre pré-rempli, et
+          l'enregistrement régénère le PDF sous la même référence. Pas de doublon à trier six
+          mois plus tard.
         </li>
         <li>
           <strong>Garant</strong> : caution personne physique avec acte de cautionnement
@@ -133,16 +134,18 @@ const schema = {
           produire de version périmée.
         </li>
         <li>
-          <strong>Pas de génération des diagnostics.</strong> DPE, ERP, gaz, électricité restent
-          à obtenir auprès d'un diagnostiqueur. Bailiz les annexe et les référence.
+          <strong>Les diagnostics ne sortent pas d'ici.</strong> DPE, ERP, gaz, électricité
+          s'obtiennent auprès d'un diagnostiqueur. Bailiz sait les annexer et les référencer, pas
+          les produire.
         </li>
         <li>
-          <strong>Pas de conseil juridique.</strong> Le modèle est conforme, votre situation
-          peut ne pas l'être : relisez, et faites vérifier en cas de doute.
+          <strong>Ce n'est pas un conseil juridique.</strong> Le modèle est conforme ; votre
+          situation, elle, peut ne pas entrer dans le modèle. Relisez, et faites vérifier au
+          moindre doute.
         </li>
         <li>
-          <strong>Pas d'envoi ni de stockage en ligne.</strong> Le PDF est produit dans votre
-          navigateur et reste chez vous.
+          <strong>Rien ne part en ligne.</strong> Le PDF est fabriqué dans votre navigateur et il
+          y reste, jusqu'à ce que vous l'imprimiez ou l'exportiez.
         </li>
       </ul>
     </div>
@@ -164,8 +167,11 @@ const schema = {
 
   <section class="section--grise">
     <div class="enveloppe">
-      <h2>Rédigez votre bail maintenant</h2>
-      <p>Gratuit, sans compte, sans limite.</p>
+      <h2>Rédiger le bail</h2>
+      <p>
+        Le formulaire s'ouvre directement. S'il vous manque une information, laissez le champ de
+        côté : il ressortira en pointillés sur le PDF.
+      </p>
       <div class="actions">
         <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger mon bail</a>
         <a class="bouton bouton--secondaire" href="/etat-des-lieux/">Voir l'état des lieux</a>

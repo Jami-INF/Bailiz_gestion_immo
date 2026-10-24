@@ -16,7 +16,19 @@ export default defineConfig({
   // Slash final partout, et une seule forme d'URL : le contraire fabrique des
   // doublons que le canonique doit ensuite rattraper.
   trailingSlash: 'always',
-  build: { format: 'directory' },
+
+  build: {
+    format: 'directory',
+
+    // Feuille de style injectée dans le HTML plutôt que servie à part. Le HTML
+    // de la vitrine est en `no-cache` (CDC §9.3) : un fichier CSS séparé ne
+    // serait donc jamais réutilisé d'une visite à l'autre par un nouveau
+    // visiteur, et coûterait un aller-retour bloquant avant le premier rendu -
+    // précisément sur la visite qui décide du LCP. Six kilo-octets, moins de
+    // deux une fois compressés : le seuil par défaut d'Astro (4 ko) passe juste
+    // à côté.
+    inlineStylesheets: 'always',
+  },
 
   integrations: [
     sitemap({

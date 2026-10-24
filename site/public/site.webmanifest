@@ -1,0 +1,13 @@
+{
+  "name": "Bailiz",
+  "short_name": "Bailiz",
+  "description": "Bail meublé et état des lieux gratuits, sans compte.",
+  "lang": "fr",
+  "background_color": "#ffffff",
+  "theme_color": "#22524E",
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}

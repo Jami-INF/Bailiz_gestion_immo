@@ -1,18 +1,18 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const titre = 'Pourquoi Bailiz : sans compte, hors ligne, vos données chez vous';
+const titre = "Pourquoi Bailiz n'a ni compte ni serveur, et ce que ça vaut";
 const description =
-  "Pourquoi Bailiz n'a ni compte, ni serveur, ni abonnement, et ce que ce choix change concrètement pour vous, avantages comme contreparties.";
+  "Pas de compte, pas de base de données, pas d'abonnement : d'où viennent ces décisions, ce qu'elles vous apportent, et ce qu'elles vous coûtent en échange.";
 ---
 
-<Base titre={titre} description={description}>
+<Base titre={titre} description={description} filAriane="Pourquoi Bailiz">
   <section class="heros">
     <div class="enveloppe">
       <h1>Pourquoi Bailiz est fait comme ça</h1>
       <p class="accroche">
-        Pas de compte, pas de serveur, pas d'abonnement. Ce sont des choix d'architecture, avec
-        leurs avantages et leurs contreparties.
+        Il n'y a ni compte à créer, ni base de données derrière, ni abonnement au bout. Ce sont
+        des décisions techniques, et chacune se paie quelque part.
       </p>
     </div>
   </section>
@@ -21,29 +21,33 @@ const description =
     <div class="enveloppe prose">
       <h2>Sans compte</h2>
       <p>
-        Créer un compte pour rédiger un bail n'a aucune justification technique : c'est une
-        façon de collecter une adresse e-mail. Bailiz s'ouvre et s'utilise. Rien à confirmer,
-        rien à retenir, rien à récupérer si vous l'oubliez.
+        Rédiger un bail ne demande techniquement aucun compte. Quand un site en réclame un,
+        c'est pour collecter une adresse e-mail, pas pour faire fonctionner l'outil. Ici la page
+        s'ouvre sur le formulaire : il n'y a pas d'e-mail de confirmation à attendre, ni de mot
+        de passe à récupérer six mois plus tard, le soir où vous relouez dans l'urgence.
       </p>
 
       <h2>Sans serveur</h2>
       <p>
-        Il n'y a pas de base de données quelque part avec vos locataires dedans. Tout est
-        enregistré dans votre navigateur. Cela règle d'un coup la question de la sécurité des
-        données : il n'y a rien à pirater, rien à revendre, rien à perdre dans une fuite.
+        Il n'existe nulle part de base de données contenant vos locataires. Tout est écrit dans
+        le navigateur de votre appareil (IndexedDB), et le serveur qui vous sert cette page ne
+        voit jamais rien d'autre que la demande de la page. La question de la sécurité des
+        données se trouve donc réglée par soustraction : il n'y a pas de fichier à pirater, et
+        aucune fuite n'est possible faute de quelque chose à faire fuir.
       </p>
       <p>
-        <strong>La contrepartie est réelle</strong>, et il vaut mieux la connaître avant : vos
-        données ne suivent pas d'un appareil à l'autre, et vider les données de votre navigateur
-        les efface. L'export d'une sauvegarde n'est pas une commodité, c'est votre filet.
+        <strong>La contrepartie est réelle</strong>, et autant la connaître avant de commencer :
+        vos données ne suivent pas d'un appareil à l'autre, et vider les données du navigateur
+        les efface. L'export d'une sauvegarde n'est pas un confort, c'est votre filet.
       </p>
 
       <h2>Hors ligne</h2>
       <p>
-        Un état des lieux se fait souvent là où le réseau ne passe pas : cave, parking, cage
-        d'escalier, immeuble ancien. Bailiz s'installe comme une application et fonctionne
-        entièrement sans connexion une fois chargé. Ce n'est pas une option de confort, c'est la
-        condition pour que l'outil serve au moment où on en a besoin.
+        Un état des lieux se termine rarement au salon. On finit au sous-sol pour relever les
+        compteurs, au parking pour la place, dans une cage d'escalier en béton, et le réseau
+        s'arrête bien avant. Bailiz s'installe comme une application et continue de fonctionner
+        sans connexion une fois chargé. Ce n'est pas un agrément supplémentaire : c'est la
+        condition pour que l'outil serve au moment précis où on en a besoin.
       </p>
 
       <h2>Le document fait foi, pas l'outil</h2>
@@ -66,15 +70,22 @@ const description =
 
       <h2>Gratuit, et sans intention cachée</h2>
       <p>
-        Il n'y a ni offre payante, ni version limitée, ni publicité, ni revente de données.
-        Bailiz coûte un hébergement statique : il n'y a pas de modèle économique à financer.
+        Aucune version payante n'attend son heure, et il n'y a pas davantage de publicité ni de
+        données à revendre, puisqu'elles ne remontent nulle part. Bailiz coûte un hébergement
+        statique de quelques euros par an : il n'y a pas de modèle économique à financer.
         Le <a href="https://github.com/Jami-INF/Bailiz_gestion_immo" rel="noopener">code source est public</a>,
         ce qui rend chacune de ces affirmations vérifiable.
       </p>
 
+      <p>
+        Reste le concret : ce que produit le <a href="/bail-meuble/">bail meublé</a>, ce que
+        contient l'<a href="/etat-des-lieux/">état des lieux</a>, et le détail de ce qui est
+        enregistré sur la <a href="/confidentialite/">page confidentialité</a>.
+      </p>
+
       <div class="actions">
-        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Essayer maintenant</a>
-        <a class="bouton bouton--secondaire" href="/confidentialite/">Lire la politique de confidentialité</a>
+        <a class="bouton bouton--principal" href="/app/#/baux/nouveau">Rédiger un bail</a>
+        <a class="bouton bouton--secondaire" href="/app/#/edl/nouveau">Faire un état des lieux</a>
       </div>
     </div>
   </section>

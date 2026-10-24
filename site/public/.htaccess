@@ -36,13 +36,26 @@ ErrorDocument 404 /404.html
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 
+  # Assets au nom haché : Astro (`/_astro/`) et Vite (`/app/assets/`).
+  <FilesMatch "\.(css|js|woff2|svg|png|jpg|webp|avif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Les exceptions viennent APRÈS, et c'est tout l'enjeu : plusieurs sections
+  # `FilesMatch` qui désignent le même fichier se cumulent, et c'est le dernier
+  # `Header set` qui l'emporte. Placées avant, ces règles étaient écrasées par
+  # celle du dessus - `sw.js` correspond aussi à `\.js$`, et partait donc en
+  # cache d'un an. Une mise à jour de l'application ne serait jamais arrivée
+  # chez un utilisateur déjà venu.
   <FilesMatch "^(sw\.js|manifest\.webmanifest|registerSW\.js)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 
-  # Assets au nom haché : Astro (`/_astro/`) et Vite (`/app/assets/`).
-  <FilesMatch "\.(css|js|woff2|svg|png|jpg|webp|avif)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
+  # Icônes et image de partage : leur nom ne porte pas de hash, un an de cache
+  # rendrait toute correction invisible. Une journée suffit à éviter le
+  # rechargement à chaque page.
+  <FilesMatch "^(og\.png|icon\.svg|apple-touch-icon\.png|favicon\.ico|icon-192\.png|icon-512\.png|site\.webmanifest)$">
+    Header set Cache-Control "public, max-age=86400"
   </FilesMatch>
 
   # ------------------------------------------------------------------------

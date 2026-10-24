@@ -1,9 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const titre = "État des lieux d'entrée et de sortie sur tablette, gratuit et hors ligne";
+const titre = "État des lieux d'entrée et de sortie avec photos | Bailiz";
 const description =
-  "Réalisez vos états des lieux pièce par pièce avec photos, signature sur écran et comparaison entrée/sortie. Fonctionne hors ligne, gratuit, sans compte.";
+  "Faites l'état des lieux sur tablette, photos et signature sur place. La sortie se compare à l'entrée et chiffre les retenues sur le dépôt. Gratuit, hors ligne.";
 
 const FAQ = [
   {
@@ -12,7 +12,7 @@ const FAQ = [
   },
   {
     q: 'Faut-il une connexion sur place ?',
-    r: "Non. Une fois la page chargée une première fois, Bailiz fonctionne entièrement hors ligne, que vous soyez en cave, au parking ou dans un immeuble mal couvert. C'est la raison d'être de l'application installable.",
+    r: "Non. La page se charge une fois, chez vous, et l'application continue ensuite sans réseau. C'est précisément pourquoi elle s'installe : un état des lieux finit souvent au sous-sol ou dans un immeuble où aucune barre ne passe.",
   },
   {
     q: 'Faut-il faire un inventaire du mobilier séparé ?',
@@ -20,7 +20,7 @@ const FAQ = [
   },
   {
     q: 'Peut-on corriger un état des lieux déjà signé ?',
-    r: "Il est verrouillé après signature, mais peut être rectifié si les deux parties re-signent. La version précédente est conservée et le nouveau document porte la mention « annule et remplace ».",
+    r: "Il se verrouille à la signature. Une rectification reste possible si les deux parties re-signent : l'ancienne version est conservée, et la nouvelle porte la mention « annule et remplace ».",
   },
   {
     q: 'Comment sont calculées les retenues sur le dépôt de garantie ?',
@@ -39,13 +39,14 @@ const schema = {
 };
 ---
 
-<Base titre={titre} description={description} schema={schema}>
+<Base titre={titre} description={description} schema={schema} filAriane="État des lieux">
   <section class="heros">
     <div class="enveloppe">
       <h1>État des lieux d'entrée et de sortie, avec photos</h1>
       <p class="accroche">
-        Pièce par pièce, sur tablette, hors ligne, signé sur place. Puis la comparaison
-        entrée/sortie et le décompte du dépôt de garantie.
+        Vous passez le logement pièce par pièce sur la tablette, photos à l'appui, et les deux
+        parties signent sur l'écran avant de se quitter. Dix-huit mois plus tard, la sortie se
+        compare à l'entrée et chiffre les retenues sur le dépôt.
       </p>
       <p class="accroche">
         <strong>Aucun bail n'est nécessaire</strong> : votre contrat peut avoir été signé sur
@@ -85,8 +86,8 @@ const schema = {
       <h2>Ce que l'outil fait pour vous</h2>
       <ul>
         <li>
-          <strong>Conçu pour le terrain</strong> : saisie sur tablette, cibles tactiles larges,
-          photos prises depuis l'appareil, aucun besoin de réseau.
+          <strong>Conçu pour le terrain</strong> : cibles tactiles larges, photos prises depuis
+          l'appareil que vous tenez déjà, et pas une requête réseau de toute la visite.
         </li>
         <li>
           <strong>La sortie repart de l'entrée</strong> : chaque pièce et chaque élément sont
@@ -111,16 +112,17 @@ const schema = {
       <h2>Ce que l'outil ne fait pas</h2>
       <ul>
         <li>
-          <strong>Pas de signature à distance.</strong> L'état des lieux se signe sur place, les
-          deux parties présentes, sur le même écran.
+          <strong>Pas de signature à distance.</strong> Les deux parties signent sur place, sur
+          le même écran, dans la même minute.
         </li>
         <li>
-          <strong>Pas de synchronisation entre appareils.</strong> Ce que vous saisissez sur la
-          tablette reste sur la tablette, sauf export explicite de votre part.
+          <strong>Rien ne se synchronise entre vos appareils.</strong> Ce que vous saisissez sur
+          la tablette y reste tant que vous ne l'exportez pas vous-même. C'est la contrepartie
+          directe de l'absence de serveur.
         </li>
         <li>
-          <strong>Pas d'arbitrage.</strong> Le calcul des retenues est une aide au chiffrage,
-          pas une décision opposable : il reste à justifier auprès du locataire.
+          <strong>Le chiffrage n'arbitre pas à votre place.</strong> Le décompte est une aide au
+          calcul, pas une décision opposable : il reste à présenter et à justifier au locataire.
         </li>
       </ul>
       <div class="avertissement">
@@ -149,8 +151,11 @@ const schema = {
 
   <section class="section--grise">
     <div class="enveloppe">
-      <h2>Préparez votre état des lieux</h2>
-      <p>Installez Bailiz sur votre tablette : il fonctionnera même sans réseau.</p>
+      <h2>Préparer l'état des lieux</h2>
+      <p>
+        Ouvrez la page une fois sur votre tablette, chez vous, et installez-la. Le jour de la
+        visite, le réseau n'aura plus d'importance.
+      </p>
       <div class="actions">
         <a class="bouton bouton--principal" href="/app/#/edl/nouveau">Faire un état des lieux</a>
         <a class="bouton bouton--secondaire" href="/bail-meuble/">Voir le bail meublé</a>
